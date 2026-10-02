@@ -1,0 +1,26 @@
+﻿services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stajdesk
+
+  adminer:
+    image: adminer
+    ports:
+      - "9090:8080"
+    depends_on:
+      - postgres
+    networks:
+      - stajdesk
+
+volumes:
+  postgres_data:
+
+networks:
+  stajdesk:
