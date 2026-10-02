@@ -2,169 +2,141 @@
 
 ## Çarşamba — Gün 1/48
 
-**Tarih: /**
+****Tarih: /****
 
 ### Bugün Öğrendiklerim
 
-Stajın amacı ve StajDesk projesi hakkında bilgi edindim.
-16 haftalık staj yol haritasını inceledim.
-Bir yazılım ekibinin çalışma düzeni hakkında bilgi edindim.
-Jira'nın görev takibi için kullanıldığını öğrendim.
-Git'in sürüm kontrolü için kullanıldığını öğrendim.
-Kod incelemesinin (code review) neden yapıldığını öğrendim.
+Stajın amacı, StajDesk projesi ve 16 haftalık staj yol haritası hakkında bilgi edindim.
+
+Bir yazılım ekibinde Jira'nın görev takibi, Git'in sürüm kontrolü ve code review'nun kod kalitesini kontrol etmek için kullanıldığını öğrendim.
+
 VS Code, Git, .NET SDK, Node.js ve Docker Desktop araçlarının kullanım amaçlarını öğrendim.
 
 ### Kurulum Kontrolleri
 
 `dotnet --version` → 10.0.401
+
 `node -v` → v26.10.0
+
 `git --version` → git version 2.55.0.windows.5
+
 `docker --version` → Docker version 29.8.0, build 88096ef
 
 ### Gün Sonu
 
-Gerekli geliştirme araçlarını kurdum ve çalışıp çalışmadıklarını terminal üzerinden kontrol ettim. `stajdesk` klasörünü oluşturdum ve içerisine `LOG.md` dosyasını ekledim.
+Gerekli geliştirme araçlarını kurdum ve çalıştıklarını kontrol ettim. `stajdesk` klasörünü ve `LOG.md` dosyasını oluşturdum.
+
+---
 
 ## Perşembe — Gün 2/48
 
-**Tarih: /**
+****Tarih: /****
 
 ### Bugün Öğrendiklerim
 
 Terminalde `cd`, `ls`, `dir` ve `mkdir` komutlarını öğrendim.
-Göreli ve mutlak dosya yolları arasındaki farkı öğrendim.
-Git'in ne olduğunu ve neden kullanıldığını öğrendim.
-Repository (repo), commit, branch, merge ve remote kavramlarını öğrendim.
+
+Göreli ve mutlak dosya yollarını öğrendim.
+
+Git'te repository, commit, branch, merge ve remote kavramlarını öğrendim.
+
 Anlamlı commit mesajlarının nasıl yazılması gerektiğini öğrendim.
 
 ### Yaptıklarım
 
-Şirket Git sunucusunda `stajdesk` reposu oluşturdum.
-Repoyu bilgisayarıma klonladım.
-`README.md` dosyası oluşturdum.
-Kendimi ve projeyi tanıtan bilgiler ekledim.
+Şirket Git sunucusunda `stajdesk` reposu oluşturdum ve bilgisayarıma klonladım.
+
+`README.md` dosyası oluşturarak kendimi ve projeyi tanıttım.
+
 En az 5 anlamlı commit oluşturdum.
-Deneme branch'i oluşturdum.
-Branch üzerinde değişiklik yaptım.
-Değişiklikleri ana dala merge ettim.
+
+Deneme branch'i açarak değişiklik yaptım ve ana dala merge ettim.
 
 ### Gün Sonu
 
-StajDesk deposunu oluşturdum ve bilgisayarıma klonladım. Git üzerinde commit, branch ve merge işlemlerini uyguladım. Depo bağlantısını mentorla paylaştım.
+Git üzerinde repository, commit, branch ve merge işlemlerini uyguladım. Depo bağlantısını mentorla paylaştım.
+
+---
 
 ## Cuma — Gün 3/48
 
-**Tarih: /**
+****Tarih: /****
 
 ### Bugün Öğrendiklerim
 
-Web'in istemci (client) ve sunucu (server) mantığıyla çalıştığını öğrendim.
-Tarayıcının istemci olarak sunucuya istek gönderdiğini öğrendim.
-URL'nin bir web sayfasına veya kaynağa ulaşmak için kullanılan adres olduğunu öğrendim.
-DNS'in alan adlarını IP adresleriyle eşleştirdiğini öğrendim.
-HTTP'nin istemci ve sunucu arasındaki iletişimi sağlamak için kullanıldığını öğrendim.
-GET, POST, PUT ve DELETE HTTP metotlarının ne amaçla kullanıldığını öğrendim.
-HTTP durum kodlarının sunucunun isteğe verdiği sonucu gösterdiğini öğrendim.
-200, 201, 400, 401, 404 ve 500 durum kodlarının ne anlama geldiğini öğrendim.
-JSON veri formatının istemci ve sunucu arasında veri göndermek için kullanıldığını öğrendim.
-Tarayıcı geliştirici araçlarında bulunan Network sekmesinin web isteklerini incelemek için kullanıldığını öğrendim.
+Web'in istemci ve sunucu mantığıyla çalıştığını öğrendim.
+
+URL, DNS ve HTTP'nin web üzerindeki görevlerini öğrendim.
+
+GET, POST, PUT ve DELETE metotlarını inceledim.
+
+200, 201, 400, 401, 404 ve 500 HTTP durum kodlarının anlamlarını öğrendim.
+
+JSON veri formatını ve tarayıcının Network sekmesini inceledim.
 
 ### Yaptıklarım
 
-Tarayıcı geliştirici araçlarını açtım ve Network sekmesini inceledim.
-3 farklı web sitesinde yapılan HTTP isteklerini gözlemledim.
-İsteklerin HTTP metotlarını ve durum kodlarını kontrol ettim.
-İstek adreslerini ve URL yapılarını inceledim.
-`jsonplaceholder.typicode.com` üzerinde GET isteği gönderdim.
-GET isteğinden dönen JSON verisini inceledim.
-Postman/Bruno kullanarak POST isteği gönderdim.
-POST isteğinde JSON formatında örnek veri gönderdim.
-HTTP isteği ile HTTP yanıtı arasındaki farkı gözlemledim.
+3 farklı web sitesinin Network sekmesindeki HTTP isteklerini inceledim.
 
-### Network İncelemeleri
-
-| Site      | Metot | Adres                      | Durum Kodu |
-| --------- | ----- | -------------------------- | ---------- |
-| Google    | GET   | https://www.google.com/    | 200        |
-| GitHub    | GET   | https://github.com/        | 200        |
-| Wikipedia | GET   | https://www.wikipedia.org/ | 200        |
-
-### Postman / Bruno Çalışması
+| Site      | Metot | Durum Kodu |
+| --------- | ----- | ---------- |
+| Google    | GET   | 200        |
+| GitHub    | GET   | 200        |
+| Wikipedia | GET   | 200        |
 
 `jsonplaceholder.typicode.com` üzerinde GET ve POST istekleri gönderdim.
 
-GET isteğinde sunucudan JSON formatında veri aldım. POST isteğinde ise sunucuya JSON formatında örnek veri gönderdim.
-
-```json
-{
-  "title": "StajDesk",
-  "body": "HTTP ve JSON çalışması",
-  "userId": 1
-}
-```
-
-Gönderdiğim isteğe sunucudan gelen yanıtı inceleyerek JSON verisinin nasıl kullanıldığını gördüm.
+POST isteğinde JSON formatında örnek veri kullandım.
 
 ### Kavrama Soruları
 
 **1. Tarayıcıya bir adres yazıp Enter'a bastığınızda neler olur?**
 
-Tarayıcıya bir adres yazıp Enter'a bastığımda öncelikle URL işlenir. Alan adının hangi sunucuya ait olduğunu bulmak için DNS kullanılır. Daha sonra tarayıcı sunucuya HTTP veya HTTPS üzerinden bir istek gönderir. Sunucu isteği işleyerek tarayıcıya bir yanıt gönderir. Tarayıcı da gelen verileri işleyerek web sayfasını ekranda gösterir.
+URL işlenir, DNS ile alan adının IP adresi bulunur. Tarayıcı sunucuya HTTP/HTTPS isteği gönderir. Sunucu yanıt verir ve tarayıcı gelen verileri işleyerek sayfayı gösterir.
 
 **2. Commit ile push arasındaki fark nedir?**
 
-Commit, yaptığım değişiklikleri kendi bilgisayarımdaki Git geçmişine kaydetmektir. Push ise commitlediğim değişiklikleri uzak repository'ye göndermektir. Yani commit değişiklikleri yerel olarak kaydeder, push ise bu değişiklikleri remote repository'ye gönderir.
+Commit değişiklikleri yerel Git geçmişine kaydeder. Push ise commitleri uzak repository'ye gönderir.
 
-**3. 404 ile 500 durum kodu arasındaki fark nedir? Hangisi kimin hatasıdır?**
+**3. 404 ile 500 arasındaki fark nedir?**
 
-404 durum kodu, istenen kaynağın bulunamadığını gösterir. Örneğin yanlış veya bulunmayan bir URL'ye istek gönderildiğinde 404 alınabilir.
-
-500 durum kodu ise sunucu tarafında beklenmeyen bir hata oluştuğunu gösterir. 404 kaynağın bulunamamasıyla, 500 ise sunucunun isteği işlerken yaşadığı hatayla ilgilidir.
+404 istenen kaynağın bulunamadığını, 500 ise sunucu tarafında beklenmeyen bir hata oluştuğunu gösterir.
 
 ### Gün Sonu
 
-Bugün web'in istemci ve sunucu arasındaki çalışma mantığını öğrendim. HTTP metotlarını, durum kodlarını ve JSON veri formatını inceledim. Network sekmesinden farklı web sitelerindeki istekleri gözlemledim. Postman/Bruno kullanarak GET ve POST istekleri gönderdim. Böylece tarayıcıya bir adres yazdığımda arka planda gerçekleşen işlemleri daha iyi anlamaya başladım.
+HTTP istek ve yanıtlarının nasıl çalıştığını, HTTP metotlarını ve durum kodlarını daha iyi anlamaya başladım. Postman/Bruno ve Network sekmesini kullanarak pratik yaptım.
+
+---
 
 # Hafta 2 | Docker ile Tanışma
-
-**Haftanın hedefi:** Konteyner mantığını anlamak; image, container, volume ve Docker Compose kavramlarını uygulamalı öğrenmek.
 
 ## Çarşamba — Gün 4/48
 
 ### Konteyner nedir, neden Docker?
 
-**Tarih: /**
+****Tarih: /****
 
 ### Bugün Öğrendiklerim
 
 Docker'ın uygulamaları farklı bilgisayarlarda benzer ortamlarda çalıştırmak için kullanıldığını öğrendim.
-"Benim bilgisayarımda çalışıyordu" probleminin ortam ve bağımlılık farklılıklarından kaynaklanabileceğini öğrendim.
+
+"Benim bilgisayarımda çalışıyordu" problemini ve Docker'ın bu problemi azaltmadaki rolünü öğrendim.
+
 Image ve container arasındaki farkı öğrendim.
-Docker image'ın uygulama için gerekli dosya ve yapılandırmaları içeren bir şablon, container'ın ise bu image'dan oluşturulan çalışan örnek olduğunu öğrendim.
-Docker Hub'ın hazır image'ların bulunduğu bir platform olduğunu öğrendim.
-Port mapping işleminin bilgisayardaki bir portu container içerisindeki bir porta bağladığını öğrendim.
-Containerların oluşturulabileceğini, çalıştırılabileceğini, durdurulabileceğini ve silinebileceğini öğrendim.
+
+Docker Hub, port mapping ve container yaşam döngüsü hakkında bilgi edindim.
 
 ### Yaptıklarım
 
-`docker run hello-world` komutunu çalıştırarak Docker'ın düzgün çalıştığını kontrol ettim.
-`docker run -d -p 8080:80 nginx` komutu ile Nginx web sunucusunu container içerisinde çalıştırdım.
-Tarayıcı üzerinden `localhost:8080` adresine giderek Nginx'i görüntüledim.
-`docker ps` ile çalışan containerları listeledim.
-`docker logs` ile container loglarını inceledim.
-`docker stop` ile containerı durdurdum.
-`docker rm` ile durdurduğum containerı sildim.
+`docker run hello-world` komutunu çalıştırarak Docker'ı test ettim.
+
+`docker run -d -p 8080:80 nginx` komutu ile Nginx çalıştırdım.
+
+`localhost:8080` üzerinden Nginx sayfasını açtım.
+
+`docker ps`, `docker logs`, `docker stop` ve `docker rm` komutlarını kullandım.
+
 8080 portunun container içerisindeki 80 portuna yönlendirildiğini gözlemledim.
-
-### Docker Komutları
-
-`docker run` → Container oluşturup çalıştırmak için kullanılır.
-`docker ps` → Çalışan containerları listeler.
-`docker logs` → Container loglarını görüntüler.
-`docker stop` → Çalışan containerı durdurur.
-`docker rm` → Durdurulmuş containerı siler.
-`docker images` → Bilgisayardaki image'ları listeler.
-`docker pull` → Docker Hub üzerinden image indirir.
 
 ### Kavrama Soruları
 
@@ -174,63 +146,110 @@ Image, container oluşturmak için kullanılan şablondur. Container ise bu imag
 
 **2. Docker neden "benim bilgisayarımda çalışıyordu" problemini azaltır?**
 
-Uygulamanın ihtiyaç duyduğu ortam ve bağımlılıkları container içerisinde tuttuğu için farklı bilgisayarlardaki ortam farklılıklarını azaltır.
+Uygulamanın ihtiyaç duyduğu ortam ve bağımlılıkları container içerisinde tutarak ortam farklılıklarını azaltır.
 
 **3. 8080:80 port eşlemesi ne anlama gelir?**
 
-Bilgisayarımın 8080 portunun container içerisindeki 80 portuna bağlanması anlamına gelir. Böylece `localhost:8080` üzerinden Nginx'e erişilebilir.
+Bilgisayarımın 8080 portunun container içerisindeki 80 portuna bağlanmasıdır.
 
 ### Gün Sonu
 
-Bugün Docker'ın temel çalışma mantığını ve container kullanımını öğrendim. Nginx çalıştırarak port mapping işlemini uyguladım. Temel Docker komutlarını kullanarak container oluşturma, görüntüleme, durdurma ve silme işlemlerini gerçekleştirdim.
+Docker'ın temel çalışma mantığını öğrendim ve Nginx çalıştırarak container, image ve port mapping kavramlarını uygulamalı olarak gördüm.
+
+---
 
 ## Perşembe — Gün 5/48
 
-### Dockerfile yazmak
+### Dockerfile Yazmak
 
-**Tarih: /**
+****Tarih: /****
 
 ### Bugün Öğrendiklerim
 
-Dockerfile'ın Docker image oluşturmak için kullanılan bir dosya olduğunu öğrendim.
-`FROM`, `WORKDIR`, `COPY`, `RUN`, `EXPOSE` ve `CMD` komutlarının kullanım amaçlarını öğrendim.
-Docker image'larının katmanlardan oluştuğunu ve build önbelleğinin daha önce oluşturulan katmanları tekrar kullanabildiğini öğrendim.
-Volume kullanarak verilerin container'ın yaşam döngüsünden bağımsız saklanabileceğini öğrendim.
+Dockerfile'ın Docker image oluşturmak için kullanıldığını öğrendim.
+
+`FROM`, `WORKDIR`, `COPY`, `RUN`, `EXPOSE` ve `CMD` komutlarının görevlerini öğrendim.
+
+Image katmanları, build önbelleği ve volume kavramları hakkında bilgi edindim.
 
 ### Yaptıklarım
 
 Kendimi tanıtan basit bir HTML sayfası hazırladım.
+
 Nginx tabanlı bir Dockerfile oluşturdum.
-Hazırladığım HTML dosyasını `COPY` komutu ile Nginx içerisine kopyaladım.
-`docker build` komutu ile kendi image'ımı oluşturdum.
-`docker images` komutu ile image'ımı kontrol ettim.
-`docker run` komutu ile image'ımdan container oluşturup çalıştırdım.
-Tarayıcı üzerinden HTML sayfamı görüntüledim.
-Dockerfile ve HTML dosyalarımı Git reposuna ekleyerek commit ettim.
 
-### Dockerfile Komutları
+HTML dosyamı `COPY` ile image içerisine ekledim.
 
-`FROM` → Temel image'ı belirler.
-`WORKDIR` → Çalışma dizinini belirler.
-`COPY` → Dosyaları image içerisine kopyalar.
-`RUN` → Image oluşturulurken komut çalıştırır.
-`EXPOSE` → Kullanılacak portu belirtir.
-`CMD` → Container başlatıldığında çalışacak varsayılan komutu belirler.
+`docker build` ile kendi image'ımı oluşturdum ve `docker run` ile çalıştırdım.
+
+HTML sayfamı tarayıcı üzerinden görüntüledim.
+
+Dockerfile ve HTML dosyalarımı Git reposuna commit ettim.
 
 ### Kavrama Soruları
 
-**1. Dockerfile nedir ve ne amaçla kullanılır?**
+**1. Dockerfile nedir?**
 
-Dockerfile, Docker image'ın nasıl oluşturulacağını belirleyen dosyadır. İçerisinde kullanılacak image, dosyalar ve çalıştırılacak komutlar gibi bilgiler bulunur.
+Docker image'ın nasıl oluşturulacağını belirleyen dosyadır.
 
 **2. `COPY` ile `RUN` arasındaki fark nedir?**
 
-`COPY` dosyaları image içerisine kopyalamak için, `RUN` ise image oluşturulurken komut çalıştırmak için kullanılır.
+`COPY` dosya kopyalamak, `RUN` ise image oluşturulurken komut çalıştırmak için kullanılır.
 
 **3. Container silindiğinde veriler neden kaybolabilir?**
 
-Container içerisindeki veriler container'ın kendi dosya sisteminde tutuluyorsa container silindiğinde bu veriler de kaybolabilir. Kalıcı veriler için volume kullanılabilir.
+Container içerisindeki dosyalar container ile birlikte silinebileceği için kalıcı verilerde volume kullanılır.
 
 ### Gün Sonu
 
-Bugün Dockerfile kullanarak kendi image'ımı oluşturmayı öğrendim. Temel Dockerfile komutlarını inceledim. Kendimi tanıtan HTML sayfasını Nginx tabanlı bir image içerisinde çalıştırdım. `docker build` ve `docker run` komutlarını kullanarak image oluşturma ve container çalıştırma işlemlerini uyguladım. Ayrıca image katmanları, build önbelleği ve volume hakkında bilgi edindim. Oluşturduğum dosyaları Git reposuna commit ettim.
+Dockerfile kullanarak kendi image'ımı oluşturmayı ve bu image'dan container çalıştırmayı öğrendim. Oluşturduğum dosyaları Git reposuna ekledim.
+
+---
+
+## Cuma — Gün 6/48
+
+### Docker Compose ve Proje Mimarisi
+
+****Tarih: /****
+
+### Bugün Öğrendiklerim
+
+Docker Compose'un birden fazla containerı birlikte yönetmek için kullanıldığını öğrendim.
+
+Docker network, environment variable ve volume kavramlarını öğrendim.
+
+PostgreSQL'in veritabanı, Adminer'ın ise veritabanını yönetmek için kullanılan bir arayüz olduğunu öğrendim.
+
+StajDesk projesindeki servislerin nasıl birlikte çalıştığı hakkında bilgi edindim.
+
+### Yaptıklarım
+
+Docker Compose ile PostgreSQL ve Adminer servislerini çalıştırdım.
+
+Adminer üzerinden PostgreSQL veritabanına bağlandım.
+
+Volume kullanarak verilerin container silinse bile korunmasını sağladım ve test ettim.
+
+Docker network üzerinden servislerin birbiriyle iletişim kurduğunu gözlemledim.
+
+### Kavrama Soruları
+
+**1. Image ile container arasındaki farkı bir benzetmeyle açıklayınız.**
+
+Image'ı bir kalıp, containerı ise bu kalıptan oluşturulan gerçek ürün gibi düşünebilirim.
+
+**2. Volume olmasaydı veritabanı containerı silindiğinde ne olurdu?**
+
+Container içerisindeki veriler kaybolabilirdi. Volume kullanarak verilerin korunmasını sağlayabiliriz.
+
+**3. Neden PostgreSQL'i Docker ile kullanıyoruz?**
+
+Her geliştiricinin bilgisayarına ayrı ayrı kurulum yapmak yerine Docker ile daha benzer ve kolay yönetilebilir bir ortam oluşturabiliriz.
+
+### Git İşlemleri
+
+Gün 6'da yaptığım Docker Compose çalışmalarını Git'e commit ettim ve GitHub repository'me pushladım.
+
+### Gün Sonu
+
+Bugün Docker Compose ile PostgreSQL ve Adminer servislerini birlikte çalıştırdım. Volume, network ve environment variable kavramlarını uygulamalı olarak öğrendim. Yaptığım çalışmaları GitHub'a pushladım.
