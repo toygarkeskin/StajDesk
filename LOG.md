@@ -30,6 +30,8 @@ Gerekli geliştirme araçlarını kurdum ve çalıştıklarını kontrol ettim. 
 
 ## Perşembe — Gün 2/48
 
+### Git ve Terminal Temelleri
+
 ****Tarih: /****
 
 ### Bugün Öğrendiklerim
@@ -39,6 +41,10 @@ Terminalde `cd`, `ls`, `dir` ve `mkdir` komutlarını öğrendim.
 Göreli ve mutlak dosya yollarını öğrendim.
 
 Git'te repository, commit, branch, merge ve remote kavramlarını öğrendim.
+
+Git repository'sinin proje dosyalarının ve değişiklik geçmişinin takip edildiği yapı olduğunu öğrendim.
+
+Commit'in yapılan değişiklikleri yerel Git geçmişine kaydettiğini, push işleminin ise commitleri uzak repository'ye gönderdiğini öğrendim.
 
 Anlamlı commit mesajlarının nasıl yazılması gerektiğini öğrendim.
 
@@ -60,6 +66,8 @@ Git üzerinde repository, commit, branch ve merge işlemlerini uyguladım. Depo 
 
 ## Cuma — Gün 3/48
 
+### Web Temelleri ve HTTP
+
 ****Tarih: /****
 
 ### Bugün Öğrendiklerim
@@ -79,10 +87,10 @@ JSON veri formatını ve tarayıcının Network sekmesini inceledim.
 3 farklı web sitesinin Network sekmesindeki HTTP isteklerini inceledim.
 
 | Site      | Metot | Durum Kodu |
-| --------- | ----- | ---------- |
-| Google    | GET   | 200        |
-| GitHub    | GET   | 200        |
-| Wikipedia | GET   | 200        |
+| --------- | ----- | ---------: |
+| Google    | GET   |        200 |
+| GitHub    | GET   |        200 |
+| Wikipedia | GET   |        200 |
 
 `jsonplaceholder.typicode.com` üzerinde GET ve POST istekleri gönderdim.
 
@@ -253,3 +261,113 @@ Gün 6'da yaptığım Docker Compose çalışmalarını Git'e commit ettim ve Gi
 ### Gün Sonu
 
 Bugün Docker Compose ile PostgreSQL ve Adminer servislerini birlikte çalıştırdım. Volume, network ve environment variable kavramlarını uygulamalı olarak öğrendim. Yaptığım çalışmaları GitHub'a pushladım.
+
+---
+
+# Hafta 3 | C# Temelleri
+
+## Çarşamba — Gün 7/48
+
+### Neden .NET? İlk C# Programı
+
+****Tarih: /****
+
+### Bugün Öğrendiklerim
+
+.NET'in C# gibi programlama dilleriyle uygulama geliştirmek için kullanılan bir geliştirme platformu olduğunu öğrendim.
+
+.NET'in güçlü tip sistemi, yüksek performans, geniş kurumsal ekosistem ve çapraz platform desteği gibi avantajlarını öğrendim.
+
+C# ile .NET arasındaki ilişkiyi ve VS Code'un kod yazmak için kullanılan bir geliştirme ortamı olduğunu öğrendim.
+
+`dotnet new console` komutu ile yeni bir C# konsol projesi oluşturmayı öğrendim.
+
+`dotnet run` komutu ile C# konsol uygulamasını çalıştırmayı öğrendim.
+
+`.csproj` dosyasının C# projesinin yapılandırma dosyası olduğunu ve proje ile ilgili .NET sürümü, paketler ve diğer proje ayarlarının burada tutulabildiğini öğrendim.
+
+C# dilinde `int`, `decimal`, `string`, `bool` ve `DateTime` gibi temel veri tiplerini öğrendim.
+
+Kullanıcıdan alınan verilerin `Console.ReadLine()` ile `string` olarak geldiğini ve gerektiğinde uygun veri tipine dönüştürülmesi gerektiğini öğrendim.
+
+`int.TryParse()` kullanarak kullanıcıdan alınan metin değerinin güvenli bir şekilde tam sayıya dönüştürülmesini ve hatalı girişlerde programın çökmemesini öğrendim.
+
+`while`, `break`, `if`, `else if` ve `else` gibi temel kontrol yapılarını kullanmayı öğrendim.
+
+### Yaptıklarım
+
+`dotnet new console --force` komutu ile konsol uygulaması projesi oluşturdum.
+
+`dotnet run` komutunu kullanarak oluşturduğum C# konsol uygulamasını çalıştırdım.
+
+Kullanıcıdan veri almak için `Console.ReadLine()` kullandım.
+
+Üç farklı notu kullanıcıdan alan bir konsol uygulaması geliştirdim.
+
+Girilen değerlerin `int.TryParse()` ile sayı olup olmadığını kontrol ettim.
+
+Girilen notların 0 ile 100 arasında olup olmadığını kontrol ederek geçersiz girişlerde kullanıcıdan tekrar not istedim.
+
+`while` döngüsü kullanarak geçersiz girişlerde kullanıcıdan tekrar veri alınmasını sağladım.
+
+Üç notun ortalamasını `decimal` kullanarak hesapladım.
+
+Ortalama sonucuna göre A, B, C, D veya F harf notunu belirleyen `if / else if / else` yapısını kullandım.
+
+Ortalama değerini ekrana iki ondalık basamakla yazdırdım.
+
+Programı doğru ve hatalı girişlerle test ettim.
+
+C# projemi Git repository'sine ekledim ve `.gitignore` kullanarak `bin` ve `obj` gibi derleme klasörlerinin repository'ye eklenmesini engelledim.
+
+Not hesaplayıcı uygulamasını commit ederek uzak Git repository'sine pushladım.
+
+### Kavrama Soruları
+
+**1. C# ile .NET arasındaki ilişki nedir?**
+
+C# bir programlama dilidir. .NET ise C# ile geliştirilen uygulamaları oluşturmak, derlemek ve çalıştırmak için kullanılan geliştirme platformudur.
+
+**2. `dotnet new console` komutu ne işe yarar?**
+
+Yeni bir .NET konsol uygulaması projesi oluşturmak için kullanılır.
+
+**3. `dotnet run` komutu ne işe yarar?**
+
+.NET projesini derleyerek çalıştırır ve konsol uygulamasını başlatır.
+
+**4. `.csproj` dosyası nedir?**
+
+C# projesinin yapılandırma dosyasıdır. Projenin hedeflediği .NET sürümü ve proje ile ilgili çeşitli ayarlar burada tutulabilir.
+
+**5. `int` ile `string` arasındaki fark nedir?**
+
+`int` tam sayıları, `string` ise metinleri tutmak için kullanılan veri tipleridir. Örneğin `85` bir `int`, `"85"` ise bir `string` değeridir.
+
+**6. `int.TryParse()` neden kullanılır?**
+
+Kullanıcıdan alınan `string` değerin `int` türüne dönüştürülüp dönüştürülemeyeceğini kontrol etmek için kullanılır. Dönüşüm başarısız olduğunda exception oluşturarak programı sonlandırmak yerine `false` döndürür.
+
+**7. Neden notları 0 ile 100 arasında kontrol ettik?**
+
+Not değerinin geçerli bir aralıkta olmasını sağlamak için kontrol yaptık. 0'dan küçük veya 100'den büyük değerlerin programa kabul edilmesini engelledik.
+
+**8. `while` döngüsünü neden kullandık?**
+
+Kullanıcı hatalı bir değer girdiğinde programın tekrar not istemesi için `while` döngüsünü kullandık. Geçerli bir not girildiğinde `break` ile döngüden çıktık.
+
+**9. `decimal` neden ortalama hesabında kullanıldı?**
+
+Ortalama tam sayı olmayabileceği için ondalıklı sonuçları daha uygun şekilde göstermek amacıyla `decimal` kullandım.
+
+**10. `3m` ifadesindeki `m` ne anlama gelir?**
+
+`m` ifadesi sayının `decimal` türünde olduğunu belirtir. Bu nedenle `(note1 + note2 + note3) / 3m` işleminde bölme işlemi decimal türünde gerçekleştirilir.
+
+### Gün Sonu
+
+Bugün C# ve .NET'in temel yapılarını öğrenerek ilk konsol uygulamamı geliştirdim. Değişkenler, veri tipleri, kullanıcıdan veri alma, tip dönüşümü, `TryParse`, döngüler ve koşul ifadelerini uygulamalı olarak kullandım.
+
+Üç not alan, hatalı girişlerde çökmeyen, ortalamayı hesaplayan ve harf notunu belirleyen bir **Not Hesaplayıcı** uygulaması geliştirdim.
+
+Çalışmamı Git repository'sine commit ederek uzak repository'ye pushladım.
