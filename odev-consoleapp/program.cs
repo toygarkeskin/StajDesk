@@ -1,4 +1,5 @@
-﻿int note1;
+﻿Console.WriteLine("=== NOT HESAPLAYICI ===");
+int note1;
 
 while (true)
 {Console.WriteLine("1.Notu Giriniz");
