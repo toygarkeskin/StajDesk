@@ -1,465 +1,591 @@
-# StajDesk Öğrenme Günlüğü
+# StajDesk - Öğrenim Günlüğü
 
-## Çarşamba — Gün 1/48
-
-**Tarih: /**
-
-### Bugün Öğrendiklerim
-
-Bugün stajın nasıl ilerleyeceği, StajDesk projesinin amacı ve önümüzdeki 16 haftalık süreç hakkında genel bir bilgilendirme aldım.
-
-Yazılım geliştirme sürecinde sadece kod yazmanın yeterli olmadığını, yapılan işlerin düzenli şekilde takip edilmesinin de önemli olduğunu öğrendim. Bu kapsamda Jira'nın görev takibi, Git'in kod ve değişiklik takibi, code review'nun ise yazılan kodun kontrol edilmesi ve geliştirilmesi amacıyla kullanıldığını öğrendim.
-
-Staj boyunca kullanacağım temel geliştirme araçlarını da tanıdım. VS Code'un kod geliştirmek için, .NET SDK'nın .NET uygulamaları geliştirmek için, Node.js'in JavaScript tabanlı geliştirme ortamları için ve Docker Desktop'ın container işlemleri için kullanıldığını öğrendim.
-
-### Kurulum Kontrolleri
-
-Kurulumlardan sonra terminal üzerinden gerekli araçların doğru şekilde çalıştığını kontrol ettim.
-
-`dotnet --version` → 10.0.401
-
-`node -v` → v26.10.0
-
-`git --version` → git version 2.55.0.windows.5
-
-`docker --version` → Docker version 29.8.0, build 88096ef
-
-### Gün Sonu
-
-Bugün daha çok staj ortamına ve kullanılacak araçlara alışmaya çalıştım. Gerekli geliştirme araçlarını kurup çalıştıklarını kontrol ettim. Ayrıca `stajdesk` klasörünü ve `LOG.md` dosyasını oluşturarak öğrendiklerimi düzenli şekilde kayıt altına almaya başladım.
+Bu dosya, staj süresince öğrendiğim konuları, yaptığım uygulamaları ve günlük notlarımı içermektedir.
 
 ---
 
-## Perşembe — Gün 2/48
+# FAZ 0 · TEMELLER
 
-### Git ve Terminal Temelleri
+## HAFTA 1 · Başlangıç, Git ve Web'in Çalışma Mantığı
 
-**Tarih: /**
+### Gün 1/48 · Tanışma ve Ortam Kurulumu
 
-### Bugün Öğrendiklerim
+**Tarih:** ____ / ____
 
-Bugün terminal ve Git'in temel kullanımını öğrendim.
+### Öğrendiklerim
 
-Terminal üzerinde `cd`, `ls`, `dir` ve `mkdir` gibi komutları kullanarak klasörler arasında dolaşmayı ve yeni klasörler oluşturmayı denedim. Göreli ve mutlak dosya yollarının arasındaki farkı uygulama yaparak daha iyi anlamaya çalıştım.
+Stajın amacı, StajDesk projesinin genel yapısı ve 16 haftalık çalışma planı hakkında bilgi edindim.
 
-Git tarafında repository, commit, branch, merge ve remote gibi temel kavramları öğrendim. Özellikle commit ile push arasındaki farkı uygulamalı olarak görmek benim için faydalı oldu. Commit'in değişiklikleri kendi bilgisayarımızdaki Git geçmişine kaydettiğini, push işleminin ise bu commitleri uzak repository'ye gönderdiğini öğrendim.
+Bir yazılım ekibinin birlikte çalışırken kullandığı bazı araçları öğrendim:
 
-Ayrıca commit mesajlarının sadece değişikliği kaydetmek için değil, yapılan değişikliği sonradan anlayabilmek için de önemli olduğunu öğrendim.
+- Jira: Görevlerin takip edilmesi ve planlanması için kullanılır.
+- Git: Kodların sürümlerini takip etmek için kullanılır.
+- Kod incelemesi: Yazılan kodun ekip içerisindeki diğer geliştiriciler tarafından kontrol edilmesini sağlar.
 
-### Yaptıklarım
+Ayrıca geliştirme sırasında kullanılacak araçların görevlerini öğrendim:
 
-Şirket Git sunucusunda `stajdesk` repository'si oluşturdum ve repository'yi bilgisayarıma klonladım.
+- VS Code: Kod yazmak için kullandığım geliştirme ortamı.
+- Git: Sürüm kontrol sistemi.
+- .NET SDK: C# ve .NET uygulamalarını geliştirmek ve çalıştırmak için kullanılır.
+- Node.js: JavaScript tabanlı araçları ve uygulamaları çalıştırmak için kullanılır.
+- Docker Desktop: Konteyner tabanlı uygulamaları çalıştırmak ve yönetmek için kullanılır.
 
-Projeye bir `README.md` dosyası ekleyerek proje hakkında temel bilgileri yazdım.
+### Uygulamalar
 
-Farklı değişiklikler yaparak birkaç commit oluşturdum ve commit mesajlarını mümkün olduğunca yaptığım işlemi anlatacak şekilde yazmaya çalıştım.
+Kullandığım araçların kurulu olup olmadığını kontrol etmek için aşağıdaki komutları öğrendim:
 
-Ayrıca deneme amaçlı bir branch oluşturdum. Branch üzerinde değişiklik yaptıktan sonra bu değişiklikleri ana branch'e merge ettim.
+```bash
+dotnet --version
+node -v
+git --version
+docker --version
+```
 
-### Gün Sonu
+### Not
 
-Bugün Git'in sadece dosyaları saklamak için kullanılan bir araç olmadığını, ekip içerisinde yapılan değişiklikleri düzenli takip etmek için önemli olduğunu daha iyi anladım.
-
-Özellikle branch ve merge işlemlerini kendim uygulayınca konular daha anlaşılır hale geldi.
+Masaüstünde `StajDesk` klasörü oluşturuldu ve öğrenme günlüğü olarak `LOG.md` dosyası kullanılmaya başlandı.
 
 ---
 
-## Cuma — Gün 3/48
+## Gün 2/48 · Terminal ve Git Temelleri
 
-### Web Temelleri ve HTTP
+**Tarih:** ____ / ____
 
-**Tarih: /**
+### Öğrendiklerim
 
-### Bugün Öğrendiklerim
+Terminal üzerinden klasörler arasında geçiş yapmayı ve dosyaların bulunduğu konumları anlamayı öğrendim.
 
-Bugün web uygulamalarının temel çalışma mantığını inceledim.
+Temel terminal komutları:
 
-Bir web uygulamasında istemci ve sunucunun nasıl iletişim kurduğunu öğrendim. URL, DNS ve HTTP'nin bu iletişimdeki görevlerini inceledim.
+```bash
+cd
+ls
+dir
+mkdir
+```
 
-GET, POST, PUT ve DELETE metotlarının farklı amaçlarla kullanıldığını öğrendim. Ayrıca HTTP durum kodlarını inceleyerek sunucudan gelen cevabın başarılı mı yoksa hatalı mı olduğunu anlamanın mümkün olduğunu gördüm.
+`cd` klasör değiştirmek için, `dir` ve `ls` bulunduğum klasördeki dosya ve klasörleri görmek için, `mkdir` ise yeni klasör oluşturmak için kullanılır.
 
-JSON formatını ve tarayıcıdaki Network sekmesini de inceledim. Network sekmesinin gönderilen istekleri ve sunucudan gelen cevapları incelemek için oldukça faydalı olduğunu gördüm.
+Dosya yollarında iki farklı yaklaşım olduğunu öğrendim:
 
-### Yaptıklarım
+- Mutlak yol: Dosyanın tam konumunu belirtir.
+- Göreli yol: Bulunduğum klasöre göre dosyanın konumunu belirtir.
 
-Farklı web sitelerinin Network sekmesindeki HTTP isteklerini inceledim.
+### Git
 
-| Site      | Metot | Durum Kodu |
-| --------- | ----- | ---------: |
-| Google    | GET   |        200 |
-| GitHub    | GET   |        200 |
-| Wikipedia | GET   |        200 |
+Git'in yazılım projelerinde sürüm kontrolü için kullanıldığını öğrendim.
 
-Daha sonra `jsonplaceholder.typicode.com` üzerinden GET ve POST istekleri gönderdim.
+Öğrendiğim temel kavramlar:
 
-POST isteğinde JSON formatında örnek veri göndererek istemciden sunucuya nasıl veri gönderildiğini uygulamalı olarak gördüm.
+- Repository (repo): Projenin ve Git geçmişinin tutulduğu alan.
+- Commit: Yapılan değişikliklerin Git geçmişine kaydedilmesi.
+- Branch: Ana koddan ayrılarak farklı bir çalışma alanı oluşturulması.
+- Merge: Bir branch'teki değişikliklerin başka bir branch ile birleştirilmesi.
+- Remote: Uzak Git deposu.
+
+İyi bir commit mesajının yapılan değişikliği açık ve anlaşılır şekilde ifade etmesi gerektiğini öğrendim.
+
+### Uygulamalar
+
+StajDesk deposunun oluşturulması ve bilgisayara klonlanması üzerinde çalıştım.
+
+README.md dosyasının amacı ve projeyi tanıtmak için nasıl kullanılabileceğini öğrendim.
+
+Ayrıca branch oluşturma, değişiklik yapma ve merge işlemlerini öğrendim.
+
+### Not
+
+Commit geçmişinin düzenli tutulmasının proje takibi açısından önemli olduğunu öğrendim.
+
+---
+
+## Gün 3/48 · Web Nasıl Çalışır? HTTP ve JSON
+
+**Tarih:** ____ / ____
+
+### Öğrendiklerim
+
+Bir web uygulamasında istemci ve sunucu arasında iletişim olduğunu öğrendim.
+
+- İstemci: İsteği yapan taraftır.
+- Sunucu: İsteği karşılayan ve cevap veren taraftır.
+
+URL yapısının web üzerindeki kaynağın adresini belirtmek için kullanıldığını öğrendim.
+
+DNS'in alan adlarının ilgili ağ adresleriyle eşleşmesini sağlayan yapıyla ilişkili olduğunu öğrendim.
+
+### HTTP Metotları
+
+Temel HTTP metotlarını öğrendim:
+
+```text
+GET     → Veri almak
+POST    → Veri göndermek/oluşturmak
+PUT     → Veri güncellemek
+DELETE  → Veri silmek
+```
+
+### Durum Kodları
+
+Bazı HTTP durum kodlarının anlamlarını öğrendim:
+
+```text
+200 → Başarılı
+201 → Oluşturuldu
+400 → Hatalı istek
+401 → Yetkisiz erişim
+404 → Bulunamadı
+500 → Sunucu hatası
+```
+
+### JSON
+
+JSON'ın veri alışverişinde kullanılan bir veri formatı olduğunu öğrendim.
+
+Web isteklerini tarayıcının geliştirici araçlarındaki **Network** sekmesinden inceleyebileceğimi öğrendim.
+
+### Uygulamalar
+
+Farklı sitelerin Network sekmesindeki istekleri inceleyerek HTTP metodunu, adresini ve durum kodunu gözlemledim.
+
+Postman veya Bruno kullanarak `jsonplaceholder.typicode.com` üzerinde GET ve POST istekleri göndermeyi öğrendim.
 
 ### Kavrama Soruları
 
-**1. Tarayıcıya bir adres yazıp Enter'a bastığımızda neler olur?**
+**1. Tarayıcıya bir adres yazıp Enter'a bastığınızda neler olur?**
 
-Öncelikle URL işlenir ve DNS üzerinden alan adının IP adresi bulunur. Daha sonra tarayıcı sunucuya HTTP/HTTPS isteği gönderir. Sunucudan gelen cevap tarayıcı tarafından işlenerek sayfa kullanıcıya gösterilir.
+Tarayıcı önce yazdığım adresi kullanarak istenen web kaynağına ulaşmaya çalışır. İstemci ve sunucu arasında bir HTTP isteği oluşur. Sunucu bu isteğe bir yanıt gönderir ve tarayıcı gelen yanıtı işleyerek sayfayı kullanıcıya gösterir.
 
 **2. Commit ile push arasındaki fark nedir?**
 
-Commit yaptığım değişiklikleri yerel Git geçmişine kaydeder. Push ise bu commitleri uzak repository'ye gönderir.
+Commit, yaptığım değişikliği kendi bilgisayarımdaki Git geçmişine kaydetmektir. Push ise bu commitleri uzak Git deposuna göndermektir.
 
 **3. 404 ile 500 arasındaki fark nedir?**
 
-404 istenen kaynağın bulunamadığını gösterir. 500 ise sunucu tarafında beklenmeyen bir hata oluştuğunu gösterir.
-
-### Gün Sonu
-
-Bugün web tarafındaki istek-cevap mantığını daha iyi anlamaya başladım. Özellikle Network sekmesinde gerçek istekleri görmek konunun sadece teorik olmadığını anlamamı sağladı.
-
-Postman/Bruno ve tarayıcı Network sekmesini kullanarak birkaç farklı HTTP isteği gönderip inceleme yaptım.
+404, istenen kaynağın bulunamadığını gösterir. 500 ise sunucu tarafında bir hata oluştuğunu gösterir. 404 genellikle istenen kaynak veya adresle ilgiliyken, 500 sunucu tarafındaki problemle ilgilidir.
 
 ---
 
-# Hafta 2 | Docker ile Tanışma
+# HAFTA 2 · Docker ile Tanışma
 
-## Çarşamba — Gün 4/48
+## Gün 4/48 · Konteyner Nedir, Neden Docker?
 
-### Konteyner Nedir, Neden Docker?
+**Tarih:** ____ / ____
 
-**Tarih: /**
+### Öğrendiklerim
 
-### Bugün Öğrendiklerim
+Docker'ın temel amacının uygulamanın çalıştığı ortamı daha taşınabilir ve tutarlı hale getirmek olduğunu öğrendim.
 
-Bugün Docker'ın temel çalışma mantığını öğrenmeye başladım.
+"Benim bilgisayarımda çalışıyordu" probleminin farklı bilgisayarlardaki ortam ve bağımlılık farklılıklarından kaynaklanabileceğini öğrendim.
 
-Bir uygulamanın farklı bilgisayarlarda çalışırken işletim sistemi, kütüphaneler veya kurulumlardan dolayı farklı sonuçlar verebileceğini öğrendim. Docker'ın uygulamayı ihtiyaç duyduğu ortamla birlikte container içerisinde çalıştırarak bu tür ortam farklılıklarını azaltmaya yardımcı olduğunu öğrendim.
+### Image ve Container
 
-Image ve container kavramlarının birbirinden farklı olduğunu öğrendim. Image'ı bir uygulamanın çalıştırılabilmesi için kullanılan hazır yapı, container'ı ise bu yapıdan oluşturulan çalışan örnek olarak düşünmeye başladım.
+Image ile container arasındaki farkı öğrendim.
 
-Ayrıca Docker Hub, port mapping ve container yaşam döngüsü hakkında temel bilgiler öğrendim.
+- Image: Uygulamanın çalışması için kullanılacak hazır paket/şablondur.
+- Container: Bu image'ın çalıştırılan örneğidir.
 
-### Yaptıklarım
+### Port Mapping
 
-İlk olarak:
+Konteyner içindeki bir portun bilgisayardaki farklı bir port üzerinden erişilebilir hale getirilebileceğini öğrendim.
 
-`docker run hello-world`
+### Docker Komutları
 
-komutunu çalıştırarak Docker kurulumumu test ettim.
+Aşağıdaki komutları öğrendim:
 
-Daha sonra:
+```bash
+docker run
+docker ps
+docker logs
+docker stop
+docker rm
+```
 
-`docker run -d -p 8080:80 nginx`
+`docker run` ile konteyner çalıştırılabilir, `docker ps` ile çalışan konteynerler görülebilir. `docker logs` konteyner çıktılarının incelenmesinde, `docker stop` durdurmada ve `docker rm` silmede kullanılır.
 
-komutuyla Nginx container'ı çalıştırdım.
+### Uygulamalar
 
-Tarayıcıdan `localhost:8080` adresine giderek Nginx'in çalıştığını kontrol ettim.
+```bash
+docker run hello-world
+```
 
-Container'ı incelemek için `docker ps` ve `docker logs` komutlarını kullandım. Daha sonra `docker stop` ve `docker rm` ile container'ı durdurup kaldırdım.
+komutunu kullanarak Docker'ın temel çalışma mantığını gözlemledim.
 
-Burada özellikle `8080:80` port eşlemesini uygulamalı olarak görmek faydalı oldu.
+Ayrıca:
 
-### Kavrama Soruları
+```bash
+docker run -d -p 8080:80 nginx
+```
 
-**1. Image ile container arasındaki fark nedir?**
-
-Image, container oluşturmak için kullanılan yapıdır. Container ise bu image'dan oluşturulan çalışan örnektir.
-
-**2. Docker neden "benim bilgisayarımda çalışıyordu" problemini azaltır?**
-
-Uygulamanın ihtiyaç duyduğu ortam ve bağımlılıkları container içerisinde tutarak farklı bilgisayarlardaki ortam farklarını azaltmaya yardımcı olur.
-
-**3. 8080:80 port eşlemesi ne anlama gelir?**
-
-Bilgisayarımın 8080 portuna gelen isteklerin container içerisindeki 80 portuna yönlendirilmesi anlamına gelir.
-
-### Gün Sonu
-
-Bugün Docker'ın temel mantığını sadece okuyarak değil, Nginx çalıştırarak uygulamalı şekilde gördüm.
-
-Özellikle container başlatma, durdurma ve silme işlemlerini kendim yapmak Docker'ın çalışma mantığını anlamama yardımcı oldu.
+komutu ile nginx tabanlı bir web sunucusu çalıştırmayı öğrendim.
 
 ---
 
-## Perşembe — Gün 5/48
+## Gün 5/48 · Dockerfile Yazmak
 
-### Dockerfile Yazmak
+**Tarih:** ____ / ____
 
-**Tarih: /**
+### Öğrendiklerim
 
-### Bugün Öğrendiklerim
+Dockerfile'ın bir Docker image'ının nasıl oluşturulacağını tarif eden dosya olduğunu öğrendim.
 
-Bugün kendi Docker image'ımı oluşturmayı öğrendim.
+Temel Dockerfile komutları:
 
-Dockerfile'ın bir image'ın nasıl oluşturulacağını tanımlayan dosya olduğunu öğrendim.
+```text
+FROM
+WORKDIR
+COPY
+RUN
+EXPOSE
+CMD
+```
 
-`FROM`, `WORKDIR`, `COPY`, `RUN`, `EXPOSE` ve `CMD` komutlarının temel görevlerini inceledim.
+Bu komutların image oluşturma sürecindeki görevlerini öğrendim.
 
-Ayrıca Docker image'larının katmanlardan oluştuğunu ve build sırasında cache kullanılabildiğini öğrendim. Volume kavramının ise container dışında kalıcı veri tutmak için kullanılabileceğini gördüm.
+Ayrıca image'ların katmanlardan oluştuğunu ve Docker'ın build işlemi sırasında önbellekten yararlanabildiğini öğrendim.
 
-### Yaptıklarım
+### Volume
 
-Kendimi tanıtan basit bir HTML sayfası hazırladım.
+Volume kavramını öğrendim.
 
-Daha sonra Nginx tabanlı bir Dockerfile oluşturdum ve HTML dosyamı `COPY` komutuyla image içerisine ekledim.
+Konteyner silindiğinde konteynerin kendi dosya sistemi içerisindeki verilerin kaybolabileceğini, kalıcı veriler için volume kullanılabileceğini öğrendim.
 
-`docker build` komutuyla kendi image'ımı oluşturdum. Ardından `docker run` kullanarak bu image'dan bir container çalıştırdım.
+### Uygulama
 
-Tarayıcı üzerinden HTML sayfamı açarak container içerisinde doğru şekilde çalıştığını kontrol ettim.
+Kendimi tanıtan basit bir HTML sayfası hazırlayıp nginx tabanlı bir Dockerfile ile paketleme ve çalıştırma işlemi üzerinde çalıştım.
 
-Son olarak Dockerfile ve HTML dosyalarını Git repository'sine ekleyip commit ettim.
+Temel olarak:
 
-### Kavrama Soruları
+```bash
+docker build
+docker run
+```
 
-**1. Dockerfile nedir?**
-
-Docker image'ın hangi adımlarla oluşturulacağını belirleyen dosyadır.
-
-**2. `COPY` ile `RUN` arasındaki fark nedir?**
-
-`COPY` dosyaları image içerisine almak için kullanılır. `RUN` ise image oluşturulurken bir komut çalıştırmak için kullanılır.
-
-**3. Container silindiğinde veriler neden kaybolabilir?**
-
-Container içerisinde tutulan veriler container'ın yaşam döngüsüne bağlı olabileceği için container silindiğinde bu veriler de kaybolabilir. Kalıcı veriler için volume kullanılabilir.
-
-### Gün Sonu
-
-Bugün hazır bir image kullanmanın yanında kendi image'ımı nasıl oluşturabileceğimi öğrendim.
-
-Dockerfile içerisindeki komutların sırasını ve her komutun image oluşturma sürecindeki görevini uygulamalı olarak görmüş oldum.
+komutlarını öğrendim.
 
 ---
 
-## Cuma — Gün 6/48
+## Gün 6/48 · Docker Compose ve Proje Mimarisi
 
-### Docker Compose ve Proje Mimarisi
+**Tarih:** ____ / ____
 
-**Tarih: /**
+### Öğrendiklerim
 
-### Bugün Öğrendiklerim
+Docker Compose ile birden fazla servisin birlikte yönetilebileceğini öğrendim.
 
-Bugün Docker Compose kullanarak birden fazla servisin birlikte nasıl çalıştırılabileceğini öğrendim.
+Servislerin birbirleriyle iletişim kurabilmesi için network yapısının kullanılabildiğini öğrendim.
 
-Docker network, environment variable ve volume kavramlarını daha detaylı inceleme fırsatım oldu.
+Ayrıca ortam değişkenleri ve volume kavramlarını Docker Compose içerisinde kullanmayı öğrendim.
 
-PostgreSQL'in veritabanı olarak, Adminer'ın ise veritabanını yönetmek için kullanılan web tabanlı bir arayüz olarak kullanıldığını öğrendim.
+### Uygulama
 
-Ayrıca StajDesk projesinde farklı servislerin tek başına değil, birbiriyle iletişim halinde çalıştığını ve Docker Compose'un bu yapıyı yönetmeyi kolaylaştırdığını gördüm.
+PostgreSQL ve Adminer servislerini compose dosyası üzerinden birlikte çalıştırma mantığını öğrendim.
 
-### Yaptıklarım
+Adminer üzerinden veritabanına bağlanmayı ve volume kullanmanın verinin korunması açısından neden önemli olduğunu öğrendim.
 
-Docker Compose kullanarak PostgreSQL ve Adminer servislerini çalıştırdım.
-
-Adminer arayüzüne girerek PostgreSQL veritabanına bağlandım.
-
-Volume kullanarak veritabanındaki verilerin container silinse bile korunabildiğini test ettim.
-
-Docker network sayesinde PostgreSQL ve Adminer servislerinin birbirleriyle iletişim kurabildiğini gözlemledim.
+Ayrıca StajDesk mimarisindeki parçaların hangi görevleri üstlendiğini incelemeye başladım.
 
 ### Kavrama Soruları
 
 **1. Image ile container arasındaki farkı bir benzetmeyle açıklayınız.**
 
-Image'ı bir kalıp, container'ı ise bu kalıptan oluşturulan ürün gibi düşünebilirim.
+Image'ı bir yemek tarifi veya kalıp gibi düşünebilirim. Container ise bu tarif kullanılarak hazırlanmış çalışan örnektir. Yani image kaynak/şablon, container ise çalışan örnektir.
 
-**2. Volume olmasaydı veritabanı containerı silindiğinde ne olurdu?**
+**2. Volume tanımlamasaydık veritabanı konteyneri silindiğinde ne olurdu?**
 
-Veriler container'ın kendi dosya sistemi içerisinde tutuluyorsa container ile birlikte kaybolabilir. Volume kullanıldığında veriler container'dan bağımsız olarak saklanabilir.
+Veritabanı verileri konteynerin kendi depolama alanında tutuluyorsa konteyner silindiğinde bu veriler de kaybolabilirdi. Volume kullanarak verileri konteynerden bağımsız ve kalıcı hale getirebiliriz.
 
-**3. Neden PostgreSQL'i Docker ile kullanıyoruz?**
+**3. Neden her geliştiricinin bilgisayarına PostgreSQL kurmak yerine Docker kullanıyoruz?**
 
-Her geliştiricinin bilgisayarına PostgreSQL'i ayrı ayrı kurmak yerine Docker kullanarak daha standart ve kolay yönetilebilir bir geliştirme ortamı oluşturabiliriz.
-
-### Git İşlemleri
-
-Bugün yaptığım Docker Compose çalışmalarını Git'e commit ettim ve GitHub repository'me pushladım.
-
-### Gün Sonu
-
-Bugün Docker'ın sadece tek bir container çalıştırmaktan ibaret olmadığını, birden fazla servisin network ve volume gibi yapılar üzerinden birlikte çalışabileceğini gördüm.
-
-PostgreSQL ve Adminer'ı birlikte çalıştırmak, ileride StajDesk projesinin veritabanı tarafını anlamam açısından faydalı oldu.
+Docker kullanarak PostgreSQL'in aynı yapı ve sürümde, daha kontrollü ve taşınabilir bir ortamda çalıştırılması sağlanabilir. Böylece geliştiricilerin bilgisayarlarındaki ortam farklılıkları azaltılabilir.
 
 ---
 
-# Hafta 3 | C# Temelleri
+# FAZ 1 · C# VE .NET
 
-## Çarşamba — Gün 7/48
+## HAFTA 3 · C# Temelleri
 
-### Neden .NET? İlk C# Programı
+## Gün 7/48 · Neden .NET? İlk C# Programı
 
-**Tarih: /**
+**Tarih:** ____ / ____
 
-### Bugün Öğrendiklerim
+### Öğrendiklerim
 
-Bugün C# ve .NET tarafına giriş yaptım.
+.NET'in güçlü tip sistemi, performansı, kurumsal ekosistemi ve farklı platformlarda çalışabilmesi gibi özelliklerini öğrendim.
 
-.NET'in C# gibi dillerle uygulama geliştirmek için kullanılan bir platform olduğunu öğrendim. C#'ın programlama dili, .NET'in ise bu dil ile geliştirilen uygulamaların oluşturulması ve çalıştırılması için kullanılan platform olduğunu daha net şekilde anladım.
+Bir Console uygulaması oluşturmak ve çalıştırmak için temel olarak:
 
-VS Code'u geliştirme ortamı olarak kullanmaya devam ederken terminal üzerinden `dotnet new console` ile yeni bir proje oluşturmayı öğrendim.
+```bash
+dotnet new console
+dotnet run
+```
 
-`dotnet run` komutuyla oluşturduğum projeyi çalıştırdım.
+komutlarını öğrendim.
 
-`.csproj` dosyasının proje ile ilgili ayarların tutulduğu dosya olduğunu öğrendim.
+Ayrıca `.csproj` dosyasının .NET projesinin yapılandırma dosyası olduğunu öğrendim.
 
-Ayrıca `int`, `decimal`, `string`, `bool` ve `DateTime` gibi temel veri tiplerini inceleyerek hangi durumda hangi tipin kullanılabileceğini öğrenmeye başladım.
+### Temel Veri Tipleri
 
-Kullanıcıdan `Console.ReadLine()` ile alınan değerlerin `string` olarak geldiğini ve gerektiğinde uygun veri tipine dönüştürülmesi gerektiğini öğrendim.
+C# içinde kullanılan bazı temel veri tiplerini öğrendim:
 
-Özellikle `int.TryParse()` kullanımının hatalı kullanıcı girişlerinde programın doğrudan hata vermesini önlemek açısından önemli olduğunu gördüm.
+```text
+int       → Tam sayılar
+decimal   → Ondalıklı ve finansal işlemler
+string    → Metin
+bool      → Doğru / yanlış
+DateTime  → Tarih ve saat
+```
 
-### Yaptıklarım
+Tip dönüşümleri ve kullanıcıdan alınan verilerin uygun türlere dönüştürülmesi hakkında bilgi edindim.
 
-`dotnet new console --force` komutuyla yeni bir konsol projesi oluşturdum.
+### Uygulama
 
-`dotnet run` ile projemi çalıştırdım.
+Kullanıcıdan 3 not alıp:
 
-Kullanıcıdan `Console.ReadLine()` ile üç farklı not aldım.
+1. Notların ortalamasını hesaplayan
+2. Harf notunu belirleyen
+3. Hatalı girişleri kontrol eden
 
-Girilen değerlerin sayı olup olmadığını `int.TryParse()` ile kontrol ettim.
+bir konsol uygulaması hazırlama mantığını öğrendim.
 
-Ayrıca notların 0 ile 100 arasında olup olmadığını kontrol ederek geçersiz girişlerde kullanıcıdan tekrar veri aldım.
-
-Bunun için `while` döngüsünü kullandım.
-
-Üç notun ortalamasını `decimal` kullanarak hesapladım ve sonuca göre A, B, C, D veya F harf notunu belirledim.
-
-Ortalama sonucunu iki ondalık basamakla ekrana yazdırdım.
-
-Programı hem doğru hem de hatalı girişlerle test ettim.
-
-C# projemde `bin` ve `obj` klasörlerinin repository'ye eklenmemesi için `.gitignore` kullandım.
-
-Son olarak not hesaplama uygulamasını commit edip uzak repository'ye pushladım.
-
-### Kavrama Soruları
-
-**1. C# ile .NET arasındaki ilişki nedir?**
-
-C# bir programlama dilidir. .NET ise C# ile uygulama geliştirmek, derlemek ve çalıştırmak için kullanılan platformdur.
-
-**2. `dotnet new console` komutu ne işe yarar?**
-
-Yeni bir .NET konsol uygulaması projesi oluşturmak için kullanılır.
-
-**3. `dotnet run` komutu ne işe yarar?**
-
-.NET projesini çalıştırmak için kullanılır.
-
-**4. `.csproj` dosyası nedir?**
-
-C# projesinin yapılandırma dosyasıdır. Projenin hedeflediği .NET sürümü ve diğer proje ayarları burada bulunabilir.
-
-**5. `int` ile `string` arasındaki fark nedir?**
-
-`int` tam sayıları, `string` ise metinleri tutmak için kullanılır. Örneğin `85` bir `int`, `"85"` ise bir `string` değeridir.
-
-**6. `int.TryParse()` neden kullanılır?**
-
-Bir metnin `int` türüne dönüştürülüp dönüştürülemeyeceğini kontrol etmek için kullanılır. Dönüşüm başarısız olduğunda exception oluşturmadan `false` döndürmesi kullanıcı girişlerini kontrol ederken faydalıdır.
-
-**7. Neden notları 0 ile 100 arasında kontrol ettik?**
-
-Not değerlerinin geçerli bir aralıkta olmasını sağlamak için kontrol yaptık. Böylece 0'dan küçük veya 100'den büyük değerlerin programa girmesini engelledik.
-
-**8. `while` döngüsünü neden kullandık?**
-
-Kullanıcı geçersiz bir değer girdiğinde tekrar veri almak için kullandık. Geçerli bir değer girildiğinde döngüden çıkılmasını sağladık.
-
-**9. `decimal` neden ortalama hesabında kullanıldı?**
-
-Ortalama sonucu tam sayı olmayabileceği için ondalıklı değerlerle daha uygun şekilde çalışmak amacıyla kullandım.
-
-**10. `3m` ifadesindeki `m` ne anlama gelir?**
-
-`m`, sayının `decimal` türünde olduğunu belirtir. Böylece ilgili işlem decimal türünde gerçekleştirilir.
-
-### Gün Sonu
-
-Bugün C# ile ilk konsol uygulamamı geliştirerek temel programlama yapılarını uygulamalı olarak öğrenmiş oldum.
-
-Özellikle kullanıcıdan veri alma, veri tipleri, `TryParse`, koşul ifadeleri ve döngüler arasındaki ilişkiyi uygulama üzerinde görmek konuyu daha iyi anlamamı sağladı.
-
-Üç not alan, hatalı girişleri kontrol eden, ortalama hesaplayan ve harf notunu belirleyen bir **Not Hesaplayıcı** uygulaması tamamladım.
-
-Çalışmamı Git'e commit edip uzak repository'ye pushladım.
+Hatalı sayısal girişlerde programın çökmemesi için `int.TryParse` kullanılması gerektiğini öğrendim.
 
 ---
 
-## Perşembe — Gün 8/48
+## Gün 8/48 · Kontrol Akışı ve Metotlar
 
-### Kontrol Akışı ve Metotlar
+**Tarih:** ____ / ____
 
-**Tarih: 07/10/2026**
+### Öğrendiklerim
 
-### Bugün Öğrendiklerim
+Programın çalışma akışını kontrol etmek için kullanılan yapıları öğrendim:
 
-Bugün C# tarafında kontrol yapıları ve metotlar üzerinde çalıştım.
+```text
+if / else
+switch
+for
+while
+foreach
+```
 
-`if / else`, `switch`, `for`, `while` ve `foreach` yapılarını tekrar ederek hangi durumda hangi yapının daha uygun olduğunu anlamaya çalıştım.
+Ayrıca kendi metotlarımı tanımlamayı, parametre göndermeyi ve dönüş değeri kullanmayı öğrendim.
 
-`for` döngüsünün tekrar sayısının belli olduğu durumlarda, `while` döngüsünün ise belirli bir koşul devam ettiği sürece işlem yapmak istediğim durumlarda kullanılabileceğini gördüm.
+Bir metodun belirli bir işi tek başına yapmasının kodun daha okunabilir ve düzenli olmasına yardımcı olduğunu öğrendim.
 
-`foreach` kullanarak bir dizi veya koleksiyon içerisindeki elemanları tek tek dolaşmayı öğrendim.
+### Uygulamalar
 
-Bugün ayrıca metot konusuna giriş yaptım. Bir işlemi tekrar tekrar yazmak yerine metot içerisine alarak gerektiğinde çağırmanın kodun daha düzenli olmasını sağladığını gördüm.
+Aşağıdaki alıştırmalar üzerinde çalıştım:
 
-Metotlara parametre gönderilebildiğini ve metodun yaptığı işlemin sonucunu bir dönüş değeri ile geri verebildiğini öğrendim.
+- 1 ile 100 arasında sayı tahmin oyunu
+- `AsalMi(int sayi)` metodu
+- 1 ile 100 arasındaki asal sayıları listeleme
+- FizzBuzz problemi
 
-### Yaptıklarım
+Ayrıca kod içerisinde anlamlı değişken ve metod isimleri kullanmanın okunabilirlik açısından önemli olduğunu öğrendim.
 
-Bugün öğrendiklerimi birkaç küçük uygulama üzerinden pekiştirdim.
+---
 
-İlk olarak 1 ile 100 arasında rastgele bir sayı tutan bir **Sayı Tahmin Oyunu** geliştirdim.
+## Gün 9/48 · Koleksiyonlar ve LINQ
 
-Kullanıcıdan tahmin aldım ve `int.TryParse()` ile girilen değerin sayı olup olmadığını kontrol ettim.
+**Tarih:** ____ / ____
 
-Tahmin gizli sayıdan küçük olduğunda daha büyük, büyük olduğunda ise daha küçük bir sayı girilmesi gerektiğini belirttim.
+### Öğrendiklerim
 
-Doğru tahmin edildiğinde kaç denemede sonuca ulaşıldığını ekrana yazdırdım.
+Birden fazla veriyi bir arada tutmak için kullanılan koleksiyon yapılarını öğrendim.
 
-Daha sonra `AsalMi(int sayi)` adında bir metot oluşturdum.
+### Dizi
 
-Bu metot kendisine verilen sayının asal olup olmadığını kontrol ederek `true` veya `false` döndürüyor.
+Dizinin boyutunun oluşturulduktan sonra sabit olduğunu öğrendim.
 
-`for` döngüsünü kullanarak 1 ile 100 arasındaki sayıları kontrol ettim ve asal olanları ekrana yazdırdım.
+Örneğin:
 
-Son olarak **FizzBuzz** problemini çözdüm.
+```csharp
+string[] isimler = { "Ahmet", "Mehmet", "Ayşe" };
+```
 
-3'e tam bölünen sayılarda `Fizz`, 5'e tam bölünen sayılarda `Buzz`, hem 3'e hem de 5'e tam bölünen sayılarda `FizzBuzz` yazdırdım. Diğer sayıları ise normal şekilde ekrana yazdırdım.
+### List<T>
+
+`List<T>` yapısının dinamik bir koleksiyon olduğunu öğrendim. Eleman ekleme ve silme işlemlerinin kolay olduğunu öğrendim.
+
+Örneğin:
+
+```csharp
+List<int> notlar = new List<int>();
+```
+
+Buradaki `T`, listenin hangi tür veriyi tutacağını belirtir.
+
+### Dictionary<TKey, TValue>
+
+Dictionary yapısının anahtar ve değer mantığıyla çalıştığını öğrendim.
+
+Örneğin:
+
+```text
+Öğrenci Adı → Not
+```
+
+şeklinde bir ilişki kurulabilir.
+
+### LINQ
+
+LINQ'in koleksiyonlar üzerinde daha okunabilir ve kolay sorgular yapmamı sağladığını öğrendim.
+
+Önemli metotlar:
+
+```text
+Where             → Filtreleme
+Select            → İstenen bilgiyi seçme
+OrderBy           → Artan sırada sıralama
+OrderByDescending → Azalan sırada sıralama
+Count             → Sayma
+FirstOrDefault    → İlk elemanı alma
+```
+
+Ek olarak `GroupBy` ile gruplama ve `Average` ile ortalama hesaplamayı kullandım.
+
+### Uygulama
+
+10 öğrenciden oluşan bir liste oluşturdum.
+
+Her öğrencinin:
+
+- Adı
+- Sınıfı
+- Notu
+
+bulunmaktadır.
+
+Örnek öğrenci yapısı:
+
+```csharp
+class Student
+{
+    public string Ad { get; set; } = "";
+    public int Sinif { get; set; }
+    public decimal Not { get; set; }
+}
+```
+
+10 öğrencilik liste üzerinde LINQ sorguları uyguladım.
+
+### 1. Notu 70 üstü öğrenciler
+
+```csharp
+var notuYetmisUstu = ogrenciler.Where(o => o.Not > 70);
+```
+
+Burada `Where` kullanarak öğrencileri notlarına göre filtreledim.
+
+`o`, listedeki her öğrenciyi temsil ediyor.
+
+`o.Not > 70` ise öğrencinin notunun 70'ten büyük olup olmadığını kontrol ediyor.
+
+### 2. Sınıfa göre ortalama
+
+```csharp
+var sinifOrtalamalari = ogrenciler.GroupBy(o => o.Sinif);
+
+foreach (var grup in sinifOrtalamalari)
+{
+    decimal ortalama = grup.Average(o => o.Not);
+
+    Console.WriteLine($"{grup.Key}. sınıf: {ortalama:F2}");
+}
+```
+
+Burada:
+
+- `GroupBy` öğrencileri sınıflarına göre grupluyor.
+- `grup.Key` grubun sınıf bilgisini veriyor.
+- `Average` o sınıftaki notların ortalamasını hesaplıyor.
+
+### 3. En yüksek not alan öğrenci
+
+```csharp
+var enYuksek = ogrenciler
+    .OrderByDescending(o => o.Not)
+    .FirstOrDefault();
+```
+
+Burada önce öğrencileri notlarına göre büyükten küçüğe sıraladım. Daha sonra ilk öğrenciyi aldım. Böylece en yüksek not alan öğrenciyi buldum.
+
+Ayrıca `FirstOrDefault()` sonucunun `null` olabileceğini düşünerek `null` kontrolü kullandım.
+
+```csharp
+if (enYuksek != null)
+{
+    Console.WriteLine($"{enYuksek.Ad} - {enYuksek.Not}");
+}
+```
 
 ### Kavrama Soruları
 
-**1. `if / else` ne işe yarar?**
+**1. decimal ile double arasındaki fark nedir? Para için hangisi kullanılır, neden?**
 
-Bir koşulun sonucuna göre farklı işlemler yapmamızı sağlar.
+`double` ve `decimal` ondalıklı sayılarla çalışmak için kullanılır. `double` daha çok genel teknik ve bilimsel hesaplamalarda kullanılır. `decimal` ise özellikle para ve finansal işlemler için tercih edilir. Para hesaplarında `decimal` kullanmak daha uygun olduğu için fiyat ve benzeri değerlerde `decimal` tercih edilir.
 
-**2. `for` ve `while` arasındaki fark nedir?**
+**Para için: `decimal`**
 
-`for` genellikle tekrar sayısının belli olduğu durumlarda kullanılır. `while` ise bir koşul doğru olduğu sürece çalışır.
+---
 
-**3. `foreach` ne için kullanılır?**
+**2. List<T> ile dizi arasındaki fark nedir?**
 
-Dizi veya koleksiyon içerisindeki elemanları sırayla dolaşmak için kullanılır.
+Dizinin boyutu oluşturulduktan sonra sabittir. `List<T>` ise dinamik olarak büyüyüp küçülebilir. Listeye eleman eklemek ve silmek daha kolaydır. Bu nedenle eleman sayısının değişebildiği durumlarda `List<T>` daha kullanışlıdır.
 
-**4. Metot nedir?**
+---
 
-Belirli bir işi yapan ve ihtiyaç olduğunda tekrar çağrılabilen kod bölümüdür.
+**3. LINQ olmasaydı "notu 70 üstü öğrenciler" sorgusunu nasıl yazardınız?**
 
-**5. Parametre nedir?**
+LINQ kullanmadan bütün öğrencileri `foreach` ile tek tek dolaşırdım. Daha sonra `if` ile öğrencinin notunun 70'ten büyük olup olmadığını kontrol ederdim. Şartı sağlayan öğrencileri başka bir listeye eklerdim.
 
-Bir metoda dışarıdan bilgi göndermek için kullanılan değerdir.
+```csharp
+List<Student> notuYetmisUstu = new List<Student>();
 
-**6. Dönüş değeri nedir?**
+foreach (Student ogrenci in ogrenciler)
+{
+    if (ogrenci.Not > 70)
+    {
+        notuYetmisUstu.Add(ogrenci);
+    }
+}
+```
 
-Metodun yaptığı işlem sonucunda çağıran yere geri gönderdiği değerdir. Örneğin `AsalMi` metodu `bool` değer döndürür.
+### Gün 9 Sonucu
 
-**7. Anlamlı isimlendirme neden önemlidir?**
+LINQ kullanarak:
 
-Kodun okunabilirliğini artırır. Bir değişkenin veya metodun ne yaptığını ismine bakarak daha kolay anlayabilmemizi sağlar.
+- Öğrencileri filtrelemeyi
+- Belirli bilgileri seçmeyi
+- Verileri sıralamayı
+- Öğrenci sayılarını bulmayı
+- Öğrencileri sınıflarına göre gruplamayı
+- Sınıf ortalamalarını hesaplamayı
+- En yüksek not alan öğrenciyi bulmayı
+- `null` kontrolü yapmayı
 
-### Gün Sonu
+öğrendim.
 
-Bugün kontrol yapılarını ve metotları küçük uygulamalar geliştirerek pekiştirdim.
+---
 
-Özellikle bir metodun belirli bir işi kendi içerisinde yapmasının ve gerektiğinde tekrar çağrılabilmesinin kodu daha düzenli hale getirdiğini gördüm.
+# Genel Değerlendirme
 
-Sayı Tahmin Oyunu, Asal Sayı ve FizzBuzz olmak üzere üç farklı alıştırmayı tamamladım.
+İlk 3 haftada temel geliştirme ortamını, Git'i, web isteklerinin mantığını, Docker'ı ve C#/.NET temellerini öğrenmeye başladım.
 
-Günün sonunda yaptığım değişiklikleri Git'e commit ederek uzak repository'ye pushladım.
+Şu ana kadar öğrendiğim yapıların birbirleriyle bağlantısını görmeye başladım:
+
+```text
+Git
+ ↓
+Kod geliştirme
+ ↓
+C# / .NET
+ ↓
+Koleksiyonlar ve LINQ
+ ↓
+Docker
+ ↓
+Web ve HTTP
+```
+
+Staj boyunca öğrendiğim konuları uygulamalı olarak geliştirerek ilerletmeyi hedefliyorum.
