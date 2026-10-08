@@ -48,10 +48,43 @@ switch (secim)
         break;
 
     case 9:
-        Console.WriteLine("Program kapatıldı.");
-        break;
+    Console.WriteLine("Program kapatıldı.");
+    return;
 
     default:
         Console.WriteLine("Geçersiz seçim.");
         break;
 }
+
+Ticket ticket = new Ticket(
+    1,
+    "Bilgisayar açılmıyor",
+    "Kullanıcının bilgisayarı açılmıyor."
+);
+
+Console.WriteLine("\n===== TICKET =====");
+Console.WriteLine("ID: " + ticket.Id);
+Console.WriteLine("Başlık: " + ticket.Title);
+Console.WriteLine("Açıklama: " + ticket.Description);
+Console.WriteLine("Durum: " + ticket.Status);
+Console.WriteLine("Oluşturulma: " + ticket.CreatedAt);
+
+int sayi1 = 10;
+int sayi2 = sayi1;
+
+sayi2 = 20;
+
+Console.WriteLine("sayi1: " + sayi1);
+Console.WriteLine("sayi2: " + sayi2);
+
+
+Ticket ticket1 = new Ticket(
+    2,
+    "İnternet çalışmıyor",
+    "Ofiste internet bağlantısı yok."
+);
+
+Ticket ticket2 = ticket1;
+
+Console.WriteLine("Ticket 1: " + ticket1.Title);
+Console.WriteLine("Ticket 2: " + ticket2.Title);
