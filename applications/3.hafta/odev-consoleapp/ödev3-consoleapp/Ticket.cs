@@ -3,7 +3,7 @@ public class Ticket
     public int Id { get; set; }
     public string Title { get; private set; }
     public string Description { get; set; }
-    public string Status { get; set; }
+    public TicketStatus Status { get; private set; }
     public DateTime CreatedAt { get; set; }
 
     public Ticket(int id, string title, string description)
@@ -16,7 +16,12 @@ public class Ticket
         Id = id;
         Title = title;
         Description = description;
-        Status = "Open";
+        Status = TicketStatus.Open;
         CreatedAt = DateTime.Now;
+    }
+
+    public void UpdateStatus(TicketStatus status)
+    {
+        Status = status;
     }
 }
