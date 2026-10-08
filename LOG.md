@@ -434,12 +434,12 @@ LINQ'in koleksiyonlar üzerinde daha okunabilir ve kolay sorgular yapmamı sağl
 Önemli metotlar:
 
 ```text
-Where             → Filtreleme
-Select            → İstenen bilgiyi seçme
-OrderBy           → Artan sırada sıralama
-OrderByDescending → Azalan sırada sıralama
-Count             → Sayma
-FirstOrDefault    → İlk elemanı alma
+Where              → Filtreleme
+Select             → İstenen bilgiyi seçme
+OrderBy            → Artan sırada sıralama
+OrderByDescending  → Azalan sırada sıralama
+Count              → Sayma
+FirstOrDefault     → İlk elemanı alma
 ```
 
 Ek olarak `GroupBy` ile gruplama ve `Average` ile ortalama hesaplamayı kullandım.
@@ -527,13 +527,9 @@ if (enYuksek != null)
 
 **Para için: `decimal`**
 
----
-
 **2. List<T> ile dizi arasındaki fark nedir?**
 
 Dizinin boyutu oluşturulduktan sonra sabittir. `List<T>` ise dinamik olarak büyüyüp küçülebilir. Listeye eleman eklemek ve silmek daha kolaydır. Bu nedenle eleman sayısının değişebildiği durumlarda `List<T>` daha kullanışlıdır.
-
----
 
 **3. LINQ olmasaydı "notu 70 üstü öğrenciler" sorgusunu nasıl yazardınız?**
 
@@ -568,9 +564,185 @@ LINQ kullanarak:
 
 ---
 
+# HAFTA 4 · Nesne Yönelimli Programlama (OOP)
+
+Haftanın hedefi: Sınıf, nesne, arayüz (interface) kavramlarını öğrenmek ve StajDesk'in ilk sürümünü konsolda yazmak.
+
+## Gün 10/48 · Sınıflar ve Nesneler
+
+**Tarih:** ____ / ____
+
+### Öğrendiklerim
+
+OOP'nin temel kavramlarını öğrendim.
+
+- Sınıf: Nesnelerin özelliklerini ve davranışlarını tanımlar.
+- Nesne: Bir sınıftan oluşturulan örnektir.
+- Property: Nesnenin sahip olduğu bilgileri temsil eder.
+- Constructor: Nesne oluşturulduğunda çalışan özel metottur.
+- `public`: Dışarıdan erişilebilir.
+- `private`: Sadece sınıf içerisinden erişilebilir.
+
+Kapsülleme (encapsulation) ile sınıf içerisindeki verilerin kontrollü şekilde değiştirilmesini öğrendim.
+
+Ayrıca değer tipi ve referans tipi arasındaki temel farkları öğrendim.
+
+### Uygulama
+
+StajDesk için `Ticket` sınıfı oluşturdum.
+
+```csharp
+class Ticket
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public TicketStatus Status { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public Ticket(int id, string title, string description)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new ArgumentException("Başlık boş olamaz.");
+        }
+
+        Id = id;
+        Title = title;
+        Description = description;
+        Status = TicketStatus.Open;
+        CreatedAt = DateTime.Now;
+    }
+}
+```
+
+Constructor içerisinde başlığın boş olmasını engelledim.
+
+**Gün sonu çıktısı:** Ticket sınıfı ve basit testleri çalışıyor.
+
+---
+
+## Gün 11/48 · Kalıtım, Interface, Enum ve Hata Yönetimi
+
+**Tarih:** ____ / ____
+
+### Öğrendiklerim
+
+Kalıtım (inheritance), polimorfizm ve interface kavramlarını öğrendim.
+
+Interface'in bir sınıfın uygulaması gereken işlemleri belirleyen bir **sözleşme** olduğunu öğrendim.
+
+Ayrıca `enum` ve `try/catch/finally` ile hata yönetimini öğrendim.
+
+### Uygulama
+
+Ticket durumlarını belirtmek için `TicketStatus` enum'unu oluşturdum.
+
+```csharp
+enum TicketStatus
+{
+    Open,
+    InProgress,
+    Resolved,
+    Closed
+}
+```
+
+Ticket işlemleri için `ITicketRepository` interface'ini oluşturdum.
+
+```csharp
+interface ITicketRepository
+{
+    Task AddAsync(Ticket ticket);
+    Task<List<Ticket>> GetAllAsync();
+    Task<Ticket> GetByIdAsync(int id);
+    Task UpdateAsync(Ticket ticket);
+    Task DeleteAsync(int id);
+}
+```
+
+Bu interface'i uygulayan `InMemoryTicketRepository` sınıfını oluşturdum.
+
+Ticket'ları şimdilik `List<Ticket>` içerisinde bellekte tuttum.
+
+Olmayan bir Id istendiğinde anlamlı bir hata fırlatmayı öğrendim.
+
+```csharp
+if (ticket == null)
+{
+    throw new KeyNotFoundException("Ticket bulunamadı.");
+}
+```
+
+**Gün sonu çıktısı:** Repository katmanı konsolda çalışıyor.
+
+---
+
+## Gün 12/48 · Async/Await ve Konsol Mini Talep Yöneticisi
+
+**Tarih:** ____ / ____
+
+### Öğrendiklerim
+
+Senkron ve asenkron çalışma arasındaki farkı öğrendim.
+
+.NET içerisinde asenkron işlemler için:
+
+```text
+Task
+async
+await
+```
+
+yapılarının kullanıldığını öğrendim.
+
+`await` kullanarak bekleyen işlemlerde thread'in gereksiz şekilde bloke edilmesini önlemeye yardımcı olunabileceğini öğrendim.
+
+### Uygulama
+
+StajDesk için basit bir konsol menüsü oluşturdum.
+
+```text
+1 - Talep Ekle
+2 - Talepleri Listele
+3 - Talep Durumu Güncelle
+4 - Talep Sil
+5 - Çıkış
+```
+
+Kullanıcının seçimine göre ilgili işlemleri gerçekleştirdim.
+
+Repository metotlarını `async` ve `Task` kullanacak şekilde düzenledim.
+
+Ticket ekleme, listeleme, durum güncelleme ve silme işlemlerini uyguladım.
+
+Ayrıca olmayan Id girildiğinde hata yönetimi kullanarak kullanıcıya anlamlı mesaj gösterdim.
+
+Cuma günü mentor kod incelemesi yapıldı ve alınan geri bildirimlere göre kod üzerinde düzenlemeler yaptım.
+
+**Gün sonu çıktısı:** StajDesk v0 (konsol) depoda.
+
+### Kavrama Soruları
+
+**1. Interface kullanmanın bize ne faydası var? ITicketRepository örneği üzerinden anlatınız.**
+
+Interface, hangi işlemlerin bulunması gerektiğini belirleyen bir sözleşme görevi görür. `ITicketRepository` sayesinde repository'nin nasıl çalıştığından bağımsız olarak `Add`, `Get`, `Update` ve `Delete` gibi işlemleri tanımlayabiliriz.
+
+**2. Kapsülleme neden önemlidir?**
+
+Kapsülleme, sınıf içerisindeki verilerin kontrolsüz şekilde değiştirilmesini engeller. Böylece veriler üzerinde gerekli kontrolleri yapabilir ve sınıfın kendi kurallarını koruyabiliriz.
+
+**3. await kullanmasaydık web sunucusunda ne gibi bir sorun olurdu?**
+
+Uzun süren işlemlerde thread gereksiz şekilde bekleyebilir. Çok sayıda istek geldiğinde kaynak kullanımı artabilir ve uygulamanın performansı olumsuz etkilenebilir. `await` ile asenkron işlemlerin daha verimli yönetilmesine yardımcı olabiliriz.
+
+---
+
 # Genel Değerlendirme
 
-İlk 3 haftada temel geliştirme ortamını, Git'i, web isteklerinin mantığını, Docker'ı ve C#/.NET temellerini öğrenmeye başladım.
+İlk 4 haftada temel geliştirme ortamını, Git'i, web isteklerinin mantığını, Docker'ı ve C#/.NET temellerini öğrenmeye başladım.
+
+Özellikle 4. haftada C# içerisinde nesne yönelimli programlamanın temel mantığını öğrenerek StajDesk projesini geliştirmeye başladım.
 
 Şu ana kadar öğrendiğim yapıların birbirleriyle bağlantısını görmeye başladım:
 
@@ -583,9 +755,25 @@ C# / .NET
  ↓
 Koleksiyonlar ve LINQ
  ↓
+OOP
+ ↓
+Ticket
+ ↓
+Interface
+ ↓
+Repository
+ ↓
+async / await
+ ↓
+Konsol Uygulaması
+ ↓
+StajDesk v0
+ ↓
 Docker
  ↓
 Web ve HTTP
 ```
+
+StajDesk v0 ile temel talep ekleme, listeleme, durum güncelleme ve silme işlemlerini gerçekleştirebiliyorum.
 
 Staj boyunca öğrendiğim konuları uygulamalı olarak geliştirerek ilerletmeyi hedefliyorum.
