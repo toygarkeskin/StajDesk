@@ -1,0 +1,66 @@
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+builder.Services.AddSingleton<StajDesk.Api.Repositories.ITicketRepository,
+    StajDesk.Api.Repositories.InMemoryTicketRepository>();
+
+builder.Services.AddScoped<StajDesk.Api.Services.ITicketService,
+    StajDesk.Api.Services.TicketService>();
+
+
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+//app.UseHttpsRedirection();
+
+app.MapGet("/api/health", () =>
+{
+    return Results.Ok(new
+    {
+        status = "OK",
+        serverTime = DateTimeOffset.Now,
+        message = "StajDesk API calisiyor",
+    });
+});
+
+var summaries = new[]
+{
+    "Freezing", "Bracing", "Chilly", "Cool", "Mild",
+    "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+};
+
+app.MapGet("/weatherforecast", () =>
+{
+    var forecast = Enumerable.Range(1, 5).Select(index =>
+        new WeatherForecast(
+            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+            Random.Shared.Next(-20, 55),
+            summaries[Random.Shared.Next(summaries.Length)]
+        ))
+        .ToArray();
+
+    return forecast;
+})
+.WithName("GetWeatherForecast");
+
+app.MapControllers();
+
+app.Run();
+
+record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+{
+    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+}
