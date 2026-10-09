@@ -1,30 +1,48 @@
-# StajDesk - Öğrenim Günlüğü
+# StajDesk — Öğrenim Günlüğü
 
-Bu dosya, staj süresince öğrendiğim konuları, yaptığım uygulamaları ve günlük notlarımı içermektedir.
+Bu dosya, staj süresince öğrendiğim konuları, yaptığım uygulamaları ve proje geliştirme sürecindeki notlarımı içerir.
+
+Amacım, öğrendiğim konuları yalnızca teorik olarak bilmek değil, bunları uygulayarak anlamak ve kendi cümlelerimle açıklayabilmektir.
 
 ---
 
-# FAZ 0 · TEMELLER
+## İçindekiler
 
-## HAFTA 1 · Başlangıç, Git ve Web'in Çalışma Mantığı
+- [Faz 0 — Temeller](#faz-0--temeller)
+  - Hafta 1 — Başlangıç, Git ve Web
+  - Hafta 2 — Docker ile Tanışma
+- [Faz 1 — C# ve .NET](#faz-1--c-ve-net)
+  - Hafta 3 — C# Temelleri
+  - Hafta 4 — Nesne Yönelimli Programlama
+- [Faz 2 — ASP.NET Core Web API](#faz-2--aspnet-core-web-api)
+  - Hafta 5 — Web API ve Katmanlı Mimari
+- [Genel Değerlendirme](#genel-değerlendirme)
 
-### Gün 1/48 · Tanışma ve Ortam Kurulumu
+---
 
-**Tarih:** ____ / ____
+# FAZ 0 — TEMELLER
+
+## Hafta 1 — Başlangıç, Git ve Web'in Çalışma Mantığı
+
+**Haftanın hedefi:** Geliştirme ortamını tanımak, Git ile çalışmak ve web uygulamalarının temel çalışma mantığını anlamak.
+
+### Gün 1/48 — Tanışma ve Ortam Kurulumu
 
 **Öğrendiklerim**
 
-Stajın amacı, StajDesk projesinin genel yapısı ve çalışma planı hakkında bilgi edindim. Yazılım ekiplerinde görev takibi için Jira, sürüm kontrolü için Git ve kod incelemesi kullanıldığını öğrendim.
+StajDesk projesinin amacını ve staj sürecindeki öğrenme hedeflerini öğrendim. Yazılım ekiplerinde görev takibi, sürüm kontrolü ve kod incelemesinin neden önemli olduğunu gördüm.
 
-Geliştirme araçlarının görevlerini öğrendim:
+Kullandığım araçların temel görevlerini öğrendim:
 
-- VS Code: Kod yazmak için kullanılan geliştirme ortamı.
-- Git: Kod değişikliklerini takip eden sürüm kontrol sistemi.
-- .NET SDK: C# ve .NET uygulamalarını geliştirmek için kullanılır.
-- Node.js: JavaScript tabanlı uygulama ve araçları çalıştırır.
-- Docker Desktop: Konteynerleri çalıştırmak ve yönetmek için kullanılır.
+- **VS Code:** Kod yazmak ve dosyaları düzenlemek için kullanılır.
+- **Git:** Kod değişikliklerini takip etmeyi sağlar.
+- **.NET SDK:** C# ve .NET uygulamalarını geliştirmek ve çalıştırmak için kullanılır.
+- **Node.js:** JavaScript kodlarını çalıştırmayı ve JavaScript tabanlı araçları kullanmayı sağlar.
+- **Docker Desktop:** Konteynerleri oluşturmak ve yönetmek için kullanılır.
 
 **Uygulamalar**
+
+Araçların kurulumlarını ve sürüm kontrollerini yaptım.
 
 ```bash
 dotnet --version
@@ -33,241 +51,254 @@ git --version
 docker --version
 ```
 
-StajDesk klasörünü oluşturdum ve öğrendiklerimi kaydetmek için `LOG.md` dosyasını kullanmaya başladım.
+Öğrendiklerimi düzenli tutmak için `LOG.md` dosyasını kullanmaya başladım.
 
-### Gün 2/48 · Terminal ve Git Temelleri
+### Gün 2/48 — Terminal ve Git Temelleri
 
 **Öğrendiklerim**
 
-Terminalde klasörler arasında geçiş yapmayı ve dosyaları görüntülemeyi öğrendim.
+Terminal üzerinden klasörler arasında geçiş yapmayı, dosyaları listelemeyi ve yeni klasör oluşturmayı öğrendim.
 
-```bash
+```powershell
 cd
 dir
-ls
 mkdir
 ```
 
-`cd` klasör değiştirmek, `dir` ve `ls` dosyaları listelemek, `mkdir` ise yeni klasör oluşturmak için kullanılır.
+Git'in temel kavramlarını öğrendim:
 
-Git kavramlarını öğrendim:
+- **Repository:** Proje dosyalarının ve değişiklik geçmişinin tutulduğu depo.
+- **Commit:** Değişiklikleri yerel Git geçmişine kaydetme işlemi.
+- **Branch:** Ana çalışmayı etkilemeden ayrı bir geliştirme alanında çalışmayı sağlar.
+- **Merge:** Bir branch üzerindeki değişiklikleri başka bir branch ile birleştirir.
+- **Remote:** Uzak Git deposudur.
+- **Push:** Yerel commitleri uzak depoya gönderir.
 
-- Repository: Projenin ve Git geçmişinin tutulduğu depo.
-- Commit: Değişiklikleri yerel Git geçmişine kaydetme.
-- Branch: Farklı bir çalışma alanı oluşturma.
-- Merge: Branch değişikliklerini birleştirme.
-- Remote: Uzak Git deposu.
-- Push: Commitleri uzak depoya gönderme.
+README dosyasının projenin amacını ve kullanımını açıklamak için kullanıldığını öğrendim. Commit mesajlarında yapılan değişikliği açıkça belirtmeye dikkat ettim.
 
-README.md dosyasının projeyi tanıtmak için kullanıldığını öğrendim. Branch oluşturma, değişiklik yapma ve birleştirme işlemleri üzerinde çalıştım.
-
-### Gün 3/48 · Web, HTTP ve JSON
+### Gün 3/48 — Web, HTTP ve JSON
 
 **Öğrendiklerim**
 
-Web uygulamalarında istemci ve sunucu arasında iletişim kurulduğunu öğrendim. İstemci istek gönderir, sunucu ise bu isteği değerlendirerek yanıt verir.
+Web uygulamalarında istemci ve sunucunun nasıl iletişim kurduğunu öğrendim. Tarayıcının bir istek gönderdiğini, sunucunun bu isteği işleyerek yanıt verdiğini anladım.
 
-HTTP metotları:
+Temel HTTP metotları:
 
-```text
-GET     → Veri almak
-POST    → Veri oluşturmak veya göndermek
-PUT     → Veri güncellemek
-DELETE  → Veri silmek
-```
+| Metot | Kullanım amacı |
+|---|---|
+| GET | Veri almak |
+| POST | Yeni veri oluşturmak veya veri göndermek |
+| PUT | Var olan veriyi güncellemek |
+| DELETE | Veri silmek |
 
 Temel HTTP durum kodları:
 
-```text
-200 → Başarılı
-201 → Oluşturuldu
-400 → Hatalı istek
-401 → Yetkisiz erişim
-404 → Kaynak bulunamadı
-500 → Sunucu hatası
-```
+| Kod | Anlamı |
+|---|---|
+| 200 | İstek başarılı |
+| 201 | Yeni kaynak oluşturuldu |
+| 400 | İstek hatalı |
+| 401 | Kimlik doğrulaması gerekli veya geçersiz |
+| 404 | İstenen kaynak bulunamadı |
+| 500 | Sunucu tarafında beklenmeyen hata |
 
-JSON'ın uygulamalar arasında veri alışverişi yapmak için kullanıldığını öğrendim. Tarayıcının Network sekmesinden HTTP isteklerini inceledim ve Postman veya Bruno ile GET ve POST istekleri üzerinde çalıştım.
+JSON'ın uygulamalar arasında veri alışverişinde kullanılan bir veri formatı olduğunu öğrendim.
 
-**Kavrama Soruları**
+**Uygulamalar**
 
-**1. Tarayıcıya adres yazıldığında ne olur?**
+- Tarayıcının Network sekmesinden HTTP isteklerini inceledim.
+- Postman veya Bruno üzerinden GET ve POST istekleri üzerinde çalıştım.
+- İstek metodu, adres ve durum kodu arasındaki ilişkiyi inceledim.
 
-Tarayıcı istenen kaynağa ulaşmaya çalışır. Sunucuya HTTP isteği gönderilir, sunucu yanıt verir ve tarayıcı gelen veriyi işleyerek sayfayı gösterir.
+### Hafta 1 — Kavrama Soruları
+
+**1. Tarayıcıya bir adres yazıp Enter'a bastığımızda ne olur?**
+
+Tarayıcı adresi işler ve ilgili sunucuya ulaşmaya çalışır. Sunucuya HTTP isteği gönderilir. Gelen yanıt tarayıcı tarafından işlenir ve sayfa görüntülenir. Bu süreçte DNS çözümlemesi ve gerekli ağ bağlantıları da gerçekleşebilir.
 
 **2. Commit ile push arasındaki fark nedir?**
 
-Commit değişiklikleri yerel Git geçmişine kaydeder. Push ise bu commitleri uzak depoya gönderir.
+Commit, değişiklikleri bilgisayarımdaki Git geçmişine kaydeder. Push ise bu commitleri uzak depoya gönderir.
 
 **3. 404 ile 500 arasındaki fark nedir?**
 
-404 istenen kaynağın bulunamadığını, 500 ise sunucu tarafında bir hata oluştuğunu belirtir.
+404, istenen kaynağın bulunamadığını belirtir. 500 ise sunucu isteği işlerken beklenmeyen bir hatayla karşılaştığını gösterir. Her iki durumda da sorunun kesin nedenini anlamak için ilgili kayıtları incelemek gerekir.
 
 ---
 
-# HAFTA 2 · Docker ile Tanışma
+## Hafta 2 — Docker ile Tanışma
 
-### Gün 4/48 · Konteyner Nedir, Neden Docker?
+**Haftanın hedefi:** Konteyner mantığını anlamak ve Docker ile uygulamaları daha tutarlı ortamlarda çalıştırmayı öğrenmek.
+
+### Gün 4/48 — Konteyner Nedir, Neden Docker?
 
 **Öğrendiklerim**
 
-Docker'ın uygulamaların farklı bilgisayarlarda daha tutarlı bir ortamda çalışmasına yardımcı olduğunu öğrendim.
+Bir uygulamanın farklı bilgisayarlarda farklı sonuçlar vermesinin nedenlerinden birinin ortam farklılıkları olduğunu öğrendim. Docker, uygulamanın ihtiyaç duyduğu bileşenleri daha tutarlı bir ortamda çalıştırmaya yardımcı olur.
 
-- Image: Konteyner oluşturmak için kullanılan şablon.
-- Container: Image üzerinden oluşturulan çalışan örnek.
-- Port mapping: Konteyner portuna bilgisayar üzerinden erişilmesini sağlar.
+- **Image:** Konteyner oluşturmak için kullanılan şablondur.
+- **Container:** Bir image üzerinden oluşturulan çalışma ortamıdır.
+- **Port mapping:** Konteynerdeki bir porta bilgisayardan erişmeyi sağlar.
+- **Docker Hub:** Docker image'larının paylaşılabildiği bir kayıt deposudur.
 
-Temel komutlar:
+**Uygulamalar**
 
 ```bash
 docker run hello-world
+docker run -d -p 8080:80 nginx
 docker ps
 docker logs <container_id>
 docker stop <container_id>
 docker rm <container_id>
-docker run -d -p 8080:80 nginx
 ```
 
-Bu komutlarla konteyner çalıştırma, listeleme, logları inceleme, durdurma ve silme işlemlerini öğrendim.
+Bu komutların konteyner çalıştırma, listeleme, log inceleme, durdurma ve silme işlemlerinde nasıl kullanıldığını öğrendim.
 
-### Gün 5/48 · Dockerfile Yazmak
+### Gün 5/48 — Dockerfile Yazmak
 
 **Öğrendiklerim**
 
-Dockerfile, bir Docker image'ının nasıl oluşturulacağını tarif eder.
+Dockerfile'ın bir image'ın nasıl oluşturulacağını tanımladığını öğrendim.
 
-Temel komutlar:
+Temel Dockerfile komutları:
 
-```dockerfile
-FROM
-WORKDIR
-COPY
-RUN
-EXPOSE
-CMD
-```
+| Komut | Görevi |
+|---|---|
+| FROM | Başlangıç image'ını belirler |
+| WORKDIR | Çalışma dizinini belirler |
+| COPY | Dosyaları image içerisine kopyalar |
+| RUN | Image oluşturulurken komut çalıştırır |
+| EXPOSE | Uygulamanın kullanması beklenen portu belirtir |
+| CMD | Konteyner başlatıldığında çalıştırılacak varsayılan komutu tanımlar |
 
-Image katmanlarının ve build önbelleğinin çalışma mantığını öğrendim. Volume kullanarak verilerin konteynerin yaşam döngüsünden bağımsız saklanabileceğini öğrendim.
+Image katmanlarını ve build önbelleğini inceledim. Volume kullanmanın, konteynerin yaşam döngüsünden bağımsız veri saklamaya yardımcı olduğunu öğrendim.
 
 **Uygulama**
 
-Basit bir HTML sayfasını nginx üzerinden çalıştırma ve Dockerfile ile paketleme mantığı üzerinde çalıştım.
+Basit bir HTML sayfasını Nginx ile sunma ve Dockerfile üzerinden image oluşturma mantığı üzerinde çalıştım.
 
 ```bash
 docker build -t stajdesk-web .
 docker run -d -p 8080:80 stajdesk-web
 ```
 
-### Gün 6/48 · Docker Compose ve Proje Mimarisi
+### Gün 6/48 — Docker Compose ve Proje Mimarisi
 
 **Öğrendiklerim**
 
-Docker Compose ile birden fazla servisin tek yapılandırma üzerinden yönetilebildiğini öğrendim. Network, environment variable ve volume kavramlarını inceledim.
+Docker Compose ile birden fazla servisin tek bir yapılandırma dosyası üzerinden yönetilebildiğini öğrendim.
+
+- **Network:** Konteynerlerin birbiriyle iletişim kurmasına yardımcı olur.
+- **Environment variables:** Uygulama yapılandırmalarını ortam değişkenleri üzerinden yönetmeyi sağlar.
+- **Volume:** Verilerin kalıcı olarak saklanmasına yardımcı olur.
+- **Docker Compose:** Birden fazla servisin birlikte çalıştırılmasını kolaylaştırır.
 
 **Uygulama**
 
-PostgreSQL ve Adminer servislerini Compose üzerinden birlikte çalıştırma ve Adminer ile veritabanına bağlanma mantığını öğrendim.
+PostgreSQL ve Adminer servislerini birlikte çalıştırma ve Adminer üzerinden veritabanına bağlanma mantığını inceledim.
 
-**Kavrama Soruları**
+### Hafta 2 — Kavrama Soruları
 
 **1. Image ile container arasındaki fark nedir?**
 
-Image bir şablon, container ise bu şablondan oluşturulan çalışan örnektir.
+Image, bir uygulamanın çalışması için gereken yapıyı tanımlayan şablon gibidir. Container ise bu şablondan oluşturulan çalışan örnektir.
 
 **2. Volume kullanılmazsa veritabanı verileri kaybolabilir mi?**
 
-Veriler yalnızca konteynerin kendi dosya sisteminde tutuluyorsa konteyner silindiğinde kaybolabilir. Volume, verilerin kalıcı saklanmasına yardımcı olur.
+Veriler yalnızca konteynerin kendi dosya sisteminde tutuluyorsa konteyner silindiğinde kaybolabilir. Volume, verileri konteynerden bağımsız saklamaya yardımcı olur.
 
-**3. PostgreSQL için neden Docker kullanılabilir?**
+**3. PostgreSQL'i doğrudan her bilgisayara kurmak yerine neden Docker kullanabiliriz?**
 
-Geliştiricilerin benzer sürüm ve yapılandırmalarla çalışmasını sağlayarak ortam farklılıklarını azaltır.
+Docker, ekip üyelerinin aynı sürüm ve benzer yapılandırmalarla çalışmasını kolaylaştırır. Böylece ortam farklılıklarından kaynaklanan sorunlar azaltılabilir.
 
 ---
 
-# FAZ 1 · C# VE .NET
+# FAZ 1 — C# VE .NET
 
-## HAFTA 3 · C# Temelleri
+## Hafta 3 — C# Temelleri
 
-### Gün 7/48 · Neden .NET? İlk C# Programı
+**Haftanın hedefi:** C# dilinin temel yapılarını öğrenmek ve konsol uygulamaları geliştirmek.
+
+### Gün 7/48 — Neden .NET? İlk C# Programı
 
 **Öğrendiklerim**
 
-.NET'in C# uygulamaları geliştirmek için kullanılan bir platform olduğunu öğrendim. Proje oluşturma ve çalıştırma komutlarını kullandım.
+.NET'in C# uygulamalarını geliştirmek ve çalıştırmak için kullanılan bir platform olduğunu öğrendim.
+
+Bir konsol projesi oluşturmak ve çalıştırmak için aşağıdaki komutları kullandım:
 
 ```bash
 dotnet new console
 dotnet run
 ```
 
-Temel veri tipleri:
+Temel veri tiplerini inceledim:
 
-```text
-int       → Tam sayı
-decimal   → Ondalıklı ve finansal değer
-string    → Metin
-bool      → Doğru veya yanlış
-DateTime  → Tarih ve saat
-```
+| Tip | Kullanım |
+|---|---|
+| `int` | Tam sayılar |
+| `decimal` | Hassas ondalıklı ve finansal hesaplamalar |
+| `string` | Metin |
+| `bool` | Doğru veya yanlış değerleri |
+| `DateTime` | Tarih ve saat |
 
-`.csproj` dosyasının proje yapılandırmasını içerdiğini öğrendim.
+`.csproj` dosyasının projenin yapılandırmasını ve bağımlılıklarını tanımlamada kullanıldığını öğrendim.
 
 **Uygulama**
 
-Kullanıcıdan üç not alan, ortalamayı hesaplayan ve harf notunu belirleyen bir konsol uygulaması üzerinde çalıştım. Hatalı sayısal girişleri kontrol etmek için `int.TryParse` kullanımını öğrendim.
+Kullanıcıdan üç not alıp ortalamasını hesaplayan bir konsol uygulaması üzerinde çalıştım. Harf girilmesi gibi hatalı girişleri kontrol etmek için `int.TryParse` kullanımını öğrendim.
 
-### Gün 8/48 · Kontrol Akışı ve Metotlar
+### Gün 8/48 — Kontrol Akışı ve Metotlar
 
 **Öğrendiklerim**
 
-Programın akışını kontrol etmek için kullanılan yapıları öğrendim:
+Programın hangi koşulda hangi işlemi yapacağını belirlemek için kontrol yapılarını öğrendim.
 
-```text
-if / else
+```csharp
+if
+else
 switch
 for
 while
 foreach
 ```
 
-Metotların belirli görevleri ayrı bölümlerde gerçekleştirmeye yardımcı olduğunu öğrendim. Parametre, dönüş değeri ve anlamlı isim kullanımı üzerinde çalıştım.
+Metotların belirli görevleri ayrı bölümlerde toplamaya yardımcı olduğunu öğrendim. Parametre, dönüş değeri ve anlamlı isimlendirme konularını inceledim.
 
 **Uygulamalar**
 
-- Sayı tahmin oyunu.
+- 1 ile 100 arasında sayı tahmin oyunu.
 - `AsalMi(int sayi)` metodu.
 - 1 ile 100 arasındaki asal sayıları listeleme.
 - FizzBuzz problemi.
 
-### Gün 9/48 · Koleksiyonlar ve LINQ
+Bu alıştırmalarla koşulları, döngüleri ve metot kullanımını pekiştirdim.
+
+### Gün 9/48 — Koleksiyonlar ve LINQ
 
 **Öğrendiklerim**
 
-Birden fazla veriyi bir arada tutan koleksiyonları öğrendim.
+Birden fazla veriyi birlikte tutmak ve işlemek için kullanılan koleksiyonları öğrendim.
 
-```csharp
-string[] isimler = { "Ahmet", "Mehmet", "Ayşe" };
+- Dizi: Boyutu oluşturulurken belirlenir.
+- `List<T>`: Eleman ekleme ve silme işlemlerine uygun dinamik koleksiyondur.
+- `Dictionary<TKey, TValue>`: Anahtar-değer ilişkisiyle veri tutar.
 
-List<int> notlar = new List<int>();
-```
+LINQ metotlarını inceledim:
 
-Dizilerin sabit boyutlu, `List<T>` yapısının ise dinamik olduğunu öğrendim. `Dictionary<TKey, TValue>` yapısının anahtar-değer mantığıyla çalıştığını gördüm.
-
-LINQ metotları:
-
-```text
-Where              → Filtreleme
-Select             → Veri seçme
-OrderBy            → Artan sıralama
-OrderByDescending  → Azalan sıralama
-Count              → Sayma
-FirstOrDefault     → İlk elemanı alma
-GroupBy            → Gruplama
-Average            → Ortalama hesaplama
-```
+| Metot | Görevi |
+|---|---|
+| `Where` | Koşula göre filtreleme |
+| `Select` | Veriyi seçme veya dönüştürme |
+| `OrderBy` | Artan sıralama |
+| `Count` | Eleman sayısını bulma |
+| `FirstOrDefault` | İlk uygun sonucu veya varsayılan değeri alma |
+| `GroupBy` | Verileri gruplama |
+| `Average` | Ortalama hesaplama |
 
 **Uygulama**
 
-Öğrenci adı, sınıfı ve notunu içeren bir liste üzerinde çalıştım.
+Öğrenci adı, sınıfı ve notundan oluşan bir liste üzerinde çalıştım.
 
 ```csharp
 class Student
@@ -278,104 +309,74 @@ class Student
 }
 ```
 
-Notu 70'in üzerinde olan öğrencileri filtreledim:
+Notu 70'in üzerinde olan öğrencileri filtrelemek için:
 
 ```csharp
 var notuYetmisUstu = ogrenciler
     .Where(o => o.Not > 70);
 ```
 
-Sınıflara göre ortalama hesapladım:
+Sınıflara göre ortalama hesaplamak için `GroupBy` ve `Average` metotlarını kullandım. En yüksek notu alan öğrenciyi bulmak için `OrderByDescending` ve `FirstOrDefault` üzerinde çalıştım.
 
-```csharp
-var sinifOrtalamalari =
-    ogrenciler.GroupBy(o => o.Sinif);
+Sonuç bulunamayabileceği durumlarda `null` kontrolünün önemini öğrendim.
 
-foreach (var grup in sinifOrtalamalari)
-{
-    decimal ortalama = grup.Average(o => o.Not);
-    Console.WriteLine($"{grup.Key}. sınıf: {ortalama:F2}");
-}
-```
-
-En yüksek not alan öğrenciyi bulmak için `OrderByDescending` ve `FirstOrDefault` kullandım. Sonucun boş olabileceğini düşünerek `null` kontrolü yaptım.
-
-**Kavrama Soruları**
+### Hafta 3 — Kavrama Soruları
 
 **1. Para hesaplamalarında neden decimal kullanılır?**
 
-`decimal`, finansal işlemlerde ondalıklı değerlerle çalışmak için uygun bir veri tipidir. `double` ise genel ve bilimsel hesaplamalarda sık kullanılır.
+`decimal`, ondalıklı finansal hesaplamalarda uygun hassasiyeti sağlamak için tercih edilir. `double` ise yaklaşık kayan noktalı hesaplamalarda sık kullanılır.
 
 **2. Dizi ile List arasındaki fark nedir?**
 
-Dizinin boyutu sabittir. `List<T>` ise eleman ekleme ve silme işlemlerine uygun, dinamik bir koleksiyondur.
+Dizinin boyutu sabittir. `List<T>` ise ihtiyaç oldukça eleman eklemeye ve silmeye olanak sağlar.
 
-**3. LINQ olmadan filtreleme nasıl yapılır?**
+**3. LINQ olmadan notu 70'in üzerinde olan öğrencileri nasıl bulurdum?**
 
-Öğrencileri `foreach` ile dolaşır, `if` ile notlarını kontrol eder ve şartı sağlayanları başka bir listeye eklerdim.
+Bir `foreach` döngüsüyle öğrencileri tek tek dolaşır, `if` ile notlarını kontrol eder ve koşulu sağlayanları ayrı bir listeye eklerdim.
 
 ---
 
-# HAFTA 4 · Nesne Yönelimli Programlama (OOP)
+## Hafta 4 — Nesne Yönelimli Programlama (OOP)
 
-Haftanın hedefi; sınıf, nesne, interface ve hata yönetimi kavramlarını öğrenerek StajDesk'in konsol sürümünü geliştirmektir.
+**Haftanın hedefi:** Sınıf, nesne, kapsülleme, interface ve repository kavramlarını öğrenerek StajDesk'in konsol sürümünü geliştirmek.
 
-### Gün 10/48 · Sınıflar ve Nesneler
-
-**Öğrendiklerim**
-
-- Sınıf: Nesnelerin özelliklerini ve davranışlarını tanımlar.
-- Nesne: Bir sınıftan oluşturulan örnektir.
-- Property: Nesnenin bilgilerini temsil eder.
-- Constructor: Nesne oluşturulurken çalışan özel metottur.
-- `public`: Dışarıdan erişime izin verir.
-- `private`: Erişimi sınıf içiyle sınırlar.
-
-Kapsülleme ile verilerin kontrollü değiştirilmesini öğrendim.
-
-**Uygulama**
-
-StajDesk için `Ticket` sınıfı oluşturdum:
-
-```csharp
-class Ticket
-{
-    public int Id { get; set; }
-    public string Title { get; set; }
-    public string Description { get; set; }
-    public TicketStatus Status { get; set; }
-    public DateTime CreatedAt { get; set; }
-
-    public Ticket(int id, string title, string description)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            throw new ArgumentException(
-                "Başlık boş olamaz.");
-        }
-
-        Id = id;
-        Title = title;
-        Description = description;
-        Status = TicketStatus.Open;
-        CreatedAt = DateTime.Now;
-    }
-}
-```
-
-Constructor içerisinde başlığın boş olmasını engelledim.
-
-### Gün 11/48 · Kalıtım, Interface, Enum ve Hata Yönetimi
+### Gün 10/48 — Sınıflar ve Nesneler
 
 **Öğrendiklerim**
 
-Kalıtım, polimorfizm, interface, enum ve `try/catch/finally` kavramlarını öğrendim.
-
-Interface'in sınıfların uygulaması gereken işlemleri belirleyen bir sözleşme olduğunu öğrendim.
+- **Sınıf:** Nesnelerin özelliklerini ve davranışlarını tanımlar.
+- **Nesne:** Bir sınıftan oluşturulan örnektir.
+- **Property:** Nesnenin bilgilerini temsil eder.
+- **Constructor:** Nesne oluşturulurken çalışan özel metottur.
+- **public:** Bir üyeye dışarıdan erişilmesine izin verir.
+- **private:** Bir üyeye erişimi sınırlar.
+- **Encapsulation:** Verilerin ve işlemlerin kontrollü şekilde yönetilmesini sağlar.
 
 **Uygulama**
 
-Talep durumlarını tanımladım:
+StajDesk'teki talepleri temsil etmek için `Ticket` sınıfı üzerinde çalıştım.
+
+Sınıfta aşağıdaki bilgileri kullandım:
+
+- `Id`
+- `Title`
+- `Description`
+- `Status`
+- `CreatedAt`
+
+Constructor içerisinde başlığın boş veya yalnızca boşluklardan oluşmasını engelleme mantığını uyguladım.
+
+### Gün 11/48 — Kalıtım, Interface, Enum ve Hata Yönetimi
+
+**Öğrendiklerim**
+
+Kalıtım, polimorfizm, interface, enum ve hata yönetimi kavramlarını inceledim.
+
+`enum`, sabit durumları anlamlı isimlerle ifade etmeyi sağlar. `try/catch/finally` yapısı ise hata yönetimi ve gerekli temizlik işlemleri için kullanılır.
+
+**Uygulama**
+
+Talep durumlarını tanımlamak için aşağıdaki enum üzerinde çalıştım:
 
 ```csharp
 enum TicketStatus
@@ -387,30 +388,23 @@ enum TicketStatus
 }
 ```
 
-Repository işlemleri için `ITicketRepository` arayüzünü oluşturdum:
+Repository işlemlerinin hangi metotları içermesi gerektiğini belirlemek için `ITicketRepository` arayüzünü kullandım.
 
-```csharp
-interface ITicketRepository
-{
-    Task AddAsync(Ticket ticket);
-    Task<List<Ticket>> GetAllAsync();
-    Task<Ticket> GetByIdAsync(int id);
-    Task UpdateAsync(Ticket ticket);
-    Task DeleteAsync(int id);
-}
-```
+`InMemoryTicketRepository` ile talepleri bellekte tutma mantığını öğrendim. İstenen ID bulunamadığında anlamlı bir hata üretmenin önemini inceledim.
 
-`InMemoryTicketRepository` sınıfıyla talepleri başlangıçta bellekte tuttum. Olmayan bir kayıt istendiğinde anlamlı hata döndürme mantığını öğrendim.
-
-### Gün 12/48 · Async/Await ve Konsol Mini Talep Yöneticisi
+### Gün 12/48 — Async/Await ve Konsol Mini Talep Yöneticisi
 
 **Öğrendiklerim**
 
-Senkron ve asenkron çalışma arasındaki farkı öğrendim. .NET içerisinde `Task`, `async` ve `await` yapılarının asenkron işlemlerde kullanıldığını gördüm.
+Senkron ve asenkron çalışma arasındaki farkı öğrendim.
+
+- `Task`: Asenkron bir işlemin sonucunu temsil edebilir.
+- `async`: Bir metodun asenkron işlem akışını desteklemesini sağlar.
+- `await`: Asenkron bir işlemin sonucunu beklerken akışın uygun şekilde devam etmesine olanak tanır.
 
 **Uygulama**
 
-StajDesk için aşağıdaki menüyü geliştirdim:
+StajDesk'in konsol sürümünde aşağıdaki işlemler üzerinde çalıştım:
 
 ```text
 1 - Talep Ekle
@@ -420,187 +414,184 @@ StajDesk için aşağıdaki menüyü geliştirdim:
 5 - Çıkış
 ```
 
-Kullanıcının seçimine göre ilgili repository işlemlerini gerçekleştirdim. Hatalı ID girişlerinde kullanıcıya anlamlı mesaj gösterme üzerinde çalıştım.
+Kullanıcının seçimine göre ilgili işlemin yapılması, hatalı ID girişlerinin kontrol edilmesi ve repository metotlarının asenkron tasarlanması konularını inceledim.
 
-Cuma günü mentor kod incelemesi yapıldı ve alınan geri bildirimlere göre düzenlemeler gerçekleştirildi.
-
-**Kavrama Soruları**
+### Hafta 4 — Kavrama Soruları
 
 **1. Interface kullanmanın faydası nedir?**
 
-`ITicketRepository`, talep işlemlerinin hangi metotlara sahip olması gerektiğini belirler. Böylece kullanan kod, verilerin nasıl saklandığından daha bağımsız olur.
+`ITicketRepository`, talep işlemleri için gerekli metotları tanımlar. Bu sayede uygulamanın diğer bölümleri, verilerin tam olarak nasıl saklandığına bağımlı olmadan bu arayüz üzerinden çalışabilir.
 
 **2. Kapsülleme neden önemlidir?**
 
-Verilerin kontrolsüz değiştirilmesini önlemeye ve sınıfın kurallarını korumaya yardımcı olur.
+Verilerin kontrolsüz değiştirilmesini önlemeye ve sınıfın belirlediği kuralları korumaya yardımcı olur.
 
 **3. Async/await neden kullanılır?**
 
-Bekleme gerektiren işlemlerin daha verimli yönetilmesine yardımcı olur. Özellikle web uygulamalarında gereksiz thread beklemesini azaltabilir.
-
-### Hafta 4 Genel Değerlendirme
-
-Bu hafta sınıf, nesne, property, constructor, interface, enum, repository ve asenkron işlem kavramları üzerinde çalıştım. StajDesk'in konsol sürümünde talep ekleme, listeleme, güncelleme ve silme işlemlerini uyguladım.
+Özellikle ağ ve dosya işlemleri gibi bekleme gerektiren işlemlerin daha verimli yönetilmesine yardımcı olur. Asenkron çalışma, bekleme sırasında ilgili iş parçacığının gereksiz yere meşgul edilmesini azaltabilir.
 
 ---
 
-# FAZ 2 · ASP.NET CORE WEB API
+# FAZ 2 — ASP.NET CORE WEB API
 
-## HAFTA 5 · ASP.NET Core Web API
+## Hafta 5 — ASP.NET Core Web API
 
-Haftanın hedefi; HTTP ve REST mantığını kullanarak StajDesk için Web API oluşturmak, katmanları ayırmak ve CRUD işlemlerini HTTP durum kodlarıyla uygulamaktır.
+**Haftanın hedefi:** Konsol uygulamasında öğrenilen yapıları HTTP üzerinden erişilebilen bir Web API'ye taşımak ve katmanlı mimariyi anlamak.
 
-### Gün 13/48 · Web API, REST ve Swagger
+### Gün 13/48 — Web API, REST ve Swagger
 
 **Öğrendiklerim**
 
-ASP.NET Core Web API'nin HTTP isteklerini karşılayarak uygun yanıtlar döndürmek için kullanıldığını öğrendim.
+Web API'nin uygulamalar arasında HTTP üzerinden veri alışverişi yapılmasını sağladığını öğrendim.
+
+REST yaklaşımında kaynakların URL'lerle temsil edilmesini ve HTTP metotlarının bu kaynaklar üzerindeki işlemleri belirtmesini inceledim.
 
 ```text
-GET     → Veri listeleme
+GET     → Veri alma
 POST    → Yeni kayıt oluşturma
-PUT     → Var olan kaydı güncelleme
-DELETE  → Kaydı silme
+PUT     → Kayıt güncelleme
+DELETE  → Kayıt silme
 ```
 
-Swagger'ın API uç noktalarını görüntülemeye ve istekleri test etmeye yardımcı olduğunu öğrendim. OpenAPI'nin API yapısını tanımlamak için kullanılan bir standart olduğunu gördüm.
-
-**Uygulamalar**
-
-`StajDesk.Api` adında bir ASP.NET Core Web API projesi üzerinde çalıştım. `Program.cs` dosyasındaki servis yapılandırmasını inceledim.
-
-API'nin çalıştığını kontrol etmek için `/api/health` uç noktası üzerinde çalıştım. Bu uç noktanın durum bilgisi ve mesaj içeren yanıt döndürmesini sağlama mantığını öğrendim.
-
-Swagger üzerinden API uç noktalarını görüntüledim ve istekleri denedim.
-
-### Gün 14/48 · Controller, Routing, Dependency Injection ve CRUD
-
-**Öğrendiklerim**
-
-- Controller, HTTP isteklerini karşılar ve yanıtları döndürür.
-- Routing, isteğin hangi metoda yönlendirileceğini belirler.
-- Model binding, istek verilerini C# nesnelerine aktarır.
-- Dependency Injection, sınıfların ihtiyaç duydukları bağımlılıkları dışarıdan almasını sağlar.
-- `IActionResult`, farklı HTTP yanıtlarının döndürülmesine yardımcı olur.
-
-Temel HTTP yanıtları:
-
-```text
-200 OK          → İstek başarılı
-201 Created     → Yeni kayıt oluşturuldu
-204 No Content  → İşlem başarılı, gövde yok
-404 Not Found   → Kayıt bulunamadı
-```
+Swagger arayüzünün API uç noktalarını görüntülemeye ve test etmeye yardımcı olduğunu öğrendim. OpenAPI'nin API'lerin tanımlanması için kullanılan bir standart olduğunu inceledim.
 
 **Uygulama**
 
-`Ticket` modeli ve `TicketsController` üzerinde çalıştım.
+`StajDesk.Api` adlı ASP.NET Core Web API projesi üzerinde çalıştım.
 
-```text
-GET     /api/Tickets       → Talepleri listeleme
-POST    /api/Tickets       → Yeni talep oluşturma
-PUT     /api/Tickets/{id}  → Talebi güncelleme
-DELETE  /api/Tickets/{id}  → Talebi silme
-```
+`Program.cs` dosyasının servis yapılandırması ve uygulamanın başlangıç ayarları açısından görevini inceledim. `/api/health` uç noktasının sunucu durumunu ve mesajını döndürmesi üzerinde çalıştım.
 
-Verileri `InMemoryTicketRepository` içerisinde bir listeyle tuttum. Repository ve Service bağımlılıklarını `Program.cs` üzerinden Dependency Injection ile kaydetme mantığını öğrendim.
-
-Swagger üzerinden GET, POST, PUT ve DELETE isteklerini test ettim. Oluşturma işleminde `201 Created` yanıtının kullanılmasını öğrendim.
-
-Bellekte tutulan verilerin uygulama yeniden başlatıldığında kaybolabileceğini ve kalıcı veri için veritabanı gerektiğini not ettim.
-
-### Gün 15/48 · Katmanlı Mimari ve DTO
+### Gün 14/48 — Controller, Routing, Dependency Injection ve CRUD
 
 **Öğrendiklerim**
 
-Uygulamadaki sorumlulukları ayrı katmanlara bölmenin kodun okunabilirliğini ve test edilebilirliğini artırdığını öğrendim.
+- **Controller:** HTTP isteklerini karşılar ve uygun yanıtları döndürür.
+- **Routing:** İsteklerin hangi uç noktaya yönlendirileceğini belirler.
+- **Model binding:** İstek verilerini parametrelere ve nesnelere aktarır.
+- **Dependency Injection (DI):** Sınıfların ihtiyaç duyduğu bağımlılıkların dışarıdan sağlanmasını kolaylaştırır.
+- **IActionResult:** Controller üzerinden farklı HTTP yanıtlarının döndürülmesine yardımcı olur.
 
-- Controller: HTTP istekleri ve yanıtları.
-- Service: İş akışı ve iş kuralları.
-- Repository: Veri erişimi ve veri işlemleri.
+DI kayıtlarında kullanılan yaşam sürelerini de inceledim:
 
-DTO (Data Transfer Object) kullanarak API'ye gelen ve API'den dönen verileri model sınıflarından ayrı tanımlayabildiğimi öğrendim.
+- `Transient`: Her istendiğinde yeni örnek oluşturulur.
+- `Scoped`: Aynı kapsam içerisinde aynı örnek kullanılır.
+- `Singleton`: Uygulama boyunca aynı örnek kullanılır.
 
 **Uygulama**
 
-`ITicketRepository` ve `InMemoryTicketRepository` ile veri işlemlerini Repository katmanında topladım.
+`TicketsController` üzerinden temel CRUD işlemleri üzerinde çalıştım.
 
-`ITicketService` ve `TicketService` ile Controller ve Repository arasına Service katmanını ekledim.
+| Metot | Uç nokta | Amaç |
+|---|---|---|
+| GET | `/api/Tickets` | Talepleri listelemek |
+| GET | `/api/Tickets/{id}` | Tek talep getirmek |
+| POST | `/api/Tickets` | Yeni talep oluşturmak |
+| PUT | `/api/Tickets/{id}` | Talebi güncellemek |
+| DELETE | `/api/Tickets/{id}` | Talebi silmek |
 
-İstek ve yanıt verilerini ayırmak için aşağıdaki DTO yapıları üzerinde çalıştım:
+Repository ve Service bağımlılıklarının Dependency Injection ile kaydedilmesi mantığını öğrendim.
 
-```text
-CreateTicketRequest  → Yeni talep oluşturma isteği
-UpdateTicketRequest  → Talep güncelleme isteği
-TicketResponse       → API yanıtında döndürülen talep bilgileri
-```
+Ayrıca aşağıdaki HTTP yanıtlarını inceledim:
 
-Controller içerisinde DTO ve model arasında veri aktarımı mantığını uyguladım.
+| Kod | Anlamı |
+|---|---|
+| 200 OK | İstek başarılı |
+| 201 Created | Yeni kaynak oluşturuldu |
+| 204 No Content | İşlem başarılı, yanıt gövdesi yok |
+| 404 Not Found | İstenen kaynak bulunamadı |
 
-**Kontrol Edilecekler**
+Bellekte tutulan verilerin uygulama yeniden başlatıldığında kaybolabileceğini ve kalıcı saklama için veritabanına ihtiyaç duyulabileceğini öğrendim.
 
-- Postman koleksiyonunu hazırlamak.
-- Olmayan ID ile PUT ve DELETE isteklerinde `404 Not Found` yanıtını test etmek.
-- Mentorun kavrama sorularını kendi cümlelerimle cevaplamak.
-- Build ve test sonuçlarını kontrol etmek.
-- Git durumunu kontrol etmek.
+### Gün 15/48 — Katmanlı Mimari ve DTO
 
-### Kavrama Soruları
+**Öğrendiklerim**
+
+Uygulamanın sorumluluklarını farklı katmanlara ayırmanın kodun okunabilirliğini, bakımını ve test edilebilirliğini kolaylaştırdığını öğrendim.
+
+- **Controller:** HTTP isteklerini ve yanıtlarını yönetir.
+- **Service:** İş kurallarını ve uygulama akışını yönetir.
+- **Repository:** Verilerin saklanması ve erişimiyle ilgili işlemleri yürütür.
+
+DTO'nun (Data Transfer Object), API'ye gönderilen veya API'den döndürülen verileri taşımak için kullanılan bir nesne olduğunu öğrendim.
+
+**Uygulama**
+
+StajDesk'te aşağıdaki yapıların görevlerini inceledim:
+
+- `ITicketRepository`: Veri işlemleri için sözleşme.
+- `InMemoryTicketRepository`: Verileri bellekte tutan repository uygulaması.
+- `ITicketService`: İş mantığı için sözleşme.
+- `TicketService`: Talep işlemlerini yöneten servis.
+- `CreateTicketRequest`: Yeni talep oluşturma isteği.
+- `UpdateTicketRequest`: Talep güncelleme isteği.
+- `TicketResponse`: API yanıtında döndürülen talep bilgileri.
+
+Controller, Service ve Repository arasındaki veri akışını ve DTO ile model arasındaki dönüşüm mantığını inceledim.
+
+### Hafta 5 — Kavrama Soruları
 
 **1. In-memory veriler uygulama yeniden başlatıldığında neden kaybolabilir?**
 
-Veriler yalnızca bellekte tutulduğu için uygulama kapandığında bellekteki liste sıfırlanabilir. Kalıcı saklama için veritabanı gerekir.
+Veriler yalnızca bellekte tutulduğu için uygulama kapandığında bellekteki veriler kalıcı olarak saklanmaz. Kalıcı saklama için bir veritabanı veya uygun bir kalıcı depolama çözümü gerekir.
 
 **2. Controller, Service ve Repository neden ayrı tutulur?**
 
-Her katman farklı bir sorumluluk üstlenir. Controller HTTP işlemleriyle, Service iş akışıyla, Repository ise veri işlemleriyle ilgilenir.
+Her katmanın farklı bir sorumluluğu vardır. Controller HTTP iletişimini, Service iş kurallarını, Repository ise veri işlemlerini yönetir. Bu ayrım kodun bakımını ve test edilmesini kolaylaştırır.
 
 **3. Yeni kayıt oluşturulunca neden 201 Created döndürülür?**
 
-Bu yanıt, isteğin başarılı olduğunu ve yeni bir kaydın oluşturulduğunu belirtir.
+201 Created, isteğin başarılı olduğunu ve yeni bir kaynağın oluşturulduğunu belirtir. Böylece istemciye yapılan işlem hakkında daha doğru bilgi verilir.
 
 **4. DTO kullanmanın faydası nedir?**
 
-API'ye hangi verilerin gönderileceğini ve hangi bilgilerin yanıt olarak döndürüleceğini belirlemeye yardımcı olur. Böylece veri alışverişi model sınıfından ayrılabilir.
-
-### Hafta 5 Genel Değerlendirme
-
-Bu hafta ASP.NET Core Web API, HTTP metotları, REST yaklaşımı, Swagger, Controller, Routing, Dependency Injection, CRUD işlemleri, katmanlı mimari ve DTO kavramları üzerinde çalıştım.
-
-StajDesk'i konsol uygulamasından HTTP istekleriyle kullanılabilen bir API yapısına taşımaya başladım. API uç noktalarını test etmenin ve uygun HTTP durum kodlarını kullanmanın önemini öğrendim.
+DTO, API üzerinden hangi verilerin alınacağını ve hangi verilerin döndürüleceğini belirlemeye yardımcı olur. Böylece dışarıya sunulan veri yapısı, uygulamanın iç modellerinden ayrılabilir.
 
 ---
 
 # GENEL DEĞERLENDİRME
 
-İlk beş haftada geliştirme ortamı, Git, web iletişimi, Docker, C# temelleri, LINQ, nesne yönelimli programlama ve ASP.NET Core Web API konularında çalıştım.
+İlk beş haftada Git, web iletişimi, Docker, C# temelleri, LINQ, nesne yönelimli programlama ve ASP.NET Core Web API konularını ele aldım.
 
-Öğrendiğim konuların StajDesk projesindeki bağlantısını şu şekilde özetleyebilirim:
+Öğrendiğim kavramların StajDesk projesindeki bağlantısını şu şekilde özetleyebilirim:
 
 ```text
-Git
- ↓
-C# / .NET
- ↓
-Koleksiyonlar ve LINQ
- ↓
-Sınıflar ve Nesneler
- ↓
-Interface
- ↓
-Repository
- ↓
-Service
- ↓
-Controller
- ↓
-HTTP ve Web API
- ↓
-CRUD İşlemleri
- ↓
-StajDesk
+Git ve Geliştirme Araçları
+          |
+          v
+     C# / .NET
+          |
+          v
+ Koleksiyonlar ve LINQ
+          |
+          v
+ Sınıflar ve Nesneler
+          |
+          v
+       Interface
+          |
+          v
+      Repository
+          |
+          v
+        Service
+          |
+          v
+      Controller
+          |
+          v
+      Web API
+          |
+          v
+     CRUD İşlemleri
+          |
+          v
+       StajDesk
 ```
 
-Staj sürecinde yalnızca kod yazmayı değil, kodun neden belirli katmanlara ayrıldığını, verilerin nasıl yönetildiğini ve uygulamaların nasıl test edildiğini de öğrenmeyi hedefliyorum.
+Bu süreçte amacım yalnızca çalışan kod yazmak değil, yazdığım kodun neden o şekilde tasarlandığını anlamak ve karşılaştığım sorunları kendi başıma çözme becerimi geliştirmektir.
 
-Bundan sonraki süreçte öğrendiğim konuları uygulayarak pekiştirmek, kod kalitesini artırmak ve mentor geri bildirimlerine göre geliştirmeler yapmak istiyorum.
+Bundan sonraki süreçte öğrendiğim konuları uygulamalarla pekiştirmeyi, kodumu daha okunabilir hâle getirmeyi ve mentor geri bildirimlerini dikkate alarak geliştirmeler yapmayı hedefliyorum.
+
+---
+
+**Not:** Bu günlük, öğrenme sürecimi ve üzerinde çalıştığım konuları takip etmek için hazırlanmıştır. Uygulama sonuçları, testler ve mentor geri bildirimleri ilerledikçe güncellenecektir.
