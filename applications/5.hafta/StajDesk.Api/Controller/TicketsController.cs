@@ -103,4 +103,25 @@ public IActionResult Update(int id, UpdateTicketRequest request)
 
         return NoContent();
     }
+
+    [HttpGet("{id}")]
+public IActionResult GetById(int id)
+{
+    var ticket = _service.GetById(id);
+
+    if (ticket is null)
+    {
+        return NotFound();
+    }
+
+    var response = new TicketResponse
+    {
+        Id = ticket.Id,
+        Title = ticket.Title,
+        Description = ticket.Description,
+        IsCompleted = ticket.IsCompleted
+    };
+
+    return Ok(response);
+}
 }

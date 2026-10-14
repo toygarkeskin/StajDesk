@@ -29,6 +29,11 @@ public class InMemoryTicketRepository : ITicketRepository
         return tickets;
     }
 
+    public Ticket? GetById(int id)
+    {
+        return tickets.FirstOrDefault(t => t.Id == id);
+    }
+
     public void Add(Ticket ticket)
     {
         ticket.Id = tickets.Count == 0

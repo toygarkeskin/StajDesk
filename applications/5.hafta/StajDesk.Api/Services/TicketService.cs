@@ -18,6 +18,11 @@ public class TicketService : ITicketService
         return _repository.GetAll();
     }
 
+    public Ticket? GetById(int id)
+    {
+        return _repository.GetById(id);
+    }
+
     public void Add(Ticket ticket)
     {
         _repository.Add(ticket);
