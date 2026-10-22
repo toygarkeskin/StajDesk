@@ -10,23 +10,17 @@ uygulayarak anlamak ve kendi cümlelerimle açıklayabilmektir.
 
 ## İçindekiler
 
--   [Faz 0 --- Temeller](#faz-0--temeller)
-
-    -   Hafta 1 --- Başlangıç, Git ve Web
-
-    -   Hafta 2 --- Docker ile Tanışma
-
--   [Faz 1 --- C# ve .NET](#faz-1--c-ve-net)
-
-    -   Hafta 3 --- C# Temelleri
-
-    -   Hafta 4 --- Nesne Yönelimli Programlama
-
--   [Faz 2 --- ASP.NET Core Web API](#faz-2--aspnet-core-web-api)
-
-    -   Hafta 5 --- Web API ve Katmanlı Mimari
-
--   [Genel Değerlendirme](#genel-değerlendirme)
+- [Faz 0 --- Temeller](#faz-0----temeller)
+  - [Hafta 1 --- Başlangıç, Git ve Web](#hafta-1----başlangıç-git-ve-webin-çalışma-mantığı)
+  - [Hafta 2 --- Docker ile Tanışma](#hafta-2----docker-ile-tanışma)
+- [Faz 1 --- C# ve .NET](#faz-1----c-ve-net)
+  - [Hafta 3 --- C# Temelleri](#hafta-3----c-temelleri)
+  - [Hafta 4 --- Nesne Yönelimli Programlama](#hafta-4----nesne-yönelimli-programlama-oop)
+- [Faz 2 --- ASP.NET Core Web API](#faz-2----aspnet-core-web-api)
+  - [Hafta 5 --- Web API ve Katmanlı Mimari](#hafta-5----aspnet-core-web-api)
+- [Hafta 6 --- İlişkisel Veritabanı ve SQL](#hafta-6----ilişkisel-veritabanı-ve-sql)
+- [SOLID Prensipleri](#solid-prensipleri)
+- [Genel Değerlendirme](#genel-değerlendirme)
 
 ------------------------------------------------------------------------
 
@@ -34,7 +28,7 @@ uygulayarak anlamak ve kendi cümlelerimle açıklayabilmektir.
 
 ## Hafta 1 --- Başlangıç, Git ve Web'in Çalışma Mantığı
 
-\*\*\*\*Haftanın hedefi:\*\*\*\* Geliştirme ortamını tanımak, Git ile
+**Haftanın hedefi:** Geliştirme ortamını tanımak, Git ile
 çalışmak ve web uygulamalarının temel çalışma mantığını anlamak.
 
 ### Gün 1/48 --- Tanışma ve Ortam Kurulumu
@@ -47,18 +41,18 @@ incelemesinin neden önemli olduğunu gördüm.
 
 Kullandığım araçların temel görevlerini öğrendim:
 
--   \*\*\*\*VS Code:\*\*\*\* Kod yazmak ve dosyaları düzenlemek için
+-   **VS Code:** Kod yazmak ve dosyaları düzenlemek için
     kullanılır.
 
--   \*\*\*\*Git:\*\*\*\* Kod değişikliklerini takip etmeyi sağlar.
+-   **Git:** Kod değişikliklerini takip etmeyi sağlar.
 
--   \*\*\*\*.NET SDK:\*\*\*\* C# ve .NET uygulamalarını geliştirmek ve
+-   **.NET SDK:** C# ve .NET uygulamalarını geliştirmek ve
     çalıştırmak için kullanılır.
 
--   \*\*\*\*Node.js:\*\*\*\* JavaScript kodlarını çalıştırmayı ve
+-   **Node.js:** JavaScript kodlarını çalıştırmayı ve
     JavaScript tabanlı araçları kullanmayı sağlar.
 
--   \*\*\*\*Docker Desktop:\*\*\*\* Konteynerleri oluşturmak ve yönetmek
+-   **Docker Desktop:** Konteynerleri oluşturmak ve yönetmek
     için kullanılır.
 
 **Uygulamalar**
@@ -97,21 +91,21 @@ mkdir
 
 Git'in temel kavramlarını öğrendim:
 
--   \*\*\*\*Repository:\*\*\*\* Proje dosyalarının ve değişiklik
+-   **Repository:** Proje dosyalarının ve değişiklik
     geçmişinin tutulduğu depo.
 
--   \*\*\*\*Commit:\*\*\*\* Değişiklikleri yerel Git geçmişine kaydetme
+-   **Commit:** Değişiklikleri yerel Git geçmişine kaydetme
     işlemi.
 
--   \*\*\*\*Branch:\*\*\*\* Ana çalışmayı etkilemeden ayrı bir
+-   **Branch:** Ana çalışmayı etkilemeden ayrı bir
     geliştirme alanında çalışmayı sağlar.
 
--   \*\*\*\*Merge:\*\*\*\* Bir branch üzerindeki değişiklikleri başka
+-   **Merge:** Bir branch üzerindeki değişiklikleri başka
     bir branch ile birleştirir.
 
--   \*\*\*\*Remote:\*\*\*\* Uzak Git deposudur.
+-   **Remote:** Uzak Git deposudur.
 
--   \*\*\*\*Push:\*\*\*\* Yerel commitleri uzak depoya gönderir.
+-   **Push:** Yerel commitleri uzak depoya gönderir.
 
 README dosyasının projenin amacını ve kullanımını açıklamak için
 kullanıldığını öğrendim. Commit mesajlarında yapılan değişikliği açıkça
@@ -127,35 +121,35 @@ işleyerek yanıt verdiğini anladım.
 
 Temel HTTP metotları:
 
-| Metot \| Kullanım amacı \|
+| Metot | Kullanım amacı |
 
-\|---\|---\|
+|---|---|
 
-| GET \| Veri almak \|
+| GET | Veri almak |
 
-| POST \| Yeni veri oluşturmak veya veri göndermek \|
+| POST | Yeni veri oluşturmak veya veri göndermek |
 
-| PUT \| Var olan veriyi güncellemek \|
+| PUT | Var olan veriyi güncellemek |
 
-| DELETE \| Veri silmek \|
+| DELETE | Veri silmek |
 
 Temel HTTP durum kodları:
 
-| Kod \| Anlamı \|
+| Kod | Anlamı |
 
-\|---\|---\|
+|---|---|
 
-| 200 \| İstek başarılı \|
+| 200 | İstek başarılı |
 
-| 201 \| Yeni kaynak oluşturuldu \|
+| 201 | Yeni kaynak oluşturuldu |
 
-| 400 \| İstek hatalı \|
+| 400 | İstek hatalı |
 
-| 401 \| Kimlik doğrulaması gerekli veya geçersiz \|
+| 401 | Kimlik doğrulaması gerekli veya geçersiz |
 
-| 404 \| İstenen kaynak bulunamadı \|
+| 404 | İstenen kaynak bulunamadı |
 
-| 500 \| Sunucu tarafında beklenmeyen hata \|
+| 500 | Sunucu tarafında beklenmeyen hata |
 
 JSON'ın uygulamalar arasında veri alışverişinde kullanılan bir veri
 formatı olduğunu öğrendim.
@@ -194,7 +188,7 @@ incelemek gerekir.
 
 ## Hafta 2 --- Docker ile Tanışma
 
-\*\*\*\*Haftanın hedefi:\*\*\*\* Konteyner mantığını anlamak ve Docker
+**Haftanın hedefi:** Konteyner mantığını anlamak ve Docker
 ile uygulamaları daha tutarlı ortamlarda çalıştırmayı öğrenmek.
 
 ### Gün 4/48 --- Konteyner Nedir, Neden Docker?
@@ -206,16 +200,16 @@ nedenlerinden birinin ortam farklılıkları olduğunu öğrendim. Docker,
 uygulamanın ihtiyaç duyduğu bileşenleri daha tutarlı bir ortamda
 çalıştırmaya yardımcı olur.
 
--   \*\*\*\*Image:\*\*\*\* Konteyner oluşturmak için kullanılan
+-   **Image:** Konteyner oluşturmak için kullanılan
     şablondur.
 
--   \*\*\*\*Container:\*\*\*\* Bir image üzerinden oluşturulan çalışma
+-   **Container:** Bir image üzerinden oluşturulan çalışma
     ortamıdır.
 
--   \*\*\*\*Port mapping:\*\*\*\* Konteynerdeki bir porta bilgisayardan
+-   **Port mapping:** Konteynerdeki bir porta bilgisayardan
     erişmeyi sağlar.
 
--   \*\*\*\*Docker Hub:\*\*\*\* Docker image'larının paylaşılabildiği
+-   **Docker Hub:** Docker image'larının paylaşılabildiği
     bir kayıt deposudur.
 
 **Uygulamalar**
@@ -228,11 +222,11 @@ docker run -d -p 8080:80 nginx
 
 docker ps
 
-docker logs \<container_id>
+docker logs <container_id>
 
-docker stop \<container_id>
+docker stop <container_id>
 
-docker rm \<container_id>
+docker rm <container_id>
 ```
 
 Bu komutların konteyner çalıştırma, listeleme, log inceleme, durdurma ve
@@ -247,22 +241,22 @@ Dockerfile'ın bir image'ın nasıl oluşturulacağını tanımladığını
 
 Temel Dockerfile komutları:
 
-| Komut \| Görevi \|
+| Komut | Görevi |
 
-\|---\|---\|
+|---|---|
 
-| FROM \| Başlangıç image'ını belirler \|
+| FROM | Başlangıç image'ını belirler |
 
-| WORKDIR \| Çalışma dizinini belirler \|
+| WORKDIR | Çalışma dizinini belirler |
 
-| COPY \| Dosyaları image içerisine kopyalar \|
+| COPY | Dosyaları image içerisine kopyalar |
 
-| RUN \| Image oluşturulurken komut çalıştırır \|
+| RUN | Image oluşturulurken komut çalıştırır |
 
-| EXPOSE \| Uygulamanın kullanması beklenen portu belirtir \|
+| EXPOSE | Uygulamanın kullanması beklenen portu belirtir |
 
-| CMD \| Konteyner başlatıldığında çalıştırılacak varsayılan komutu
-  tanımlar \|
+| CMD | Konteyner başlatıldığında çalıştırılacak varsayılan komutu
+  tanımlar |
 
 Image katmanlarını ve build önbelleğini inceledim. Volume kullanmanın,
 konteynerin yaşam döngüsünden bağımsız veri saklamaya yardımcı olduğunu
@@ -287,16 +281,16 @@ docker run -d -p 8080:80 stajdesk-web
 Docker Compose ile birden fazla servisin tek bir yapılandırma dosyası
 üzerinden yönetilebildiğini öğrendim.
 
--   \*\*\*\*Network:\*\*\*\* Konteynerlerin birbiriyle iletişim
+-   **Network:** Konteynerlerin birbiriyle iletişim
     kurmasına yardımcı olur.
 
--   \*\*\*\*Environment variables:\*\*\*\* Uygulama yapılandırmalarını
+-   **Environment variables:** Uygulama yapılandırmalarını
     ortam değişkenleri üzerinden yönetmeyi sağlar.
 
--   \*\*\*\*Volume:\*\*\*\* Verilerin kalıcı olarak saklanmasına
+-   **Volume:** Verilerin kalıcı olarak saklanmasına
     yardımcı olur.
 
--   \*\*\*\*Docker Compose:\*\*\*\* Birden fazla servisin birlikte
+-   **Docker Compose:** Birden fazla servisin birlikte
     çalıştırılmasını kolaylaştırır.
 
 **Uygulama**
@@ -330,7 +324,7 @@ sorunlar azaltılabilir.
 
 ## Hafta 3 --- C# Temelleri
 
-\*\*\*\*Haftanın hedefi:\*\*\*\* C# dilinin temel yapılarını öğrenmek ve
+**Haftanın hedefi:** C# dilinin temel yapılarını öğrenmek ve
 konsol uygulamaları geliştirmek.
 
 ### Gün 7/48 --- Neden .NET? İlk C# Programı
@@ -352,19 +346,19 @@ dotnet run
 
 Temel veri tiplerini inceledim:
 
-| Tip \| Kullanım \|
+| Tip | Kullanım |
 
-\|---\|---\|
+|---|---|
 
-| `int` \| Tam sayılar \|
+| `int` | Tam sayılar |
 
-| `decimal` \| Hassas ondalıklı ve finansal hesaplamalar \|
+| `decimal` | Hassas ondalıklı ve finansal hesaplamalar |
 
-| `string` \| Metin \|
+| `string` | Metin |
 
-| `bool` \| Doğru veya yanlış değerleri \|
+| `bool` | Doğru veya yanlış değerleri |
 
-| `DateTime` \| Tarih ve saat \|
+| `DateTime` | Tarih ve saat |
 
 `.csproj` dosyasının projenin yapılandırmasını ve bağımlılıklarını
 tanımlamada kullanıldığını öğrendim.
@@ -422,30 +416,30 @@ koleksiyonları öğrendim.
 
 -   Dizi: Boyutu oluşturulurken belirlenir.
 
--   `List\<T>`: Eleman ekleme ve silme işlemlerine uygun dinamik
+-   `List<T>`: Eleman ekleme ve silme işlemlerine uygun dinamik
     koleksiyondur.
 
--   `Dictionary\<TKey, TValue>`: Anahtar-değer ilişkisiyle veri tutar.
+-   `Dictionary<TKey, TValue>`: Anahtar-değer ilişkisiyle veri tutar.
 
 LINQ metotlarını inceledim:
 
-| Metot \| Görevi \|
+| Metot | Görevi |
 
-\|---\|---\|
+|---|---|
 
-| `Where` \| Koşula göre filtreleme \|
+| `Where` | Koşula göre filtreleme |
 
-| `Select` \| Veriyi seçme veya dönüştürme \|
+| `Select` | Veriyi seçme veya dönüştürme |
 
-| `OrderBy` \| Artan sıralama \|
+| `OrderBy` | Artan sıralama |
 
-| `Count` \| Eleman sayısını bulma \|
+| `Count` | Eleman sayısını bulma |
 
-| `FirstOrDefault` \| İlk uygun sonucu veya varsayılan değeri alma \|
+| `FirstOrDefault` | İlk uygun sonucu veya varsayılan değeri alma |
 
-| `GroupBy` \| Verileri gruplama \|
+| `GroupBy` | Verileri gruplama |
 
-| `Average` \| Ortalama hesaplama \|
+| `Average` | Ortalama hesaplama |
 
 **Uygulama**
 
@@ -491,7 +485,7 @@ sık kullanılır.
 
 **2. Dizi ile List arasındaki fark nedir?**
 
-Dizinin boyutu sabittir. `List\<T>` ise ihtiyaç oldukça eleman eklemeye
+Dizinin boyutu sabittir. `List<T>` ise ihtiyaç oldukça eleman eklemeye
 ve silmeye olanak sağlar.
 
 **3. LINQ olmadan notu 70'in üzerinde olan öğrencileri nasıl bulurdum?**
@@ -503,7 +497,7 @@ kontrol eder ve koşulu sağlayanları ayrı bir listeye eklerdim.
 
 ## Hafta 4 --- Nesne Yönelimli Programlama (OOP)
 
-\*\*\*\*Haftanın hedefi:\*\*\*\* Sınıf, nesne, kapsülleme, interface ve
+**Haftanın hedefi:** Sınıf, nesne, kapsülleme, interface ve
 repository kavramlarını öğrenerek StajDesk'in konsol sürümünü
 geliştirmek.
 
@@ -511,21 +505,21 @@ geliştirmek.
 
 **Öğrendiklerim**
 
--   \*\*\*\*Sınıf:\*\*\*\* Nesnelerin özelliklerini ve davranışlarını
+-   **Sınıf:** Nesnelerin özelliklerini ve davranışlarını
     tanımlar.
 
--   \*\*\*\*Nesne:\*\*\*\* Bir sınıftan oluşturulan örnektir.
+-   **Nesne:** Bir sınıftan oluşturulan örnektir.
 
--   \*\*\*\*Property:\*\*\*\* Nesnenin bilgilerini temsil eder.
+-   **Property:** Nesnenin bilgilerini temsil eder.
 
--   \*\*\*\*Constructor:\*\*\*\* Nesne oluşturulurken çalışan özel
+-   **Constructor:** Nesne oluşturulurken çalışan özel
     metottur.
 
--   \*\*\*\*public:\*\*\*\* Bir üyeye dışarıdan erişilmesine izin verir.
+-   **public:** Bir üyeye dışarıdan erişilmesine izin verir.
 
--   \*\*\*\*private:\*\*\*\* Bir üyeye erişimi sınırlar.
+-   **private:** Bir üyeye erişimi sınırlar.
 
--   \*\*\*\*Encapsulation:\*\*\*\* Verilerin ve işlemlerin kontrollü
+-   **Encapsulation:** Verilerin ve işlemlerin kontrollü
     şekilde yönetilmesini sağlar.
 
 **Uygulama**
@@ -646,7 +640,7 @@ ilgili iş parçacığının gereksiz yere meşgul edilmesini azaltabilir.
 
 ## Hafta 5 --- ASP.NET Core Web API
 
-\*\*\*\*Haftanın hedefi:\*\*\*\* Konsol uygulamasında öğrenilen yapıları
+**Haftanın hedefi:** Konsol uygulamasında öğrenilen yapıları
 HTTP üzerinden erişilebilen bir Web API'ye taşımak ve katmanlı mimariyi
 anlamak.
 
@@ -687,19 +681,19 @@ sunucu durumunu ve mesajını döndürmesi üzerinde çalıştım.
 
 **Öğrendiklerim**
 
--   \*\*\*\*Controller:\*\*\*\* HTTP isteklerini karşılar ve uygun
+-   **Controller:** HTTP isteklerini karşılar ve uygun
     yanıtları döndürür.
 
--   \*\*\*\*Routing:\*\*\*\* İsteklerin hangi uç noktaya
+-   **Routing:** İsteklerin hangi uç noktaya
     yönlendirileceğini belirler.
 
--   \*\*\*\*Model binding:\*\*\*\* İstek verilerini parametrelere ve
+-   **Model binding:** İstek verilerini parametrelere ve
     nesnelere aktarır.
 
--   \*\*\*\*Dependency Injection (DI):\*\*\*\* Sınıfların ihtiyaç
+-   **Dependency Injection (DI):** Sınıfların ihtiyaç
     duyduğu bağımlılıkların dışarıdan sağlanmasını kolaylaştırır.
 
--   \*\*\*\*IActionResult:\*\*\*\* Controller üzerinden farklı HTTP
+-   **IActionResult:** Controller üzerinden farklı HTTP
     yanıtlarının döndürülmesine yardımcı olur.
 
 DI kayıtlarında kullanılan yaşam sürelerini de inceledim:
@@ -714,36 +708,36 @@ DI kayıtlarında kullanılan yaşam sürelerini de inceledim:
 
 `TicketsController` üzerinden temel CRUD işlemleri üzerinde çalıştım.
 
-| Metot \| Uç nokta \| Amaç \|
+| Metot | Uç nokta | Amaç |
 
-\|---\|---\|---\|
+|---|---|---|
 
-| GET \| `/api/Tickets` \| Talepleri listelemek \|
+| GET | `/api/Tickets` | Talepleri listelemek |
 
-| GET \| `/api/Tickets/{id}` \| Tek talep getirmek \|
+| GET | `/api/Tickets/{id}` | Tek talep getirmek |
 
-| POST \| `/api/Tickets` \| Yeni talep oluşturmak \|
+| POST | `/api/Tickets` | Yeni talep oluşturmak |
 
-| PUT \| `/api/Tickets/{id}` \| Talebi güncellemek \|
+| PUT | `/api/Tickets/{id}` | Talebi güncellemek |
 
-| DELETE \| `/api/Tickets/{id}` \| Talebi silmek \|
+| DELETE | `/api/Tickets/{id}` | Talebi silmek |
 
 Repository ve Service bağımlılıklarının Dependency Injection ile
 kaydedilmesi mantığını öğrendim.
 
 Ayrıca aşağıdaki HTTP yanıtlarını inceledim:
 
-| Kod \| Anlamı \|
+| Kod | Anlamı |
 
-\|---\|---\|
+|---|---|
 
-| 200 OK \| İstek başarılı \|
+| 200 OK | İstek başarılı |
 
-| 201 Created \| Yeni kaynak oluşturuldu \|
+| 201 Created | Yeni kaynak oluşturuldu |
 
-| 204 No Content \| İşlem başarılı, yanıt gövdesi yok \|
+| 204 No Content | İşlem başarılı, yanıt gövdesi yok |
 
-| 404 Not Found \| İstenen kaynak bulunamadı \|
+| 404 Not Found | İstenen kaynak bulunamadı |
 
 Bellekte tutulan verilerin uygulama yeniden başlatıldığında
 kaybolabileceğini ve kalıcı saklama için veritabanına ihtiyaç
@@ -757,11 +751,11 @@ Uygulamanın sorumluluklarını farklı katmanlara ayırmanın kodun
 okunabilirliğini, bakımını ve test edilebilirliğini kolaylaştırdığını
 öğrendim.
 
--   \*\*\*\*Controller:\*\*\*\* HTTP isteklerini ve yanıtlarını yönetir.
+-   **Controller:** HTTP isteklerini ve yanıtlarını yönetir.
 
--   \*\*\*\*Service:\*\*\*\* İş kurallarını ve uygulama akışını yönetir.
+-   **Service:** İş kurallarını ve uygulama akışını yönetir.
 
--   \*\*\*\*Repository:\*\*\*\* Verilerin saklanması ve erişimiyle
+-   **Repository:** Verilerin saklanması ve erişimiyle
     ilgili işlemleri yürütür.
 
 DTO'nun (Data Transfer Object), API'ye gönderilen veya API'den
@@ -815,6 +809,435 @@ doğru bilgi verilir.
 DTO, API üzerinden hangi verilerin alınacağını ve hangi verilerin
 döndürüleceğini belirlemeye yardımcı olur. Böylece dışarıya sunulan veri
 yapısı, uygulamanın iç modellerinden ayrılabilir.
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## Hafta 6 --- İlişkisel Veritabanı ve SQL
+
+### Gün 16/48 --- Veritabanı ve PostgreSQL
+
+Docker üzerinde çalışan PostgreSQL veritabanına `psql` ile bağlandım.
+`categories` tablosunu oluşturdum ve beş kategori kaydı ekledim. Tablo,
+satır, sütun ve birincil anahtar kavramlarını uygulamalı olarak
+inceledim.
+
+### Gün 17/48 --- SQL Sorguları ve İlişkiler
+
+`users`, `tickets` ve `comments` tablolarını oluşturdum ve aralarında
+yabancı anahtar ilişkileri kurdum. Örnek veriler ekledim. `WHERE`,
+`ORDER BY`, `JOIN`, `GROUP BY` ve `COUNT` sorgularını kullandım. On SQL
+sorgusunu `sql/week06.sql` dosyasına kaydettim.
+
+### Gün 18/48 --- Veri Modelleme
+
+StajDesk'in User, Category, Ticket, Comment ve Notification varlıkları
+arasındaki ilişkileri ER diyagramında gösterdim. Sık kullanılan
+sorgularda faydalı olabilecek sütunları değerlendirdim.
+
+### İndeksler ve Gerekçeleri
+
+-   `tickets.category_id`: Kategoriye göre talepleri filtrelemeyi
+    destekler.
+
+-   `tickets.user_id`: Bir kullanıcıya ait talepleri bulmayı destekler.
+
+-   `comments.ticket_id`: Bir talebe ait yorumları bulmayı destekler.
+
+-   `notifications.user_id`: Kullanıcının bildirimlerini bulmayı
+    destekler.
+
+İndeksler bazı sorguları hızlandırabilir. Bununla birlikte depolama
+alanı kullanır ve veri ekleme, güncelleme ve silme işlemlerinde
+güncellenmeleri gerekir. Bu yüzden her sütuna indeks eklemek yerine
+ihtiyaç duyulan sütunlar seçilmelidir.
+
+### Kavrama Soruları
+
+**1. Talepleri bir metin dosyasında değil de veritabanında tutmamızın 3
+nedeni nedir?**
+
+Birincisi, verileri tablolar içinde düzenli şekilde saklayabiliriz.
+İkincisi, SQL ile verileri arayabilir, filtreleyebilir ve
+güncelleyebiliriz. Üçüncüsü, birincil anahtarlar, yabancı anahtarlar ve
+kısıtlamalar sayesinde verilerin tutarlılığını korumaya yardımcı
+olabiliriz.
+
+**2. JOIN ne işe yarar? Kendi tablolarınızdan bir örnek veriniz.**
+
+JOIN, ilişkili tablolardaki verileri bir sorguda birleştirmeyi sağlar.
+Örneğin `tickets` tablosunu `users` ve `categories` tablolarıyla
+birleştirerek talebin başlığını, kullanıcı adını ve kategorisini
+birlikte gösterebilirim.
+
+**3. Her sütuna index koymak neden iyi bir fikir değildir?**
+
+Her indeks ek depolama alanı kullanır. Ayrıca veri ekleme, güncelleme ve
+silme işlemlerinde indekslerin de güncellenmesi gerekir. Bu nedenle
+sorgularda fayda sağlayacak sütunlara indeks eklemek daha uygundur.
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+# SOLID PRENSİPLERİ
+
+SOLID, nesne yönelimli yazılım tasarımında kodun anlaşılır, bakımı kolay,
+test edilebilir ve genişletilebilir olmasına yardımcı olan beş prensibin
+kısaltmasıdır.
+
+## S — Single Responsibility Principle (Tek Sorumluluk Prensibi)
+
+Bir sınıfın değişmesi için tek bir ana sorumluluğu veya nedeni olmalıdır.
+İş kuralları, veritabanı işlemleri ve bildirim gönderme gibi farklı
+sorumlulukları mümkün olduğunca ayrı sınıflarda tutmak kodun bakımını
+kolaylaştırır.
+
+Yanlış örnek:
+
+```csharp
+public class TicketService
+{
+    // İş kuralı, veritabanı ve bildirim sorumlulukları aynı sınıfta.
+    public void CreateTicket()
+    {
+        Console.WriteLine("Ticket oluşturuldu.");
+        Console.WriteLine("Veritabanına kaydedildi.");
+        Console.WriteLine("E-posta gönderildi.");
+    }
+}
+```
+
+Daha uygun yaklaşım:
+
+```csharp
+public class TicketService
+{
+    // Ticket oluşturma iş kuralını yönetir.
+    public void CreateTicket()
+    {
+        Console.WriteLine("Ticket oluşturuldu.");
+    }
+}
+
+public class TicketRepository
+{
+    // Veritabanı işlemlerinden sorumludur.
+    public void Save()
+    {
+        Console.WriteLine("Veritabanına kaydedildi.");
+    }
+}
+
+public class NotificationService
+{
+    // Bildirim gönderme işlemlerinden sorumludur.
+    public void Send()
+    {
+        Console.WriteLine("Bildirim gönderildi.");
+    }
+}
+```
+
+Amaç: Her sınıfın sorumluluğunu belirgin hale getirmek ve değişikliklerin
+birbirini gereksiz yere etkilemesini azaltmaktır.
+
+## O — Open/Closed Principle (Açık/Kapalı Prensibi)
+
+Yazılım bileşenleri yeni davranışlar eklemeye açık, mevcut ve çalışan kodu
+değiştirme ihtiyacı açısından mümkün olduğunca kapalı olmalıdır.
+
+Yanlış yaklaşım:
+
+```csharp
+public class NotificationService
+{
+    public void Send(string type)
+    {
+        // Her yeni bildirim türünde bu koşul zincirinin değişmesi gerekir.
+        if (type == "email")
+        {
+            Console.WriteLine("E-posta gönderildi.");
+        }
+        else if (type == "sms")
+        {
+            Console.WriteLine("SMS gönderildi.");
+        }
+    }
+}
+```
+
+Daha uygun yaklaşım:
+
+```csharp
+public interface INotification
+{
+    // Her bildirim türü bu metodu uygular.
+    void Send();
+}
+
+public class EmailNotification : INotification
+{
+    public void Send()
+    {
+        Console.WriteLine("E-posta gönderildi.");
+    }
+}
+
+public class SmsNotification : INotification
+{
+    public void Send()
+    {
+        Console.WriteLine("SMS gönderildi.");
+    }
+}
+
+public class NotificationService
+{
+    public void Notify(INotification notification)
+    {
+        // Servis, bildirim türünün ayrıntılarını bilmek zorunda değildir.
+        notification.Send();
+    }
+}
+```
+
+Amaç: Yeni davranışlar eklerken mevcut kodda yapılacak değişiklikleri
+azaltmaktır.
+
+## L — Liskov Substitution Principle (Liskov Yerine Geçme Prensibi)
+
+Bir alt sınıf, üst sınıfın yerine kullanıldığında uygulamanın beklenen
+davranışını bozmamalıdır.
+
+Yanlış örnek:
+
+```csharp
+public class Bird
+{
+    public virtual void Fly()
+    {
+        Console.WriteLine("Kuş uçuyor.");
+    }
+}
+
+public class Penguin : Bird
+{
+    public override void Fly()
+    {
+        // Penguen uçamaz; bu davranış temel sınıfın beklentisini bozar.
+        throw new NotSupportedException();
+    }
+}
+```
+
+Daha uygun yaklaşım:
+
+```csharp
+public abstract class Bird
+{
+    // Bütün kuşların ortak özellikleri burada tanımlanabilir.
+}
+
+public interface IFlyable
+{
+    // Yalnızca uçabilen türler bu sözleşmeyi uygular.
+    void Fly();
+}
+
+public class Eagle : Bird, IFlyable
+{
+    public void Fly()
+    {
+        Console.WriteLine("Kartal uçuyor.");
+    }
+}
+
+public class Penguin : Bird
+{
+    // Penguen kuştur ancak uçabilen türler sözleşmesini uygulamaz.
+}
+```
+
+Amaç: Alt sınıfların kendilerinden beklenen davranışları güvenilir şekilde
+sürdürmesini sağlamaktır.
+
+## I — Interface Segregation Principle (Arayüz Ayırma Prensibi)
+
+Bir sınıf, ihtiyaç duymadığı metotları uygulamak zorunda bırakılmamalıdır.
+Büyük bir arayüz yerine daha küçük ve amaca yönelik arayüzler tercih
+edilebilir.
+
+Yanlış örnek:
+
+```csharp
+public interface IWorker
+{
+    void Code();
+    void Design();
+    void PrepareReport();
+}
+
+public class Developer : IWorker
+{
+    public void Code()
+    {
+        Console.WriteLine("Kod yazılıyor.");
+    }
+
+    public void Design()
+    {
+        // Geliştirici bu davranışa ihtiyaç duymayabilir.
+        throw new NotSupportedException();
+    }
+
+    public void PrepareReport()
+    {
+        // Geliştirici bu davranışa ihtiyaç duymayabilir.
+        throw new NotSupportedException();
+    }
+}
+```
+
+Daha uygun yaklaşım:
+
+```csharp
+public interface ICodeWriter
+{
+    void Code();
+}
+
+public interface IDesigner
+{
+    void Design();
+}
+
+public interface IReportPreparer
+{
+    void PrepareReport();
+}
+
+public class Developer : ICodeWriter
+{
+    public void Code()
+    {
+        // Developer yalnızca ihtiyaç duyduğu sözleşmeyi uygular.
+        Console.WriteLine("Kod yazılıyor.");
+    }
+}
+```
+
+Amaç: Sınıfların yalnızca ihtiyaç duydukları davranışlara bağımlı olmasını
+sağlamaktır.
+
+## D — Dependency Inversion Principle (Bağımlılıkların Tersine Çevrilmesi)
+
+Üst seviye iş mantığı, doğrudan somut sınıflara bağımlı olmak yerine
+soyutlamalara bağımlı olmalıdır.
+
+Yanlış örnek:
+
+```csharp
+public class TicketRepository
+{
+    public void Save()
+    {
+        Console.WriteLine("Ticket kaydedildi.");
+    }
+}
+
+public class TicketService
+{
+    // Servis doğrudan somut sınıfa bağımlıdır.
+    private readonly TicketRepository _repository =
+        new TicketRepository();
+
+    public void CreateTicket()
+    {
+        _repository.Save();
+    }
+}
+```
+
+Daha uygun yaklaşım:
+
+```csharp
+public interface ITicketRepository
+{
+    // Veri kaydetme sözleşmesini tanımlar.
+    void Save();
+}
+
+public class TicketRepository : ITicketRepository
+{
+    public void Save()
+    {
+        Console.WriteLine("Ticket kaydedildi.");
+    }
+}
+
+public class TicketService
+{
+    private readonly ITicketRepository _repository;
+
+    // Bağımlılık constructor üzerinden dışarıdan verilir.
+    public TicketService(ITicketRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public void CreateTicket()
+    {
+        // Servis somut sınıfı değil, arayüzü kullanır.
+        _repository.Save();
+    }
+}
+```
+
+ASP.NET Core DI kaydı:
+
+```csharp
+// ITicketRepository istendiğinde TicketRepository oluşturulur.
+builder.Services.AddScoped<ITicketRepository, TicketRepository>();
+```
+
+Amaç: İş mantığının belirli bir veri erişim sınıfına sıkı şekilde
+bağlanmasını önlemektir.
+
+### DIP ile DI Arasındaki Fark
+
+- DIP: Bağımlılıkların nasıl tasarlanması gerektiğini açıklayan SOLID
+  prensibidir.
+- DI: Bağımlılıkları sınıf içinde oluşturmak yerine dışarıdan sağlamaya
+  yarayan tekniktir.
+- Interface: Sınıflar arasında sözleşme tanımlar.
+- Constructor Injection: Bağımlılığın constructor üzerinden verilmesidir.
+
+DI, DIP'yi uygulamaya yardımcı olabilir; ancak ikisi aynı kavram değildir.
+
+## SOLID'in StajDesk ile İlişkisi
+
+- SRP: Ticket işlemlerini, veritabanı erişimini ve bildirimleri ayrı
+  sorumluluklarda tutmak.
+- OCP: Yeni bildirim türleri eklerken mevcut servis kodunu sürekli
+  değiştirmemek.
+- LSP: Alt sınıfların üst sınıfların beklenen davranışlarını bozmamasını
+  sağlamak.
+- ISP: Büyük ve gereksiz metotlar içeren arayüzler yerine küçük arayüzler
+  kullanmak.
+- DIP: TicketService gibi iş mantığı sınıflarını somut repository
+  sınıfları yerine ITicketRepository gibi soyutlamalara bağlamak.
+
+### Öğrenme Notu
+
+SOLID prensiplerini yalnızca tanımlarıyla ezberlemek yeterli değildir.
+Her prensibin hangi tasarım sorununu azalttığını, yanlış tasarımın neden
+sorun çıkardığını ve daha uygun yapının nasıl kurulacağını kod üzerinden
+açıklayabilmek önemlidir.
+
+Bu günlükte bir konunun yer alması, o konudaki bütün uygulamaların
+tamamlandığı anlamına gelmez. Öğrenilen konular, gerçekten yapılan
+uygulamalar ve mentor geri bildirimleri doğrultusunda güncellenmelidir.
 
 ------------------------------------------------------------------------
 
@@ -902,69 +1325,6 @@ dikkate alarak geliştirmeler yapmayı hedefliyorum.
 
 ------------------------------------------------------------------------
 
-\*\*\*\*Not:\*\*\*\* Bu günlük, öğrenme sürecimi ve üzerinde çalıştığım
+**Not:** Bu günlük, öğrenme sürecimi ve üzerinde çalıştığım
 konuları takip etmek için hazırlanmıştır. Uygulama sonuçları, testler ve
 mentor geri bildirimleri ilerledikçe güncellenecektir.
-
-## Hafta 6 --- İlişkisel Veritabanı ve SQL
-
-### Gün 16/48 --- Veritabanı ve PostgreSQL
-
-Docker üzerinde çalışan PostgreSQL veritabanına `psql` ile bağlandım.
-`categories` tablosunu oluşturdum ve beş kategori kaydı ekledim. Tablo,
-satır, sütun ve birincil anahtar kavramlarını uygulamalı olarak
-inceledim.
-
-### Gün 17/48 --- SQL Sorguları ve İlişkiler
-
-`users`, `tickets` ve `comments` tablolarını oluşturdum ve aralarında
-yabancı anahtar ilişkileri kurdum. Örnek veriler ekledim. `WHERE`,
-`ORDER BY`, `JOIN`, `GROUP BY` ve `COUNT` sorgularını kullandım. On SQL
-sorgusunu `sql/week06.sql` dosyasına kaydettim.
-
-### Gün 18/48 --- Veri Modelleme
-
-StajDesk'in User, Category, Ticket, Comment ve Notification varlıkları
-arasındaki ilişkileri ER diyagramında gösterdim. Sık kullanılan
-sorgularda faydalı olabilecek sütunları değerlendirdim.
-
-### İndeksler ve Gerekçeleri
-
--   `tickets.category_id`: Kategoriye göre talepleri filtrelemeyi
-    destekler.
-
--   `tickets.user_id`: Bir kullanıcıya ait talepleri bulmayı destekler.
-
--   `comments.ticket_id`: Bir talebe ait yorumları bulmayı destekler.
-
--   `notifications.user_id`: Kullanıcının bildirimlerini bulmayı
-    destekler.
-
-İndeksler bazı sorguları hızlandırabilir. Bununla birlikte depolama
-alanı kullanır ve veri ekleme, güncelleme ve silme işlemlerinde
-güncellenmeleri gerekir. Bu yüzden her sütuna indeks eklemek yerine
-ihtiyaç duyulan sütunlar seçilmelidir.
-
-### Kavrama Soruları
-
-**1. Talepleri bir metin dosyasında değil de veritabanında tutmamızın 3
-nedeni nedir?**
-
-Birincisi, verileri tablolar içinde düzenli şekilde saklayabiliriz.
-İkincisi, SQL ile verileri arayabilir, filtreleyebilir ve
-güncelleyebiliriz. Üçüncüsü, birincil anahtarlar, yabancı anahtarlar ve
-kısıtlamalar sayesinde verilerin tutarlılığını korumaya yardımcı
-olabiliriz.
-
-**2. JOIN ne işe yarar? Kendi tablolarınızdan bir örnek veriniz.**
-
-JOIN, ilişkili tablolardaki verileri bir sorguda birleştirmeyi sağlar.
-Örneğin `tickets` tablosunu `users` ve `categories` tablolarıyla
-birleştirerek talebin başlığını, kullanıcı adını ve kategorisini
-birlikte gösterebilirim.
-
-**3. Her sütuna index koymak neden iyi bir fikir değildir?**
-
-Her indeks ek depolama alanı kullanır. Ayrıca veri ekleme, güncelleme ve
-silme işlemlerinde indekslerin de güncellenmesi gerekir. Bu nedenle
-sorgularda fayda sağlayacak sütunlara indeks eklemek daha uygundur.
