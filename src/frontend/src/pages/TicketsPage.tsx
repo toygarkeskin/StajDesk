@@ -15,12 +15,12 @@ const sortLabels: Record<string, string> = { oldest: 'En eski', priority: 'Önce
 
 export function TicketsPage() {
   const [params, setParams] = useSearchParams()
-  const { isStaff } = useRole()
-  const userId = useAuth((s) => s.user?.id)
+  const { isStaff, can } = useRole()
+  const userId = useAuth((s) => s.me?.id)
   const mine = params.get('mine') === '1'
   const get = (k: string) => params.get(k) ?? ''
   const f = {
-    status: get('status'), priority: get('priority'), categoryId: get('categoryId'), type: get('type'),
+    status: get('status'), priority: get('priority'), categoryId: get('categoryId'), type: get('type'), storeId: get('storeId'),
     sort: get('sort'), activeOnly: get('activeOnly'), unassigned: get('unassigned'), search: get('search'),
     page: Number(params.get('page') ?? 1),
   }
@@ -47,14 +47,15 @@ export function TicketsPage() {
     f.priority && { key: 'priority', label: `Öncelik: ${priorityLabels[f.priority as keyof typeof priorityLabels]}` },
     f.categoryId && { key: 'categoryId', label: `Kategori: ${categoryName ?? f.categoryId}` },
     f.type && { key: 'type', label: `Tür: ${typeLabels[f.type as keyof typeof typeLabels]}` },
+    f.storeId && { key: 'storeId', label: `Mağaza #${f.storeId}` },
     f.activeOnly && { key: 'activeOnly', label: 'Kapananlar gizli' },
     f.unassigned && { key: 'unassigned', label: 'Yalnızca atanmamış' },
       ].filter(Boolean) as FilterChip[]
   const filtered = chips.length > 0
 
-  const title = mine ? 'Bana atanan talepler' : isStaff ? 'Tüm talepler' : 'Taleplerim'
+  const title = mine ? 'Bana atanan talepler' : can('tickets.read.all') ? 'Tüm talepler' : can('tickets.read.store') ? 'Mağaza talepleri' : 'Taleplerim'
   const description = mine ? 'Üzerinizde olan ve sonuçlandırmanız beklenen talepler.' : isStaff ? 'Şirket genelindeki destek talepleri; en yeni talep en üstte.' : 'Açtığınız destek talepleri ve güncel durumları.'
-  const colCount = isStaff ? 7 : 6
+  const colCount = isStaff ? 8 : 7
 
   return (
     <>
@@ -112,7 +113,7 @@ export function TicketsPage() {
           <table className="w-full text-sm">
             <thead className="table-head">
               <tr>
-                <Th>Talep</Th><Th>Kategori</Th><Th>Öncelik</Th><Th>Durum</Th>
+                <Th>Talep</Th><Th>Mağaza</Th><Th>Kategori</Th><Th>Öncelik</Th><Th>Durum</Th>
                 {isStaff && <Th>Atanan</Th>}
                 <Th className="text-right">Oluşturma</Th><Th />
               </tr>
@@ -144,6 +145,7 @@ export function TicketsPage() {
                         {t.commentCount > 0 && <span className="inline-flex items-center gap-1">· <MessageSquare className="size-3" aria-hidden="true" /> {t.commentCount} yorum</span>}
                       </div>
                     </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-gray-700 dark:text-gray-300">{t.store?.name ?? <span className="text-gray-400">Merkez</span>}</td>
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300"><CategoryText name={t.category.name} color={t.category.color} /></td>
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300"><PriorityText priority={t.priority} /></td>
                     <td className="px-4 py-3"><StatusBadge status={t.status} /></td>

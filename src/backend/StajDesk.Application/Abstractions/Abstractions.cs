@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using StajDesk.Application.Common;
 using StajDesk.Contracts;
 using StajDesk.Domain.Entities;
-using StajDesk.Domain.Enums;
 
 namespace StajDesk.Application.Abstractions;
 
@@ -9,25 +9,56 @@ namespace StajDesk.Application.Abstractions;
 public interface IAppDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<Store> Stores { get; }
+    DbSet<Role> Roles { get; }
+    DbSet<Permission> Permissions { get; }
+    DbSet<RolePermission> RolePermissions { get; }
+    DbSet<UserRole> UserRoles { get; }
     DbSet<Category> Categories { get; }
     DbSet<Ticket> Tickets { get; }
     DbSet<TicketComment> TicketComments { get; }
     DbSet<TicketHistory> TicketHistories { get; }
     DbSet<Asset> Assets { get; }
     DbSet<Notification> Notifications { get; }
+    DbSet<OAuthClient> OAuthClients { get; }
+    DbSet<AuthorizationCode> AuthorizationCodes { get; }
+    DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+    DbSet<OutboxMessage> OutboxMessages { get; }
+    DbSet<SentEmail> SentEmails { get; }
+    DbSet<AuditLog> AuditLogs { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
-/// <summary>İsteği yapan kullanıcının kimliği (JWT'den okunur).</summary>
+/// <summary>
+/// İsteği yapan taraf (JWT'den + veritabanındaki rol/izinlerden).
+/// İş kuralları rol adına değil izne bakar: <c>currentUser.Require(Permissions.TicketsManage)</c>.
+/// </summary>
 public interface ICurrentUser
 {
     int? UserId { get; }
     string? FullName { get; }
-    UserRole? Role { get; }
-    bool IsAuthenticated => UserId.HasValue;
-    bool IsStaff => Role is UserRole.Agent or UserRole.Admin;
-    bool IsAdmin => Role == UserRole.Admin;
-    int RequireUserId() => UserId ?? throw new Common.UnauthorizedException("Oturum bulunamadı veya süresi doldu. Devam etmek için giriş yapın.");
+    int? StoreId { get; }
+    IReadOnlyCollection<string> Roles { get; }
+    IReadOnlySet<string> Permissions { get; }
+    /// <summary>client_credentials ile gelen servis istemcisi (kullanıcısız token).</summary>
+    string? ClientId { get; }
+    string? IpAddress { get; }
+
+    bool IsAuthenticated => UserId.HasValue || ClientId is not null;
+    bool Has(string permission) => Permissions.Contains(permission);
+    bool HasAny(params string[] permissions) => permissions.Any(Permissions.Contains);
+
+    int RequireUserId() => UserId ?? throw new UnauthorizedException("Oturum bulunamadı veya süresi doldu. Devam etmek için giriş yapın.");
+
+    void Require(params string[] anyOf)
+    {
+        if (!IsAuthenticated) throw new UnauthorizedException("Oturum bulunamadı veya süresi doldu. Devam etmek için giriş yapın.");
+        if (!HasAny(anyOf)) throw new ForbiddenException();
+    }
+
+    /// <summary>Destek ekibi mi? (Talepleri yönetebilen herkes.)</summary>
+    bool IsStaff => Has(Domain.Security.Permissions.TicketsManage);
 }
 
 /// <summary>Redis üzerinde cache-aside deseni. Redis erişilemezse doğrudan factory çalışır.</summary>
@@ -38,19 +69,28 @@ public interface ICacheService
     Task RemoveByPrefixAsync(string prefix, CancellationToken ct = default);
 }
 
-/// <summary>Brute-force koruması: e-posta başına başarısız giriş sayacı.</summary>
-public interface ILoginRateLimiter
+/// <summary>Sayaç tabanlı hız sınırlama (Redis INCR + EXPIRE).</summary>
+public interface IRateLimiter
 {
     /// <returns>Engelliyse kalan süre (saniye), değilse null.</returns>
-    Task<int?> GetBlockedSecondsAsync(string email, CancellationToken ct = default);
-    Task RegisterFailureAsync(string email, CancellationToken ct = default);
-    Task ResetAsync(string email, CancellationToken ct = default);
+    Task<int?> GetBlockedSecondsAsync(string key, CancellationToken ct = default);
+    Task RegisterHitAsync(string key, CancellationToken ct = default);
+    Task ResetAsync(string key, CancellationToken ct = default);
 }
 
-/// <summary>Olayları mesaj kuyruğuna (RabbitMQ) bırakır.</summary>
+/// <summary>
+/// Olayları transactional outbox'a ekler. Olay, iş verisiyle aynı SaveChanges çağrısında kaydedilir;
+/// arka plandaki dağıtıcı RabbitMQ'ya iletir.
+/// </summary>
 public interface IEventPublisher
 {
-    Task PublishAsync<T>(T @event, string routingKey, CancellationToken ct = default) where T : IntegrationEvent;
+    void Enqueue<T>(T @event, string routingKey) where T : IntegrationEvent;
+}
+
+/// <summary>Birden fazla SaveChanges'i tek transaction'da çalıştırır (ya hepsi ya hiçbiri).</summary>
+public interface IUnitOfWork
+{
+    Task<T> ExecuteAsync<T>(Func<CancellationToken, Task<T>> work, CancellationToken ct = default);
 }
 
 public interface IPasswordHasher
@@ -59,14 +99,24 @@ public interface IPasswordHasher
     bool Verify(string hash, string password);
 }
 
-public interface ITokenService
+public interface IAccessTokenIssuer
 {
-    (string Token, DateTime ExpiresAt) CreateToken(User user);
+    /// <summary>RS256 imzalı JWT erişim token'ı üretir.</summary>
+    string Issue(AccessTokenClaims claims);
+    int ExpiresInSeconds { get; }
+}
+
+public sealed record AccessTokenClaims(int? UserId, string ClientId, string Scope, IReadOnlyCollection<string> Roles, string? Name, Guid? SessionId);
+
+public interface IAuditLogger
+{
+    void Add(string action, string entity, object? entityId, object? data = null);
 }
 
 public static class CacheKeys
 {
     public const string Categories = "categories:all";
     public const string StatsPrefix = "stats:";
-    public static string Stats(int? userId) => userId is null ? "stats:staff" : $"stats:user:{userId}";
+    public static string Permissions(int userId) => $"perms:user:{userId}";
+    public const string PermissionsPrefix = "perms:";
 }

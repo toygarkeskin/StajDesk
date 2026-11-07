@@ -1,6 +1,9 @@
 # StajDesk — tüm sistem tek komutla:  docker compose up -d --build
-# Arayüz: http://localhost:8080 · API dokümanı: http://localhost:5080/docs
-# Seq (loglar): http://localhost:5380 · RabbitMQ yönetim: http://localhost:15672
+# Arayüz:          http://localhost:8080
+# API dokümanı:    http://localhost:5080/docs
+# Demo posta kutusu (Mailpit): http://localhost:8025   ← gönderilen tüm e-postalar burada
+# Loglar (Seq):    http://localhost:5380
+# RabbitMQ yönetim: http://localhost:15672
 
 name: stajdesk
 
@@ -69,6 +72,14 @@ services:
     volumes:
       - seqdata:/data
 
+  # Demo e-posta sunucusu: SMTP ile gelen her e-postayı yakalar, dışarı göndermez, web arayüzünde gösterir.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "1025:1025"
+
   api:
     build:
       context: ./src/backend
@@ -78,13 +89,19 @@ services:
       <<: *dotnet-env
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__Redis: redis:6379
-      Jwt__Key: ${JWT_KEY:-dev-only-key-change-me-0123456789-abcdefghijkl}
-      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@stajdesk.local}
-      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin123!}
+      Jwt__Issuer: ${PUBLIC_API_URL:-http://localhost:5080}
+      Jwt__KeysDirectory: /app/keys
+      OAuth__WebUrl: ${PUBLIC_WEB_URL:-http://localhost:8080}
+      OAuth__WebRedirectUris: ${PUBLIC_WEB_URL:-http://localhost:8080}/auth/callback,http://localhost:5173/auth/callback
+      OAuth__ReportingClientSecret: ${REPORTING_CLIENT_SECRET:-Reporting!Dev2026}
+      Seed__AdminEmail: ${SYSADMIN_EMAIL:-sysadmin@stajdesk.local}
+      Seed__AdminPassword: ${SYSADMIN_PASSWORD:-StajDesk!2026}
       Seed__DemoData: ${SEED_DEMO_DATA:-true}
-      Seed__DemoPassword: ${DEMO_PASSWORD:-Demo123!}
+      Seed__DemoPassword: ${DEMO_PASSWORD:-Demo!2026pass}
     ports:
       - "${API_PORT:-5080}:8080"
+    volumes:
+      - apikeys:/app/keys
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,11 +120,16 @@ services:
     environment:
       <<: *dotnet-env
       DOTNET_ENVIRONMENT: Production
+      Smtp__Host: mailpit
+      Smtp__Port: "1025"
+      Smtp__WebUrl: ${PUBLIC_WEB_URL:-http://localhost:8080}
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      mailpit:
+        condition: service_started
       api:
         condition: service_started
 
@@ -124,3 +146,4 @@ volumes:
   pgdata:
   rabbitdata:
   seqdata:
+  apikeys:

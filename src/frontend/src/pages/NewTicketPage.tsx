@@ -22,7 +22,7 @@ const safeDel = (k: string) => { try { localStorage.removeItem(k) } catch { /* d
 export function NewTicketPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const userId = useAuth((s) => s.user?.id)
+  const userId = useAuth((s) => s.me?.id)
   const draftKey = `stajdesk-draft-ticket-${userId}`
   const lastCategoryKey = `stajdesk-last-category-${userId}`
 

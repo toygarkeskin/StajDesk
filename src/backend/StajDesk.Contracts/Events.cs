@@ -15,6 +15,9 @@ public static class Messaging
         public const string TicketAssigned = "ticket.assigned";
         public const string TicketCommentAdded = "ticket.comment-added";
         public const string AllTicketEvents = "ticket.*";
+        public const string UserRegistered = "user.registered";
+        public const string PasswordResetRequested = "user.password-reset-requested";
+        public const string AllUserEvents = "user.*";
     }
 }
 
@@ -31,7 +34,8 @@ public sealed record TicketCreatedEvent(
     string Priority,
     string CategoryName,
     int RequesterId,
-    string RequesterName) : IntegrationEvent;
+    string RequesterName,
+    int? StoreId = null) : IntegrationEvent;
 
 public sealed record TicketStatusChangedEvent(
     int TicketId,
@@ -61,3 +65,8 @@ public sealed record TicketCommentAddedEvent(
     bool IsInternal,
     int RequesterId,
     int? AssigneeId) : IntegrationEvent;
+
+public sealed record UserRegisteredEvent(int UserId, string Email, string FullName) : IntegrationEvent;
+
+/// <summary>Şifre sıfırlama bağlantısı içerir; Worker e-posta olarak gönderir (demo ortamında Mailpit'e düşer).</summary>
+public sealed record PasswordResetRequestedEvent(int UserId, string Email, string FullName, string ResetUrl, int ExpiresInMinutes) : IntegrationEvent;

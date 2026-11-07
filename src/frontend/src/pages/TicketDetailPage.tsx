@@ -49,8 +49,8 @@ export function TicketDetailPage() {
   const id = Number(useParams().id)
   const navigate = useNavigate()
   const qc = useQueryClient()
-  const me = useAuth((s) => s.user)
-  const { isStaff, isAdmin } = useRole()
+  const me = useAuth((s) => s.me)
+  const { isStaff } = useRole()
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -91,7 +91,7 @@ export function TicketDetailPage() {
   if (ticket.isError) return <div className="card"><ErrorState message={errorMessage(ticket.error)} details={errorDetails(ticket.error)} onRetry={() => ticket.refetch()} /></div>
   const t = ticket.data!
   const isRequester = me?.id === t.requester.id
-  const canEdit = isStaff ? t.status !== 'Closed' : isRequester && t.status === 'Open'
+  const canEdit = t.permissions.canEdit
   const closed = t.status === 'Closed'
 
   return (
@@ -113,7 +113,7 @@ export function TicketDetailPage() {
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {canEdit && <button className="btn-secondary" onClick={() => setEditOpen(true)}><Pencil className="size-4" aria-hidden="true" /> Düzenle</button>}
-          {isAdmin && <button className="btn-secondary text-rose-500" onClick={() => setDeleteOpen(true)}><Trash2 className="size-4" aria-hidden="true" /> Sil</button>}
+          {t.permissions.canDelete && <button className="btn-secondary text-rose-500" onClick={() => setDeleteOpen(true)}><Trash2 className="size-4" aria-hidden="true" /> Sil</button>}
         </div>
       </div>
 
@@ -148,7 +148,7 @@ export function TicketDetailPage() {
                     <div className={clsx('flex-1 rounded-lg border px-4 py-3', item.c.isInternal ? 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/5' : 'border-gray-200 dark:border-gray-700/60')}>
                       <div className="mb-1 flex flex-wrap items-center gap-2 text-sm">
                         <span className="font-semibold text-gray-800 dark:text-gray-100">{item.c.author.fullName}</span>
-                        {item.c.author.role !== 'User' && <span className="rounded bg-violet-500/10 px-1.5 text-xs text-violet-600 dark:text-violet-400">Destek</span>}
+                        {item.c.author.isStaff && <span className="rounded bg-violet-500/10 px-1.5 text-xs text-violet-600 dark:text-violet-400">Destek</span>}
                         {item.c.isInternal && <span className="flex items-center gap-1 text-xs text-amber-600"><Lock className="size-3" aria-hidden="true" /> Dahili not</span>}
                         <time className="text-xs text-gray-400" dateTime={item.c.createdAt} title={formatDateTime(item.c.createdAt)}>{timeAgo(item.c.createdAt)}</time>
                       </div>

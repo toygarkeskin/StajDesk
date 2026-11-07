@@ -1,18 +1,53 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
 import clsx from 'clsx'
 import { CheckCircle2, X, XCircle } from 'lucide-react'
-import { isTokenValid, useAuth } from '@/stores/auth'
+import { useEffect } from 'react'
+import { useAuth, useCan } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
-import type { UserRole } from '@/lib/types'
+import { api, refreshAccessToken } from '@/lib/api'
+import type { Permission } from '@/lib/types'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 
-/** Oturum yoksa giriş sayfasına yönlendirir; rol yetmiyorsa ana sayfaya döner (asıl yetki kontrolü API'dedir). */
-export function RequireAuth({ roles, children }: { roles?: UserRole[]; children: React.ReactNode }) {
-  const { token, expiresAt, user } = useAuth()
+/**
+ * Açılışta oturumu geri yükler: httpOnly cookie'deki refresh token ile yeni erişim token'ı alınır,
+ * ardından /api/auth/me ile kullanıcının rolleri ve izinleri yüklenir.
+ */
+export function useSessionBootstrap() {
+  const { restoring, setRestoring, setMe } = useAuth()
+  useEffect(() => {
+    if (!restoring) return
+    let cancelled = false
+    void (async () => {
+      const token = useAuth.getState().accessToken ?? (await refreshAccessToken())
+      if (token && !cancelled) {
+        try {
+          setMe(await api.auth.me())
+        } catch {
+          useAuth.getState().clear()
+        }
+      }
+      if (!cancelled) setRestoring(false)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [restoring, setRestoring, setMe])
+  return restoring
+}
+
+/**
+ * Oturum yoksa girişe yönlendirir; gerekli izin yoksa ana sayfaya döner.
+ * Bu yalnızca kullanıcı deneyimi içindir — asıl yetki kontrolü API'dedir.
+ */
+export function RequireAuth({ perms, children }: { perms?: Permission[]; children: React.ReactNode }) {
+  const me = useAuth((s) => s.me)
+  const restoring = useSessionBootstrap()
+  const { can } = useCan()
   const location = useLocation()
-  if (!token || !isTokenValid(expiresAt)) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
-  if (roles && user && !roles.includes(user.role)) return <Navigate to="/" replace />
+  if (restoring) return <div className="flex h-dvh items-center justify-center text-sm text-gray-500" aria-busy="true">Oturum yükleniyor…</div>
+  if (!me) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
+  if (perms && !can(...perms)) return <Navigate to="/" replace />
   return <>{children}</>
 }
 

@@ -1,42 +1,65 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuth } from '@/stores/auth'
+import { refresh } from './oauth'
 import type {
   ApiResponse,
   AssetDetail,
   AssetListItem,
-  AuthResponse,
+  AuditLog,
   Category,
   DashboardStats,
+  Me,
   NotificationItem,
   PagedResult,
-  TicketComment,
+  PermissionInfo,
+  RoleInfo,
+  SentEmail,
+  Store,
   TicketDetail,
   TicketListItem,
-  User,
   UserListItem,
   UserSummary,
 } from './types'
 
-/** Tüm HTTP istekleri bu tek axios örneğinden geçer. */
+/** Tüm API istekleri bu tek axios örneğinden geçer. */
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
-// Her isteğe JWT eklenir.
+// Her isteğe bellekteki erişim token'ı eklenir.
 http.interceptors.request.use((config) => {
-  const token = useAuth.getState().token
+  const token = useAuth.getState().accessToken
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// 401 gelirse oturum kapatılır ve giriş sayfasına yönlendirilir.
+/** Aynı anda gelen 401'ler tek bir yenileme isteği paylaşır. */
+let refreshing: Promise<string | null> | null = null
+export function refreshAccessToken() {
+  refreshing ??= refresh()
+    .then((t) => {
+      useAuth.getState().setToken(t.access_token, t.expires_in)
+      return t.access_token
+    })
+    .catch(() => null)
+    .finally(() => setTimeout(() => (refreshing = null), 0))
+  return refreshing
+}
+
+// 401 gelirse önce sessizce token yenilenir ve istek tekrarlanır; yenileme de başarısızsa oturum kapanır.
 http.interceptors.response.use(
   (r) => r,
-  (error: AxiosError) => {
-    const isAuthCall = error.config?.url?.startsWith('/auth/login') || error.config?.url?.startsWith('/auth/register')
-    if (error.response?.status === 401 && !isAuthCall && useAuth.getState().token) {
-      useAuth.getState().logout()
+  async (error: AxiosError) => {
+    const config = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
+    if (error.response?.status === 401 && config && !config._retried && useAuth.getState().accessToken) {
+      config._retried = true
+      const token = await refreshAccessToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+        return http(config)
+      }
+      useAuth.getState().clear()
       if (!location.pathname.startsWith('/login')) location.assign('/login?expired=1')
     }
     return Promise.reject(error)
@@ -45,11 +68,12 @@ http.interceptors.response.use(
 
 const unwrap = <T>(p: Promise<{ data: ApiResponse<T> }>) => p.then((r) => r.data.data)
 
-/** API hata yanıtından kullanıcıya gösterilecek mesajı çıkarır. */
-export function errorMessage(err: unknown, fallback = "Sunucu isteği tamamlayamadı. Birkaç saniye sonra tekrar deneyin.") {
+/** API (veya OAuth) hata yanıtından kullanıcıya gösterilecek mesajı çıkarır. */
+export function errorMessage(err: unknown, fallback = 'Sunucu isteği tamamlayamadı. Birkaç saniye sonra tekrar deneyin.') {
   if (err instanceof AxiosError) {
-    if (!err.response) return "Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin."
-    const body = err.response.data as Partial<ApiResponse<unknown>> | undefined
+    if (!err.response) return 'Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.'
+    const body = err.response.data as (Partial<ApiResponse<unknown>> & { error_description?: string }) | undefined
+    if (body?.error_description) return body.error_description
     if (body?.message && err.response.status < 500) return body.message
   }
   return fallback
@@ -58,7 +82,7 @@ export function errorMessage(err: unknown, fallback = "Sunucu isteği tamamlayam
 /** Destek ekibine iletilebilecek teknik ayrıntı (birincil arayüzde gösterilmez, yalnızca kopyalanır). */
 export function errorDetails(err: unknown) {
   if (err instanceof AxiosError) {
-    return [`${err.config?.method?.toUpperCase()} ${err.config?.url}`, `HTTP ${err.response?.status ?? "ağ hatası"}`, err.message, new Date().toISOString()].join('\n')
+    return [`${err.config?.method?.toUpperCase()} ${err.config?.url}`, `HTTP ${err.response?.status ?? 'ağ hatası'}`, err.message, new Date().toISOString()].join('\n')
   }
   return String(err)
 }
@@ -76,10 +100,10 @@ const clean = (q: Query) => Object.fromEntries(Object.entries(q).filter(([, v]) 
 
 export const api = {
   auth: {
-    login: (email: string, password: string) => unwrap<AuthResponse>(http.post('/auth/login', { email, password })),
-    register: (body: { fullName: string; email: string; password: string; department?: string }) =>
-      unwrap<AuthResponse>(http.post('/auth/register', body)),
-    me: () => unwrap<User>(http.get('/auth/me')),
+    me: () => unwrap<Me>(http.get('/auth/me')),
+    register: (body: { fullName: string; email: string; password: string; department?: string }) => unwrap<object>(http.post('/auth/register', body)),
+    forgotPassword: (email: string) => http.post<ApiResponse<object>>('/auth/forgot-password', { email }).then((r) => r.data.message),
+    resetPassword: (token: string, password: string) => http.post<ApiResponse<object>>('/auth/reset-password', { token, password }).then((r) => r.data.message),
   },
   tickets: {
     list: (q: Query) => unwrap<PagedResult<TicketListItem>>(http.get('/tickets', { params: clean(q) })),
@@ -89,8 +113,7 @@ export const api = {
     setStatus: (id: number, status: string) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/status`, { status })),
     setPriority: (id: number, priority: string) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/priority`, { priority })),
     assign: (id: number, assigneeId: number | null) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/assign`, { assigneeId })),
-    comment: (id: number, body: string, isInternal: boolean) =>
-      unwrap<TicketComment>(http.post(`/tickets/${id}/comments`, { body, isInternal })),
+    comment: (id: number, body: string, isInternal: boolean) => unwrap<{ id: number }>(http.post(`/tickets/${id}/comments`, { body, isInternal })),
     remove: (id: number) => http.delete(`/tickets/${id}`),
   },
   categories: {
@@ -111,8 +134,21 @@ export const api = {
     list: (q: Query) => unwrap<PagedResult<UserListItem>>(http.get('/users', { params: clean(q) })),
     agents: () => unwrap<UserSummary[]>(http.get('/users/agents')),
     lookup: (search: string) => unwrap<UserSummary[]>(http.get('/users/lookup', { params: { search } })),
-    create: (body: object) => unwrap<User>(http.post('/users', body)),
-    update: (id: number, body: object) => unwrap<User>(http.put(`/users/${id}`, body)),
+    create: (body: object) => unwrap<{ id: number }>(http.post('/users', body)),
+    update: (id: number, body: object) => unwrap<{ id: number }>(http.put(`/users/${id}`, body)),
+  },
+  stores: {
+    list: () => unwrap<Store[]>(http.get('/stores')),
+    create: (body: object) => unwrap<Store>(http.post('/stores', body)),
+    update: (id: number, body: object) => unwrap<Store>(http.put(`/stores/${id}`, body)),
+  },
+  roles: {
+    list: () => unwrap<{ roles: RoleInfo[]; permissions: PermissionInfo[] }>(http.get('/roles')),
+    setPermissions: (id: number, permissions: string[]) => unwrap<object>(http.put(`/roles/${id}/permissions`, { permissions })),
+  },
+  system: {
+    audit: (q: Query) => unwrap<PagedResult<AuditLog>>(http.get('/system/audit', { params: clean(q) })),
+    emails: (q: Query) => unwrap<PagedResult<SentEmail>>(http.get('/system/emails', { params: clean(q) })),
   },
   stats: {
     dashboard: () => unwrap<DashboardStats>(http.get('/stats')),

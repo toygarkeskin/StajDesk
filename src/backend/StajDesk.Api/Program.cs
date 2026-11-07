@@ -1,9 +1,7 @@
-using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -12,6 +10,7 @@ using StajDesk.Api.Infrastructure;
 using StajDesk.Application;
 using StajDesk.Application.Abstractions;
 using StajDesk.Application.Common;
+using StajDesk.Application.Features.Auth;
 using StajDesk.Infrastructure;
 using StajDesk.Infrastructure.Persistence;
 
@@ -34,14 +33,13 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
-builder.Services.AddSingleton<ITokenService, JwtTokenService>();
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("OAuth"));
 
-// ---------- Kimlik doğrulama (JWT) ----------
-var jwtSection = builder.Configuration.GetSection("Jwt");
-builder.Services.Configure<JwtOptions>(jwtSection);
-var jwt = jwtSection.Get<JwtOptions>() ?? new JwtOptions();
-if (jwt.Key.Length < 32)
-    throw new InvalidOperationException("Jwt:Key en az 32 karakter olmalıdır. .env dosyasında veya user-secrets ile tanımlayınız.");
+// ---------- Kimlik doğrulama: RS256 JWT (OAuth 2.0 erişim token'ı) ----------
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.AddSingleton<SigningKeyProvider>();
+builder.Services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
@@ -54,11 +52,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = jwt.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
+            ValidAlgorithms = [SecurityAlgorithms.RsaSha256], // "alg: none" ve algoritma karıştırma saldırılarına karşı
+            ValidTypes = ["at+jwt"],
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1),
+            ClockSkew = TimeSpan.FromSeconds(30),
             NameClaimType = "name",
-            RoleClaimType = JwtTokenService.RoleClaim
+            RoleClaimType = "role",
         };
         // 401/403 yanıtları da standart zarfla dönsün.
         o.Events = new JwtBearerEvents
@@ -72,10 +71,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnForbidden = async ctx =>
             {
                 ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await ctx.Response.WriteAsJsonAsync(ApiResponse.Fail("Bu işlem rolünüze açık değil. Erişim gerekiyorsa yöneticinizden isteyin."));
-            }
+                await ctx.Response.WriteAsJsonAsync(ApiResponse.Fail("Bu işlem rolünüze açık değil. Erişim gerekiyorsa sistem yöneticinizden isteyin."));
+            },
         };
     });
+// İmza anahtarı DI'dan gelir (dosyada kalıcı RSA anahtarı).
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<SigningKeyProvider>((o, keys) => o.TokenValidationParameters.IssuerSigningKey = keys.PublicKey);
 builder.Services.AddAuthorization();
 
 // ---------- MVC, doğrulama, hata yönetimi ----------
@@ -95,12 +97,20 @@ builder.Services.AddRateLimiter(o =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
     o.OnRejected = async (ctx, ct) =>
         await ctx.HttpContext.Response.WriteAsJsonAsync(
-            ApiResponse.Fail("Bu hesap için çok sayıda başarısız giriş denemesi oldu. Güvenliğiniz için girişi birkaç dakika sonra tekrar deneyin."), ct);
+            ApiResponse.Fail("Kısa sürede çok fazla istek geldi. Bir dakika bekleyip tekrar deneyin."), ct);
+});
+
+// nginx arkasında gerçek istemci IP'si (hız sınırı ve denetim kaydı için)
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownIPNetworks.Clear();
+    o.KnownProxies.Clear();
 });
 
 // ---------- CORS (geliştirme sırasında Vite dev sunucusu için) ----------
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 builder.Services.AddOpenApi();
 
@@ -112,10 +122,23 @@ using (var scope = app.Services.CreateScope())
     await scope.ServiceProvider.GetRequiredService<DbSeeder>().MigrateAndSeedAsync();
 }
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
+// Güvenlik başlıkları (XSS, clickjacking, MIME sniffing)
+app.Use(async (ctx, next) =>
+{
+    var h = ctx.Response.Headers;
+    h.XContentTypeOptions = "nosniff";
+    h.XFrameOptions = "DENY";
+    h["Referrer-Policy"] = "no-referrer";
+    if (!ctx.Request.Path.StartsWithSegments("/docs") && !ctx.Request.Path.StartsWithSegments("/openapi"))
+        h.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";
+    await next();
+});
 app.UseSerilogRequestLogging();
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<PermissionLoadingMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 
@@ -125,8 +148,7 @@ app.MapScalarApiReference("/docs", o => o.WithTitle("StajDesk API"));
 app.MapGet("/api/health", async (AppDbContext db, IConnectionMultiplexer redis) =>
 {
     var dbOk = await db.Database.CanConnectAsync();
-    var redisOk = redis.IsConnected;
-    var body = new { status = dbOk ? "OK" : "DEGRADED", serverTime = DateTime.UtcNow, database = dbOk, redis = redisOk };
+    var body = new { status = dbOk ? "OK" : "DEGRADED", serverTime = DateTime.UtcNow, database = dbOk, redis = redis.IsConnected };
     return dbOk ? Results.Ok(body) : Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
 }).AllowAnonymous();
 

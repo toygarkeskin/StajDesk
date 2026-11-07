@@ -27,7 +27,7 @@ public static class DependencyInjection
         return services;
     }
 
-    /// <summary>Redis (önbellek + hız sınırlama) ve RabbitMQ yayıncısı (yalnızca API).</summary>
+    /// <summary>API için: Redis (önbellek + hız sınırı), outbox, unit of work, denetim kaydı ve outbox dağıtıcısı.</summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.AddPersistence(config);
@@ -43,11 +43,15 @@ public static class DependencyInjection
             return ConnectionMultiplexer.Connect(opts);
         });
         services.AddSingleton<ICacheService, RedisCacheService>();
-        services.Configure<LoginRateLimitOptions>(config.GetSection("LoginRateLimit"));
-        services.AddSingleton<ILoginRateLimiter, RedisLoginRateLimiter>();
+        services.Configure<RateLimitOptions>(config.GetSection("LoginRateLimit"));
+        services.AddSingleton<IRateLimiter, RedisRateLimiter>();
+
+        services.AddScoped<IEventPublisher, OutboxEventPublisher>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
 
         services.Configure<RabbitMqOptions>(config.GetSection("RabbitMq"));
-        services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
+        services.AddHostedService<OutboxDispatcher>();
         return services;
     }
 }

@@ -1,19 +1,14 @@
 namespace StajDesk.Domain.Enums;
 
-public enum UserRole
-{
-    User = 0,
-    Agent = 1,
-    Admin = 2
-}
-
-/// <summary>Talep yaşam döngüsü: Açık → İşlemde → Çözüldü → Kapandı</summary>
+/// <summary>Talep yaşam döngüsü: Açık → İşlemde ⇄ Beklemede → Çözüldü → Kapandı</summary>
 public enum TicketStatus
 {
     Open = 0,
     InProgress = 1,
     Resolved = 2,
-    Closed = 3
+    Closed = 3,
+    /// <summary>Kullanıcıdan bilgi veya parça bekleniyor.</summary>
+    Pending = 4
 }
 
 public enum TicketPriority
@@ -40,7 +35,8 @@ public enum AssetType
     Phone = 4,
     NetworkDevice = 5,
     Software = 6,
-    Other = 7
+    Other = 7,
+    PointOfSale = 8
 }
 
 public enum AssetStatus

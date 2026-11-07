@@ -8,8 +8,9 @@ public class Ticket : BaseEntity
     /// <summary>Hangi durumdan hangi duruma geçilebilir? İş kuralı burada, tek yerde.</summary>
     private static readonly Dictionary<TicketStatus, TicketStatus[]> AllowedTransitions = new()
     {
-        [TicketStatus.Open] = [TicketStatus.InProgress, TicketStatus.Resolved, TicketStatus.Closed],
-        [TicketStatus.InProgress] = [TicketStatus.Open, TicketStatus.Resolved, TicketStatus.Closed],
+        [TicketStatus.Open] = [TicketStatus.InProgress, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed],
+        [TicketStatus.InProgress] = [TicketStatus.Open, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed],
+        [TicketStatus.Pending] = [TicketStatus.InProgress, TicketStatus.Resolved, TicketStatus.Closed],
         [TicketStatus.Resolved] = [TicketStatus.InProgress, TicketStatus.Closed],
         [TicketStatus.Closed] = [TicketStatus.Open]
     };
@@ -17,8 +18,9 @@ public class Ticket : BaseEntity
     private Ticket() { } // EF Core için
 
     public Ticket(string title, string description, int requesterId, int categoryId,
-        TicketPriority priority = TicketPriority.Medium, TicketType type = TicketType.Incident, int? assetId = null)
+        TicketPriority priority = TicketPriority.Medium, TicketType type = TicketType.Incident, int? assetId = null, int? storeId = null)
     {
+        StoreId = storeId;
         SetTitle(title);
         SetDescription(description);
         RequesterId = requesterId;
@@ -49,10 +51,14 @@ public class Ticket : BaseEntity
     public int? AssetId { get; private set; }
     public Asset? Asset { get; private set; }
 
+    /// <summary>Talebin açıldığı mağaza (talep sahibinin mağazası). Mağaza sahibi bu alana göre görür.</summary>
+    public int? StoreId { get; private set; }
+    public Store? Store { get; private set; }
+
     public ICollection<TicketComment> Comments { get; private set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; private set; } = new List<TicketHistory>();
 
-    public bool IsEditable => Status is TicketStatus.Open or TicketStatus.InProgress;
+    public bool IsEditable => Status is TicketStatus.Open or TicketStatus.InProgress or TicketStatus.Pending;
 
     public void SetTitle(string title)
     {

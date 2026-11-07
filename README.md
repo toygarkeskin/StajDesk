@@ -1,24 +1,30 @@
 # StajDesk
 
-Bir şirketin destek birimine gelen talepleri yöneten web uygulaması (GLPI benzeri yardım masası + envanter).
+Mağazalı bir şirketin bilgi işlem destek birimi için yardım masası ve envanter uygulaması (GLPI benzeri).
 Devoplus Stajyer Gelişim Programı kapsamında geliştirilmektedir.
 
 | Katman | Teknoloji |
 |---|---|
 | Arayüz | React 19 + TypeScript + Vite + Tailwind CSS v4 (nginx ile sunulur) |
-| API | ASP.NET Core Web API (.NET 10 LTS), JWT kimlik doğrulama, FluentValidation |
-| Arka plan servisi | .NET 10 Worker Service (bildirimler) |
-| Veritabanı | PostgreSQL 17 + Entity Framework Core 10 (migration'lar) |
+| API | ASP.NET Core Web API (.NET 10 LTS), Clean Architecture + CQRS, FluentValidation |
+| Kimlik | OAuth 2.0 (Authorization Code + PKCE, Refresh Token rotasyonu, Client Credentials), RS256 JWT |
+| Yetki | Rol + izin tabanlı (RBAC); roller ekrandan düzenlenebilir |
+| Arka plan servisi | .NET 10 Worker Service (bildirim + e-posta) |
+| Veritabanı | PostgreSQL 17 + Entity Framework Core 10 |
 | Önbellek / hız sınırı | Redis 7 |
-| Mesaj kuyruğu | RabbitMQ 4 |
+| Mesaj kuyruğu | RabbitMQ 4 (transactional outbox ile) |
 | Merkezî loglama | Serilog → Seq |
+| Demo e-posta | Mailpit (e-postalar gerçekten SMTP ile gönderilir ama dışarı çıkmaz) |
 
 ## Hızlı başlangıç (tek komut)
 
 Gereken tek şey Docker Desktop.
 
 ```bash
-cp .env.example .env    # isteğe bağlı: şifreleri ve portları değiştirin
+cp .env.example .env
+```
+
+```bash
 docker compose up -d --build
 ```
 
@@ -26,30 +32,46 @@ docker compose up -d --build
 |---|---|
 | http://localhost:8080 | StajDesk arayüzü |
 | http://localhost:5080/docs | API dokümantasyonu (Scalar / OpenAPI) |
+| http://localhost:8025 | Mailpit — uygulamanın gönderdiği tüm e-postalar |
 | http://localhost:5380 | Seq — tüm servislerin logları |
 | http://localhost:15672 | RabbitMQ yönetim paneli (`.env` içindeki kullanıcı) |
 
-Açılışta migration'lar otomatik uygulanır, varsayılan kategoriler ve yönetici hesabı oluşturulur.
-`SEED_DEMO_DATA=true` ise örnek kullanıcılar, cihazlar ve talepler de eklenir.
+> Bilgisayarınızda 5432 portunu başka bir PostgreSQL kullanıyorsa `.env` içinde `POSTGRES_PORT=5433` yapın.
 
-| Rol | E-posta | Şifre (varsayılan) |
+### İlk kurulum hesapları
+
+Açılışta migration'lar uygulanır, izinler/roller senkronlanır ve **Sistem Yöneticisi** oluşturulur.
+
+| Rol | E-posta | Şifre |
 |---|---|---|
-| Yönetici | `admin@stajdesk.local` | `.env` → `ADMIN_PASSWORD` |
-| Destek personeli | `elif.destek@stajdesk.local`, `burak.destek@stajdesk.local` | `.env` → `DEMO_PASSWORD` |
-| Kullanıcı | `ayse@stajdesk.local`, `mehmet@stajdesk.local`, `zeynep@stajdesk.local` | `.env` → `DEMO_PASSWORD` |
+| **Sistem Yöneticisi** | `sysadmin@stajdesk.local` | `StajDesk!2026` (`.env` → `SYSADMIN_PASSWORD`) |
 
-> Bilgisayarınızda 5432 portunu kullanan başka bir PostgreSQL varsa `.env` içinde `POSTGRES_PORT=5433` yapın.
+`SEED_DEMO_DATA=true` ise 3 mağaza, 8 kullanıcı, cihazlar ve talepler de eklenir (şifre: `DEMO_PASSWORD`, varsayılan `Demo!2026pass`).
+Tam liste ve deneme senaryosu: [docs/DEMO.md](docs/DEMO.md).
 
-## Geliştirme ortamı (kodu değiştirirken)
+> Canlıya çıkmadan önce `.env` içindeki tüm şifreleri değiştirin.
+
+## Roller (özet)
+
+| Rol | Ne görür? |
+|---|---|
+| Sistem Yöneticisi | Her şey: kullanıcılar, roller ve izinler, mağazalar, kategoriler, denetim kayıtları, gönderilen e-postalar |
+| Destek Personeli | Tüm talepler, atama/durum/öncelik, dahili notlar, envanter, genel özet paneli |
+| Mağaza Sahibi | Kendi mağazasının talepleri, cihazları, çalışanları ve mağaza özet paneli |
+| Kullanıcı | Yalnızca kendi talepleri ve kendisine zimmetli cihazlar |
+
+Ayrıntılı izin matrisi: [docs/RBAC.md](docs/RBAC.md).
+
+## Geliştirme ortamı
 
 Altyapıyı Docker'da, uygulamaları yerelde çalıştırın:
 
 ```bash
-docker compose up -d postgres redis rabbitmq seq
+docker compose up -d postgres redis rabbitmq seq mailpit
 ```
 
 ```bash
-cd src/backend && dotnet run --project StajDesk.Api      # http://localhost:5080
+cd src/backend && dotnet run --project StajDesk.Api
 ```
 
 ```bash
@@ -57,10 +79,8 @@ cd src/backend && dotnet run --project StajDesk.Worker
 ```
 
 ```bash
-cd src/frontend && npm install && npm run dev            # http://localhost:5173
+cd src/frontend && npm install && npm run dev
 ```
-
-Yerel ayarlar `appsettings.Development.json` dosyalarındadır ve `.env.example` varsayılanlarıyla eşleşir.
 
 ### Testler
 
@@ -68,23 +88,25 @@ Yerel ayarlar `appsettings.Development.json` dosyalarındadır ve `.env.example`
 cd src/backend && dotnet test
 ```
 
-### Yeni migration
-
 ```bash
-cd src/backend && dotnet tool restore && dotnet ef migrations add <Ad> -p StajDesk.Infrastructure -s StajDesk.Api -o Persistence/Migrations
+cd src/frontend && npm run build
 ```
 
-## Özellikler
+```bash
+bash scripts/smoke-test.sh
+```
 
-- Kayıt / giriş (JWT), rol bazlı yetki: **Kullanıcı**, **Destek Personeli**, **Yönetici**
-- Talep açma, listeleme, filtreleme (durum, öncelik, kategori, tür, arama), sayfalama, sıralama
-- Durum akışı: Açık → İşlemde → Çözüldü → Kapandı (kurallar domain'de); talep sahibi çözümü onaylayıp kapatabilir
-- Yorumlar ve **dahili notlar** (yalnızca destek ekibi görür), değişiklik geçmişi (zaman çizelgesi)
-- Atama (atanınca otomatik "İşlemde"), öncelik yönetimi
-- **Envanter** (GLPI "Assets"): cihaz, zimmet, garanti, cihaza bağlı talepler
-- Özet paneli: durum/öncelik/kategori dağılımı, 14 günlük trend, ortalama çözüm süresi, ekip iş yükü
-- RabbitMQ üzerinden asenkron bildirimler (Worker), arayüzde bildirim zili (15 sn polling)
-- Redis: kategori ve istatistik önbelleği (cache-aside, 60 sn), e-posta başına brute-force koruması (5 dk'da 5 hatalı giriş → 429)
-- Açık / koyu tema, mobil uyumlu arayüz
+`smoke-test.sh` çalışan Docker ortamına karşı uçtan uca 21 kontrol yapar (OAuth + PKCE, refresh rotasyonu, rol görünürlüğü, XSS reddi, e-posta zinciri…).
 
-Mimari ayrıntıları, veri modeli ve API uçları için: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+## Dokümanlar
+
+| Dosya | İçerik |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Katmanlar, CQRS, outbox, veri modeli, API uçları |
+| [docs/AUTH.md](docs/AUTH.md) | OAuth 2.0 akışları, token'lar, oturum güvenliği |
+| [docs/RBAC.md](docs/RBAC.md) | Roller, izinler, veri kapsamı (kendi / mağaza / tümü) |
+| [docs/SECURITY.md](docs/SECURITY.md) | XSS, CSP, hız sınırı, denetim kaydı, kontrol listesi |
+| [docs/DEMO.md](docs/DEMO.md) | Demo hesapları ve adım adım deneme senaryosu |
+| [docs/DECISIONS.md](docs/DECISIONS.md) | Mimari karar kayıtları (neden böyle yaptık?) |
+| [AGENTS.md](AGENTS.md) | Projede çalışan geliştiriciler ve kod asistanları için kurallar |
+| [docs/playbooks/](docs/playbooks) | Sık yapılan işler için adım adım rehberler |

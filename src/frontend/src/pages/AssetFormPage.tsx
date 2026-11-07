@@ -23,6 +23,7 @@ const toForm = (a?: AssetDetail) => ({
   purchaseDate: a?.purchaseDate ?? '',
   warrantyEndDate: a?.warrantyEndDate ?? '',
   assignedUserId: a?.assignedUser ? String(a.assignedUser.id) : '',
+  storeId: a?.store ? String(a.store.id) : '',
   notes: a?.notes ?? '',
 })
 
@@ -41,6 +42,7 @@ function AssetForm({ asset }: { asset?: AssetDetail }) {
   const qc = useQueryClient()
   const [saved, setSaved] = useState(false)
   const users = useQuery({ queryKey: ['users', 'lookup'], queryFn: () => api.users.lookup('') })
+  const stores = useQuery({ queryKey: ['stores'], queryFn: api.stores.list })
   const form = useForm(toForm(asset), {
     name: (v) => (!v.trim() ? 'Cihaza tanınır bir ad verin.' : undefined),
     inventoryNumber: (v) => (!v.trim() ? 'Envanter numarasını yazın (örnek: INV-0042).' : undefined),
@@ -52,7 +54,7 @@ function AssetForm({ asset }: { asset?: AssetDetail }) {
   const save = useMutation({
     mutationFn: () => {
       const v = form.values
-      const body = { ...v, purchaseDate: v.purchaseDate || null, warrantyEndDate: v.warrantyEndDate || null, assignedUserId: v.assignedUserId ? Number(v.assignedUserId) : null }
+      const body = { ...v, purchaseDate: v.purchaseDate || null, warrantyEndDate: v.warrantyEndDate || null, assignedUserId: v.assignedUserId ? Number(v.assignedUserId) : null, storeId: v.storeId ? Number(v.storeId) : null }
       return asset ? api.assets.update(asset.id, body) : api.assets.create(body)
     },
     onSuccess: (a) => {
@@ -104,6 +106,12 @@ function AssetForm({ asset }: { asset?: AssetDetail }) {
             <input {...form.field('warrantyEndDate')} type="date" className="form-field" />
           </Field>
         </div>
+        <Field label="Mağaza" htmlFor="f-storeId" optional hint="Mağaza sahibi yalnızca kendi mağazasının cihazlarını görür.">
+          <select {...form.field('storeId')} className="form-field">
+            <option value="">Merkez depo / mağazaya bağlı değil</option>
+            {stores.data?.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+          </select>
+        </Field>
         <Field label="Zimmetli kullanıcı" htmlFor="f-assignedUserId" optional>
           <select {...form.field('assignedUserId')} className="form-field">
             <option value="">Kimseye zimmetli değil</option>

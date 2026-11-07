@@ -20,11 +20,7 @@ internal sealed class RedisCacheService(IConnectionMultiplexer redis, ILogger<Re
         try
         {
             var cached = await redis.GetDatabase().StringGetAsync(fullKey);
-            if (cached.HasValue)
-            {
-                logger.LogDebug("Önbellekten okundu: {Key}", key);
-                return JsonSerializer.Deserialize<T>(cached.ToString(), Json)!;
-            }
+            if (cached.HasValue) return JsonSerializer.Deserialize<T>(cached.ToString(), Json)!;
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
@@ -73,61 +69,58 @@ internal sealed class RedisCacheService(IConnectionMultiplexer redis, ILogger<Re
     }
 }
 
-public sealed class LoginRateLimitOptions
+public sealed class RateLimitOptions
 {
     public int MaxFailedAttempts { get; set; } = 5;
     public int WindowSeconds { get; set; } = 300;
 }
 
 /// <summary>
-/// Redis INCR + EXPIRE ile sayaç tabanlı hız sınırlama: aynı e-posta ile 5 dakikada en fazla 5 hatalı giriş.
+/// Redis INCR + EXPIRE ile sabit pencereli sayaç: aynı anahtar için pencere içinde en fazla N deneme.
+/// Kullanım: e-posta ve IP başına başarısız giriş, şifre sıfırlama isteği.
+/// Redis kapalıysa kullanıcılar engellenmez (fail-open) ama durum loglanır.
 /// </summary>
-internal sealed class RedisLoginRateLimiter(
-    IConnectionMultiplexer redis,
-    IOptions<LoginRateLimitOptions> options,
-    ILogger<RedisLoginRateLimiter> logger) : ILoginRateLimiter
+internal sealed class RedisRateLimiter(IConnectionMultiplexer redis, IOptions<RateLimitOptions> options, ILogger<RedisRateLimiter> logger) : IRateLimiter
 {
-    private static string Key(string email) => $"stajdesk:login-fail:{email}";
+    private static string Key(string key) => $"stajdesk:rl:{key}";
 
-    public async Task<int?> GetBlockedSecondsAsync(string email, CancellationToken ct = default)
+    public async Task<int?> GetBlockedSecondsAsync(string key, CancellationToken ct = default)
     {
         try
         {
             var db = redis.GetDatabase();
-            var count = (int?)await db.StringGetAsync(Key(email)) ?? 0;
+            var count = (int?)await db.StringGetAsync(Key(key)) ?? 0;
             if (count < options.Value.MaxFailedAttempts) return null;
-            var ttl = await db.KeyTimeToLiveAsync(Key(email));
+            var ttl = await db.KeyTimeToLiveAsync(Key(key));
             return (int)Math.Ceiling((ttl ?? TimeSpan.FromSeconds(options.Value.WindowSeconds)).TotalSeconds);
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            // Bilinçli tercih: Redis kapalıyken kullanıcılar giriş yapabilsin (fail-open), ama loglansın.
-            logger.LogWarning("Hız sınırlama kontrol edilemedi (Redis erişilemiyor): {Message}", ex.Message);
+            logger.LogWarning("Hız sınırı kontrol edilemedi (Redis erişilemiyor): {Message}", ex.Message);
             return null;
         }
     }
 
-    public async Task RegisterFailureAsync(string email, CancellationToken ct = default)
+    public async Task RegisterHitAsync(string key, CancellationToken ct = default)
     {
         try
         {
             var db = redis.GetDatabase();
-            var count = await db.StringIncrementAsync(Key(email));
-            if (count == 1)
-                await db.KeyExpireAsync(Key(email), TimeSpan.FromSeconds(options.Value.WindowSeconds));
+            var count = await db.StringIncrementAsync(Key(key));
+            if (count == 1) await db.KeyExpireAsync(Key(key), TimeSpan.FromSeconds(options.Value.WindowSeconds));
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            logger.LogWarning("Başarısız giriş sayacı artırılamadı: {Message}", ex.Message);
+            logger.LogWarning("Hız sınırı sayacı artırılamadı: {Message}", ex.Message);
         }
     }
 
-    public async Task ResetAsync(string email, CancellationToken ct = default)
+    public async Task ResetAsync(string key, CancellationToken ct = default)
     {
-        try { await redis.GetDatabase().KeyDeleteAsync(Key(email)); }
+        try { await redis.GetDatabase().KeyDeleteAsync(Key(key)); }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            logger.LogWarning("Giriş sayacı sıfırlanamadı: {Message}", ex.Message);
+            logger.LogWarning("Hız sınırı sayacı sıfırlanamadı: {Message}", ex.Message);
         }
     }
 }

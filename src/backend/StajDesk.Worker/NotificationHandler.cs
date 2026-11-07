@@ -1,92 +1,130 @@
 using Microsoft.EntityFrameworkCore;
 using StajDesk.Contracts;
 using StajDesk.Domain.Entities;
-using StajDesk.Domain.Enums;
+using StajDesk.Domain.Security;
 using StajDesk.Infrastructure.Persistence;
 
 namespace StajDesk.Worker;
 
-/// <summary>Bir olaydan kimin, hangi bildirimi alacağına karar verir ve notifications tablosuna yazar.</summary>
-public sealed class NotificationHandler(AppDbContext db, ILogger<NotificationHandler> logger)
+/// <summary>
+/// Bir olaydan kimin hangi bildirimi / e-postayı alacağına karar verir.
+/// Idempotent: aynı olay (EventId) ikinci kez gelirse işlenmez (en az bir kez teslimde çift bildirim olmaz).
+/// </summary>
+public sealed class NotificationHandler(AppDbContext db, Mailer mailer, ILogger<NotificationHandler> logger)
 {
     private static readonly Dictionary<string, string> StatusTr = new()
     {
-        ["Open"] = "Açık", ["InProgress"] = "İşlemde", ["Resolved"] = "Çözüldü", ["Closed"] = "Kapandı"
+        ["Open"] = "Açık", ["InProgress"] = "İşlemde", ["Pending"] = "Beklemede", ["Resolved"] = "Çözüldü", ["Closed"] = "Kapandı",
     };
 
     public async Task HandleAsync(IntegrationEvent evt, CancellationToken ct)
     {
-        var notifications = evt switch
+        if (await db.ProcessedMessages.AnyAsync(m => m.MessageId == evt.EventId, ct))
         {
-            TicketCreatedEvent e => await OnCreatedAsync(e, ct),
-            TicketStatusChangedEvent e => OnStatusChanged(e),
-            TicketAssignedEvent e => OnAssigned(e),
-            TicketCommentAddedEvent e => OnCommentAdded(e),
-            _ => []
-        };
-        if (notifications.Count == 0) return;
+            logger.LogInformation("Olay daha önce işlenmiş, atlanıyor: {EventId}", evt.EventId);
+            return;
+        }
 
-        db.Notifications.AddRange(notifications);
+        switch (evt)
+        {
+            case TicketCreatedEvent e: await OnCreatedAsync(e, ct); break;
+            case TicketStatusChangedEvent e: await OnStatusChangedAsync(e, ct); break;
+            case TicketAssignedEvent e: await OnAssignedAsync(e, ct); break;
+            case TicketCommentAddedEvent e: await OnCommentAddedAsync(e, ct); break;
+            case UserRegisteredEvent e: await OnRegisteredAsync(e, ct); break;
+            case PasswordResetRequestedEvent e: await OnPasswordResetAsync(e, ct); break;
+        }
+
+        db.ProcessedMessages.Add(new ProcessedMessage { MessageId = evt.EventId });
         await db.SaveChangesAsync(ct);
-
-        // E-posta gönderimi şimdilik simüle ediliyor (bonus görev: MailHog ile gerçek e-posta).
-        var userIds = notifications.Select(n => n.UserId).Distinct().ToList();
-        var emails = await db.Users.Where(u => userIds.Contains(u.Id)).Select(u => u.Email).ToListAsync(ct);
-        foreach (var email in emails)
-            logger.LogInformation("E-posta gönderildi (simülasyon) → {Email}: {Title}", email, notifications[0].Title);
-
-        logger.LogInformation("{Count} bildirim oluşturuldu ({EventType}, talep #{TicketId})",
-            notifications.Count, evt.GetType().Name, notifications[0].TicketId);
     }
 
-    private async Task<List<Notification>> OnCreatedAsync(TicketCreatedEvent e, CancellationToken ct)
-    {
-        var staffIds = await db.Users
-            .Where(u => u.IsActive && (u.Role == UserRole.Agent || u.Role == UserRole.Admin) && u.Id != e.RequesterId)
-            .Select(u => u.Id).ToListAsync(ct);
+    private string TicketUrl(int id) => $"{mailer.WebUrl}/tickets/{id}";
 
-        var list = staffIds.Select(id => New(id, e.TicketId, $"Yeni talep #{e.TicketId}",
-            $"{e.RequesterName} yeni bir talep açtı: \"{e.Title}\" ({e.CategoryName}, öncelik: {e.Priority})")).ToList();
-        list.Add(New(e.RequesterId, e.TicketId, $"Talebiniz alındı #{e.TicketId}",
-            $"\"{e.Title}\" başlıklı talebiniz destek ekibine iletildi."));
-        return list;
+    private async Task OnCreatedAsync(TicketCreatedEvent e, CancellationToken ct)
+    {
+        // Destek ekibi (talepleri yönetebilenler) + talebin mağazasının sahibi bilgilendirilir.
+        var staff = await db.Users.Where(u => u.IsActive && u.Id != e.RequesterId &&
+                u.Roles.Any(r => r.Role.Permissions.Any(p => p.Permission.Key == Permissions.TicketsManage)))
+            .Select(u => new { u.Id, u.Email }).ToListAsync(ct);
+        var owners = e.StoreId is null ? [] : await db.Users.Where(u => u.IsActive && u.Id != e.RequesterId && u.StoreId == e.StoreId &&
+                u.Roles.Any(r => r.Role.Permissions.Any(p => p.Permission.Key == Permissions.TicketsReadStore)) &&
+                !u.Roles.Any(r => r.Role.Permissions.Any(p => p.Permission.Key == Permissions.TicketsManage)))
+            .Select(u => new { u.Id, u.Email }).ToListAsync(ct);
+
+        foreach (var s in staff.Concat(owners).DistinctBy(x => x.Id))
+            Notify(s.Id, e.TicketId, $"Yeni talep #{e.TicketId}", $"{e.RequesterName} yeni bir talep açtı: \"{e.Title}\" ({e.CategoryName}, öncelik: {e.Priority})");
+        Notify(e.RequesterId, e.TicketId, $"Talebiniz alındı #{e.TicketId}", $"\"{e.Title}\" başlıklı talebiniz destek ekibine iletildi.");
+
+        var requester = await EmailOf(e.RequesterId, ct);
+        if (requester is not null)
+            await mailer.SendAsync(requester, $"Talebiniz alındı (#{e.TicketId})", "ticket.created", "Talebiniz alındı",
+                [$"\"{e.Title}\" başlıklı talebiniz destek ekibine iletildi.", "Durum değiştiğinde size haber vereceğiz."], ("Talebi görüntüle", TicketUrl(e.TicketId)), ct);
+        foreach (var s in staff)
+            await mailer.SendAsync(s.Email, $"Yeni talep #{e.TicketId}: {e.Title}", "ticket.created.staff", "Yeni destek talebi",
+                [$"{e.RequesterName} yeni bir talep açtı: \"{e.Title}\"", $"Kategori: {e.CategoryName} · Öncelik: {e.Priority}"], ("Talebi incele", TicketUrl(e.TicketId)), ct);
     }
 
-    private static List<Notification> OnStatusChanged(TicketStatusChangedEvent e)
+    private async Task OnStatusChangedAsync(TicketStatusChangedEvent e, CancellationToken ct)
     {
-        var list = new List<Notification>();
         var text = $"\"{e.Title}\" talebinin durumu {Tr(e.OldStatus)} → {Tr(e.NewStatus)} olarak güncellendi ({e.ChangedByName}).";
         if (e.RequesterId != e.ChangedById)
-            list.Add(New(e.RequesterId, e.TicketId, $"Talep #{e.TicketId}: {Tr(e.NewStatus)}", text));
+        {
+            Notify(e.RequesterId, e.TicketId, $"Talep #{e.TicketId}: {Tr(e.NewStatus)}", text);
+            var to = await EmailOf(e.RequesterId, ct);
+            if (to is not null)
+                await mailer.SendAsync(to, $"Talebinizin durumu: {Tr(e.NewStatus)} (#{e.TicketId})", "ticket.status", $"Talep durumu: {Tr(e.NewStatus)}",
+                    [text, e.NewStatus == "Resolved" ? "Sorununuz çözüldüyse talebi onaylayıp kapatabilirsiniz." : ""], ("Talebi görüntüle", TicketUrl(e.TicketId)), ct);
+        }
         if (e.AssigneeId is { } a && a != e.ChangedById && a != e.RequesterId)
-            list.Add(New(a, e.TicketId, $"Talep #{e.TicketId}: {Tr(e.NewStatus)}", text));
-        return list;
+            Notify(a, e.TicketId, $"Talep #{e.TicketId}: {Tr(e.NewStatus)}", text);
     }
 
-    private static List<Notification> OnAssigned(TicketAssignedEvent e)
+    private async Task OnAssignedAsync(TicketAssignedEvent e, CancellationToken ct)
     {
-        var list = new List<Notification>();
         if (e.AssigneeId is { } a && a != e.AssignedById)
-            list.Add(New(a, e.TicketId, $"Size talep atandı #{e.TicketId}", $"\"{e.Title}\" talebi size atandı."));
+        {
+            Notify(a, e.TicketId, $"Size talep atandı #{e.TicketId}", $"\"{e.Title}\" talebi size atandı.");
+            var to = await EmailOf(a, ct);
+            if (to is not null)
+                await mailer.SendAsync(to, $"Size talep atandı (#{e.TicketId})", "ticket.assigned", "Size yeni bir talep atandı",
+                    [$"\"{e.Title}\" talebi size atandı."], ("Talebi aç", TicketUrl(e.TicketId)), ct);
+        }
         if (e.AssigneeId is not null && e.RequesterId != e.AssignedById)
-            list.Add(New(e.RequesterId, e.TicketId, $"Talep #{e.TicketId} ilgilenen kişi",
-                $"\"{e.Title}\" talebinizle {e.AssigneeName} ilgileniyor."));
-        return list;
+            Notify(e.RequesterId, e.TicketId, $"Talep #{e.TicketId} ilgilenen kişi", $"\"{e.Title}\" talebinizle {e.AssigneeName} ilgileniyor.");
     }
 
-    private static List<Notification> OnCommentAdded(TicketCommentAddedEvent e)
+    private async Task OnCommentAddedAsync(TicketCommentAddedEvent e, CancellationToken ct)
     {
-        var list = new List<Notification>();
         // Dahili notlar talep sahibine bildirilmez.
         if (!e.IsInternal && e.RequesterId != e.AuthorId)
-            list.Add(New(e.RequesterId, e.TicketId, $"Yeni yanıt #{e.TicketId}", $"{e.AuthorName}, \"{e.Title}\" talebinize yanıt yazdı."));
+        {
+            Notify(e.RequesterId, e.TicketId, $"Yeni yanıt #{e.TicketId}", $"{e.AuthorName}, \"{e.Title}\" talebinize yanıt yazdı.");
+            var to = await EmailOf(e.RequesterId, ct);
+            if (to is not null)
+                await mailer.SendAsync(to, $"Talebinize yanıt var (#{e.TicketId})", "ticket.comment", "Talebinize yeni yanıt",
+                    [$"{e.AuthorName}, \"{e.Title}\" talebinize yanıt yazdı."], ("Yanıtı oku", TicketUrl(e.TicketId)), ct);
+        }
         if (e.AssigneeId is { } a && a != e.AuthorId)
-            list.Add(New(a, e.TicketId, $"Yeni yorum #{e.TicketId}", $"{e.AuthorName}, \"{e.Title}\" talebine yorum ekledi."));
-        return list;
+            Notify(a, e.TicketId, $"Yeni yorum #{e.TicketId}", $"{e.AuthorName}, \"{e.Title}\" talebine yorum ekledi.");
     }
 
-    private static Notification New(int userId, int ticketId, string title, string message) =>
-        new() { UserId = userId, TicketId = ticketId, Title = Truncate(title, 200), Message = Truncate(message, 1000) };
+    private Task OnRegisteredAsync(UserRegisteredEvent e, CancellationToken ct) =>
+        mailer.SendAsync(e.Email, "StajDesk'e hoş geldiniz", "user.welcome", $"Hoş geldiniz, {e.FullName}",
+            ["Hesabınız oluşturuldu. Bir sorun yaşadığınızda StajDesk üzerinden talep açabilir, durumunu takip edebilirsiniz."],
+            ("StajDesk'i aç", mailer.WebUrl), ct);
+
+    private Task OnPasswordResetAsync(PasswordResetRequestedEvent e, CancellationToken ct) =>
+        mailer.SendAsync(e.Email, "Şifre sıfırlama bağlantınız", "user.password_reset", "Şifrenizi sıfırlayın",
+            [$"Merhaba {e.FullName},", $"Şifrenizi sıfırlamak için aşağıdaki bağlantıyı kullanın. Bağlantı {e.ExpiresInMinutes} dakika geçerlidir ve yalnızca bir kez kullanılabilir.",
+             "Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz; şifreniz değişmez."],
+            ("Şifremi sıfırla", e.ResetUrl), ct);
+
+    private void Notify(int userId, int ticketId, string title, string message) =>
+        db.Notifications.Add(new Notification { UserId = userId, TicketId = ticketId, Title = Truncate(title, 200), Message = Truncate(message, 1000) });
+
+    private Task<string?> EmailOf(int userId, CancellationToken ct) =>
+        db.Users.Where(u => u.Id == userId && u.IsActive).Select(u => u.Email).FirstOrDefaultAsync(ct);
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
     private static string Tr(string status) => StatusTr.GetValueOrDefault(status, status);

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using StajDesk.Application.Abstractions;
 using StajDesk.Application.Common;
 using StajDesk.Domain.Entities;
+using StajDesk.Domain.Security;
 
 namespace StajDesk.Application.Features.Categories;
 
@@ -18,12 +19,13 @@ public interface ICategoryService
     Task DeleteAsync(int id, CancellationToken ct = default);
 }
 
-internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ILogger<CategoryService> logger) : ICategoryService
+internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ICurrentUser currentUser, IAuditLogger audit, ILogger<CategoryService> logger) : ICategoryService
 {
     public static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
 
     public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(bool includeInactive, CancellationToken ct = default)
     {
+        currentUser.Require(Permissions.CategoriesRead, Permissions.TicketsCreate);
         // Cache-aside: önce Redis'e bak, yoksa veritabanından al ve 60 sn önbelleğe yaz.
         var all = await cache.GetOrSetAsync(CacheKeys.Categories, async token =>
             await db.Categories.AsNoTracking()
@@ -32,11 +34,12 @@ internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ILo
                     c.Tickets.Count, c.Tickets.Count(t => t.Status != Domain.Enums.TicketStatus.Closed)))
                 .ToListAsync(token), CacheTtl, ct);
 
-        return includeInactive ? all : all.Where(c => c.IsActive).ToList();
+        return includeInactive && currentUser.Has(Permissions.CategoriesManage) ? all : all.Where(c => c.IsActive).ToList();
     }
 
     public async Task<CategoryDto> CreateAsync(UpsertCategoryRequest request, CancellationToken ct = default)
     {
+        currentUser.Require(Permissions.CategoriesManage);
         var name = request.Name.Trim();
         if (await db.Categories.AnyAsync(c => c.Name.ToLower() == name.ToLower(), ct))
             throw new ConflictException("Bu isimde bir kategori zaten mevcut.");
@@ -51,6 +54,7 @@ internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ILo
 
     public async Task<CategoryDto> UpdateAsync(int id, UpsertCategoryRequest request, CancellationToken ct = default)
     {
+        currentUser.Require(Permissions.CategoriesManage);
         var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id, ct) ?? throw NotFoundException.For("Kategori", id);
         var name = request.Name.Trim();
         if (await db.Categories.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower(), ct))
@@ -74,6 +78,7 @@ internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ILo
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        currentUser.Require(Permissions.CategoriesManage);
         var category = await db.Categories.FirstOrDefaultAsync(c => c.Id == id, ct) ?? throw NotFoundException.For("Kategori", id);
         if (await db.Tickets.AnyAsync(t => t.CategoryId == id, ct))
             throw new ConflictException("Bu kategoriye bağlı talepler bulunduğu için silinemez. Bunun yerine pasif hâle getirebilirsiniz.");
@@ -99,8 +104,8 @@ public sealed class UpsertCategoryRequestValidator : AbstractValidator<UpsertCat
     public UpsertCategoryRequestValidator()
     {
         RuleFor(x => x.Name).NotEmpty().WithMessage("Kategori adı zorunludur.")
-            .MaximumLength(80).WithMessage("Kategori adı en fazla 80 karakter olabilir.");
-        RuleFor(x => x.Description).MaximumLength(300);
+            .MaximumLength(80).WithMessage("Kategori adı en fazla 80 karakter olabilir.").NoMarkup();
+        RuleFor(x => x.Description).MaximumLength(300).NoMarkup();
         RuleFor(x => x.Color).Must(c => Colors.Contains(c)).WithMessage("Geçersiz renk seçimi.");
     }
 }

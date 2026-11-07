@@ -1,0 +1,3 @@
+# JWT imza anahtarları (gizli) — depoya girmez
+**/.keys/
+**/keys/*.pem

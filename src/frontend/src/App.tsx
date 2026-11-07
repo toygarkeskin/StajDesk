@@ -1,6 +1,9 @@
 import { createBrowserRouter } from 'react-router'
 import { AppLayout, RequireAuth } from './components/layout/AppLayout'
-import { LoginPage, RegisterPage } from './pages/AuthPages'
+import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
+import { StoresPage } from './pages/StoresPage'
+import { RolesPage } from './pages/RolesPage'
+import { AuditPage, EmailsPage } from './pages/SystemPages'
 import { DashboardPage } from './pages/DashboardPage'
 import { TicketsPage } from './pages/TicketsPage'
 import { TicketDetailPage } from './pages/TicketDetailPage'
@@ -13,13 +16,15 @@ import { UsersPage } from './pages/UsersPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
-const staff = ['Agent', 'Admin'] as const
-const admin = ['Admin'] as const
+
 
 /** Veri yönlendiricisi (data router): kaydedilmemiş form uyarısı için useBlocker'ı mümkün kılar. */
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/oauth/authorize', element: <OAuthAuthorizePage /> },
   {
     element: <AppLayout />,
     children: [
@@ -28,12 +33,16 @@ export const router = createBrowserRouter([
       { path: 'tickets/new', element: <NewTicketPage /> },
       { path: 'tickets/:id', element: <TicketDetailPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
-      { path: 'assets', element: <RequireAuth roles={[...staff]}><AssetsPage /></RequireAuth> },
-      { path: 'assets/new', element: <RequireAuth roles={[...staff]}><AssetFormPage /></RequireAuth> },
+      { path: 'assets', element: <RequireAuth perms={['assets.read.all', 'assets.read.store']}><AssetsPage /></RequireAuth> },
+      { path: 'assets/new', element: <RequireAuth perms={['assets.manage']}><AssetFormPage /></RequireAuth> },
       { path: 'assets/:id', element: <AssetDetailPage /> },
-      { path: 'assets/:id/edit', element: <RequireAuth roles={[...staff]}><AssetFormPage /></RequireAuth> },
-      { path: 'admin/categories', element: <RequireAuth roles={[...admin]}><CategoriesPage /></RequireAuth> },
-      { path: 'admin/users', element: <RequireAuth roles={[...admin]}><UsersPage /></RequireAuth> },
+      { path: 'assets/:id/edit', element: <RequireAuth perms={['assets.manage']}><AssetFormPage /></RequireAuth> },
+      { path: 'admin/categories', element: <RequireAuth perms={['categories.manage']}><CategoriesPage /></RequireAuth> },
+      { path: 'stores', element: <RequireAuth perms={['stores.read', 'stores.manage']}><StoresPage /></RequireAuth> },
+      { path: 'admin/roles', element: <RequireAuth perms={['roles.manage']}><RolesPage /></RequireAuth> },
+      { path: 'admin/audit', element: <RequireAuth perms={['audit.read']}><AuditPage /></RequireAuth> },
+      { path: 'admin/emails', element: <RequireAuth perms={['mail.read']}><EmailsPage /></RequireAuth> },
+      { path: 'admin/users', element: <RequireAuth perms={['users.read', 'users.manage']}><UsersPage /></RequireAuth> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

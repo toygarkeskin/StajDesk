@@ -1,8 +1,9 @@
-import type { AssetStatus, AssetType, TicketPriority, TicketStatus, TicketType, UserRole } from './types'
+import type { AssetStatus, AssetType, TicketPriority, TicketStatus, TicketType } from './types'
 
 export const statusLabels: Record<TicketStatus, string> = {
   Open: 'Açık',
   InProgress: 'İşlemde',
+  Pending: 'Beklemede',
   Resolved: 'Çözüldü',
   Closed: 'Kapandı',
 }
@@ -19,10 +20,12 @@ export const typeLabels: Record<TicketType, string> = {
   Request: 'İstek',
 }
 
-export const roleLabels: Record<UserRole, string> = {
-  User: 'Kullanıcı',
-  Agent: 'Destek Personeli',
-  Admin: 'Yönetici',
+/** Rol sistem adı → Türkçe görünen ad. */
+export const roleLabels: Record<string, string> = {
+  system_admin: 'Sistem Yöneticisi',
+  agent: 'Destek Personeli',
+  store_owner: 'Mağaza Sahibi',
+  user: 'Kullanıcı',
 }
 
 export const assetTypeLabels: Record<AssetType, string> = {
@@ -34,6 +37,7 @@ export const assetTypeLabels: Record<AssetType, string> = {
   NetworkDevice: 'Ağ Cihazı',
   Software: 'Yazılım / Lisans',
   Other: 'Diğer',
+  PointOfSale: 'Kasa / POS',
 }
 
 export const assetStatusLabels: Record<AssetStatus, string> = {
@@ -47,6 +51,7 @@ export const assetStatusLabels: Record<AssetStatus, string> = {
 export const statusClasses: Record<TicketStatus, string> = {
   Open: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   InProgress: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  Pending: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
   Resolved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   Closed: "bg-gray-400/20 text-gray-600 dark:text-gray-400",
 }

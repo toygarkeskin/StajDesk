@@ -14,7 +14,16 @@ internal sealed class PasswordHasher : Application.Abstractions.IPasswordHasher
 
     public string Hash(string password) => Inner.HashPassword(Dummy, password);
 
-    public bool Verify(string hash, string password) =>
-        Inner.VerifyHashedPassword(Dummy, hash, password) is PasswordVerificationResult.Success
-            or PasswordVerificationResult.SuccessRehashNeeded;
+    public bool Verify(string hash, string password)
+    {
+        try
+        {
+            return Inner.VerifyHashedPassword(Dummy, hash, password) is PasswordVerificationResult.Success
+                or PasswordVerificationResult.SuccessRehashNeeded;
+        }
+        catch (FormatException)
+        {
+            return false; // bozuk / sahte hash
+        }
+    }
 }

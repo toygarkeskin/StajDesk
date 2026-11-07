@@ -7,7 +7,7 @@ import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun } from 'lucide-react
 import { api } from '@/lib/api'
 import { usePopover } from '@/lib/hooks'
 import { timeAgo } from '@/lib/format'
-import { roleLabels } from '@/lib/labels'
+import { revoke } from '@/lib/oauth'
 import { useAuth } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
 import { Avatar, IconButton, Tooltip } from '../ui'
@@ -86,8 +86,8 @@ function NotificationsMenu() {
 
 function UserMenu() {
   const pop = usePopover()
-  const user = useAuth((s) => s.user)
-  const logout = useAuth((s) => s.logout)
+  const user = useAuth((s) => s.me)
+  const clear = useAuth((s) => s.clear)
   const navigate = useNavigate()
   const qc = useQueryClient()
   if (!user) return null
@@ -103,13 +103,14 @@ function UserMenu() {
         <div role="menu" className="card absolute right-0 z-40 mt-2 w-64 animate-fade-in py-2">
           <div className="border-b border-gray-200 px-4 pb-2 dark:border-gray-700/60">
             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName}</div>
-            <div className="text-xs text-gray-500">{user.email} · {roleLabels[user.role]}</div>
+            <div className="text-xs text-gray-500">{user.email} · {user.roles.join(', ')}</div>
           </div>
           <button
             role="menuitem"
             className="mt-2 flex min-h-11 w-full items-center gap-2 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/20"
-            onClick={() => {
-              logout()
+            onClick={async () => {
+              await revoke() // refresh token sunucuda iptal edilir, cookie silinir
+              clear()
               qc.clear()
               navigate('/login')
             }}

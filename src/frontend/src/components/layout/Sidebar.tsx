@@ -1,9 +1,9 @@
 import { Link, useLocation } from 'react-router'
 import clsx from 'clsx'
-import { Bell, FolderKanban, LayoutDashboard, MonitorSmartphone, PlusCircle, Tags, Ticket, Users, X } from 'lucide-react'
+import { Bell, FolderKanban, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useFocusTrap } from '@/lib/hooks'
-import { useRole } from '@/stores/auth'
+import { useCan } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
 import { IconButton } from '../ui'
 import { Logo } from './Logo'
@@ -49,29 +49,37 @@ function NavGroup({ title, items, onNavigate }: { title: string; items: Item[]; 
 }
 
 function NavContent({ onNavigate }: { onNavigate: () => void }) {
-  const { isStaff, isAdmin } = useRole()
+  // Menü rol adına değil izinlere göre çizilir: yeni bir rol tanımlansa da doğru ekranlar görünür.
+  const { can } = useCan()
   const i = 'size-[18px]'
   const isTicketPage = (p: string) => p === '/tickets' || /^\/tickets\/\d+$/.test(p)
+  const ticketsLabel = can('tickets.read.all') ? 'Tüm talepler' : can('tickets.read.store') ? 'Mağaza talepleri' : 'Taleplerim'
+  const keep = (items: (Item | false)[]) => items.filter(Boolean) as Item[]
 
-  const main: Item[] = [
+  const main = keep([
     { to: '/', label: 'Özet paneli', icon: <LayoutDashboard className={i} />, isActive: (p) => p === '/' },
-    { to: '/tickets', label: isStaff ? 'Tüm talepler' : 'Taleplerim', icon: <Ticket className={i} />, isActive: (p, q) => isTicketPage(p) && q.get('mine') !== '1' },
-    { to: '/tickets/new', label: 'Yeni talep', icon: <PlusCircle className={i} />, isActive: (p) => p === '/tickets/new' },
+    { to: '/tickets', label: ticketsLabel, icon: <Ticket className={i} />, isActive: (p, q) => isTicketPage(p) && q.get('mine') !== '1' },
+    can('tickets.create') && { to: '/tickets/new', label: 'Yeni talep', icon: <PlusCircle className={i} />, isActive: (p) => p === '/tickets/new' },
     { to: '/notifications', label: 'Bildirimler', icon: <Bell className={i} />, isActive: (p) => p === '/notifications' },
-  ]
-  const staff: Item[] = [
-    { to: '/tickets?mine=1', label: 'Bana atananlar', icon: <FolderKanban className={i} />, isActive: (p, q) => p === '/tickets' && q.get('mine') === '1' },
-    { to: '/assets', label: 'Envanter', icon: <MonitorSmartphone className={i} />, isActive: (p) => p.startsWith('/assets') },
-  ]
-  const admin: Item[] = [
-    { to: '/admin/categories', label: 'Kategoriler', icon: <Tags className={i} />, isActive: (p) => p === '/admin/categories' },
-    { to: '/admin/users', label: 'Kullanıcılar', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
-  ]
+  ])
+  const operations = keep([
+    can('tickets.manage') && { to: '/tickets?mine=1', label: 'Bana atananlar', icon: <FolderKanban className={i} />, isActive: (p, q) => p === '/tickets' && q.get('mine') === '1' },
+    can('assets.read.all', 'assets.read.store') && { to: '/assets', label: 'Envanter', icon: <MonitorSmartphone className={i} />, isActive: (p) => p.startsWith('/assets') },
+    can('stores.read', 'stores.manage') && { to: '/stores', label: can('stores.manage') ? 'Mağazalar' : 'Mağazam', icon: <StoreIcon className={i} />, isActive: (p) => p === '/stores' },
+    can('users.read', 'users.manage') && !can('users.manage') && { to: '/admin/users', label: 'Mağaza çalışanları', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
+  ])
+  const admin = keep([
+    can('users.manage') && { to: '/admin/users', label: 'Kullanıcılar', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
+    can('roles.manage') && { to: '/admin/roles', label: 'Roller ve izinler', icon: <ShieldCheck className={i} />, isActive: (p) => p === '/admin/roles' },
+    can('categories.manage') && { to: '/admin/categories', label: 'Kategoriler', icon: <Tags className={i} />, isActive: (p) => p === '/admin/categories' },
+    can('mail.read') && { to: '/admin/emails', label: 'Gönderilen e-postalar', icon: <Mail className={i} />, isActive: (p) => p === '/admin/emails' },
+    can('audit.read') && { to: '/admin/audit', label: 'Denetim kayıtları', icon: <ScrollText className={i} />, isActive: (p) => p === '/admin/audit' },
+  ])
   return (
     <nav aria-label="Ana menü" className="space-y-8">
       <NavGroup title="Genel" items={main} onNavigate={onNavigate} />
-      {isStaff && <NavGroup title="Destek" items={staff} onNavigate={onNavigate} />}
-      {isAdmin && <NavGroup title="Yönetim" items={admin} onNavigate={onNavigate} />}
+      {operations.length > 0 && <NavGroup title="Operasyon" items={operations} onNavigate={onNavigate} />}
+      {admin.length > 0 && <NavGroup title="Yönetim" items={admin} onNavigate={onNavigate} />}
     </nav>
   )
 }

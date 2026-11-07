@@ -18,6 +18,8 @@ builder.Services.AddSerilog((sp, lc) =>
 
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddScoped<Mailer>();
 builder.Services.AddScoped<NotificationHandler>();
 builder.Services.AddHostedService<NotificationConsumer>();
 

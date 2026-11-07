@@ -22,7 +22,7 @@ function useChartTheme() {
 }
 
 export function DashboardPage() {
-  const user = useAuth((s) => s.user)
+  const user = useAuth((s) => s.me)
   const { isStaff } = useRole()
   const theme = useChartTheme()
   const { data, isLoading, isError, error, refetch } = useQuery({ queryKey: ['stats'], queryFn: api.stats.dashboard, refetchInterval: 60_000 })
@@ -44,7 +44,7 @@ export function DashboardPage() {
       </div>
 
       <PageHeader
-        title="Özet Paneli"
+        title={`Özet Paneli — ${data?.scopeLabel ?? ''}`}
         description={data ? `Son güncelleme: ${timeAgo(data.generatedAt)}` : undefined}
         actions={<Link to="/tickets/new" className="btn-primary"><Plus className="size-4" aria-hidden="true" /> Yeni Talep</Link>}
       />
@@ -59,9 +59,10 @@ export function DashboardPage() {
 
       {data && (
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 grid grid-cols-2 gap-6 md:grid-cols-4">
+          <div className="col-span-12 grid grid-cols-2 gap-6 md:grid-cols-5">
             <StatCard label="Açık" value={data.open} tone="sky" icon={<Inbox className="size-5" />} hint={<>Toplam {data.total} talep</>} to="/tickets?status=Open" />
             <StatCard label="İşlemde" value={data.inProgress} tone="amber" icon={<Clock className="size-5" />} to="/tickets?status=InProgress" />
+            <StatCard label="Beklemede" value={data.pending} tone="violet" icon={<Clock className="size-5" />} hint="Kullanıcı / parça bekleniyor" to="/tickets?status=Pending" />
             <StatCard label="Çözüldü" value={data.resolved} tone="emerald" icon={<CheckCircle2 className="size-5" />} hint={<>Kapanan: {data.closed}</>} to="/tickets?status=Resolved" />
             {isStaff ? (
               <StatCard label="Atanmamış" value={data.unassigned} tone="rose" icon={<UserX className="size-5" />} hint={<>Kritik açık: {data.criticalOpen}</>} to="/tickets?unassigned=true&activeOnly=true" />
@@ -120,11 +121,13 @@ export function DashboardPage() {
 
           {/* Kategoriler */}
           <section className="card col-span-12 md:col-span-6">
-            <header className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/60"><h2 className="font-semibold">Kategorilere Göre Talepler</h2></header>
+            <header className="border-b border-gray-100 px-5 py-4 dark:border-gray-700/60"><h2 className="font-semibold">{data.scope === 'all' && data.byStore.length ? 'Mağazalara Göre Açık Talepler' : 'Kategorilere Göre Talepler'}</h2></header>
             <div className="h-72 p-4">
               <Bar
                 aria-label="Kategorilere göre talep sayıları"
-                data={{ labels: data.byCategory.map((c) => c.label), datasets: [{ label: 'Talep', data: data.byCategory.map((c) => c.count), backgroundColor: data.byCategory.map((c) => colorOf(c.color).hex), borderRadius: 6, barThickness: 18 }] }}
+                data={data.scope === 'all' && data.byStore.length
+                  ? { labels: data.byStore.map((c) => c.label), datasets: [{ label: 'Açık talep', data: data.byStore.map((c) => c.count), backgroundColor: '#8b5cf6', borderRadius: 6, barThickness: 18 }] }
+                  : { labels: data.byCategory.map((c) => c.label), datasets: [{ label: 'Talep', data: data.byCategory.map((c) => c.count), backgroundColor: data.byCategory.map((c) => colorOf(c.color).hex), borderRadius: 6, barThickness: 18 }] }}
                 options={{
                   animation,
                   indexAxis: 'y',

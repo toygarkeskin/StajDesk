@@ -1,10 +1,11 @@
 using System.Text;
-using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
-using StajDesk.Application.Abstractions;
-using StajDesk.Contracts;
+using StajDesk.Infrastructure.Persistence;
 using Msg = StajDesk.Contracts.Messaging;
 
 namespace StajDesk.Infrastructure.Messaging;
@@ -29,7 +30,7 @@ public static class RabbitMqTopology
         VirtualHost = o.VirtualHost,
         ClientProvidedName = clientName,
         AutomaticRecoveryEnabled = true,
-        NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
+        NetworkRecoveryInterval = TimeSpan.FromSeconds(5),
     };
 
     /// <summary>
@@ -47,61 +48,86 @@ public static class RabbitMqTopology
             arguments: new Dictionary<string, object?> { ["x-dead-letter-exchange"] = Msg.DeadLetterExchange },
             cancellationToken: ct);
         await channel.QueueBindAsync(Msg.NotificationQueue, Msg.Exchange, Msg.RoutingKeys.AllTicketEvents, cancellationToken: ct);
+        await channel.QueueBindAsync(Msg.NotificationQueue, Msg.Exchange, Msg.RoutingKeys.AllUserEvents, cancellationToken: ct);
     }
 }
 
 /// <summary>
-/// Olayları RabbitMQ'ya yayınlar. Tek bağlantı + tek kanal (singleton), eşzamanlı yayınlar kilitle sıraya alınır.
-/// Broker'a ulaşılamazsa istek başarısız olmaz; hata loglanır (iyileştirme fikri: Outbox deseni).
+/// Transactional outbox dağıtıcısı (arka plan servisi):
+/// yayınlanmamış olayları sırayla okur, publisher-confirm ile RabbitMQ'ya iletir ve "yayınlandı" işaretler.
+/// Broker kapalıyken olaylar veritabanında güvenle bekler; broker geri gelince gönderilir (en az bir kez teslim).
+/// Birden fazla API örneği çalışırsa FOR UPDATE SKIP LOCKED sayesinde aynı mesaj iki kez alınmaz.
 /// </summary>
-internal sealed class RabbitMqEventPublisher(IOptions<RabbitMqOptions> options, ILogger<RabbitMqEventPublisher> logger)
-    : IEventPublisher, IAsyncDisposable
+public sealed class OutboxDispatcher(IServiceScopeFactory scopes, IOptions<RabbitMqOptions> options, ILogger<OutboxDispatcher> logger) : BackgroundService
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private readonly SemaphoreSlim _lock = new(1, 1);
     private IConnection? _connection;
     private IChannel? _channel;
 
-    public async Task PublishAsync<T>(T @event, string routingKey, CancellationToken ct = default) where T : IntegrationEvent
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(@event, Json));
-        var props = new BasicProperties
+        while (!stoppingToken.IsCancellationRequested)
         {
-            Persistent = true, // mesaj diske yazılır
-            ContentType = "application/json",
-            MessageId = @event.EventId.ToString(),
-            Type = routingKey,
-            Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds())
-        };
+            try
+            {
+                var sent = await DispatchBatchAsync(stoppingToken);
+                if (sent == 0) await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Outbox dağıtımı başarısız; tekrar denenecek: {Message}", ex.Message);
+                await ResetAsync();
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
+        }
+    }
 
-        await _lock.WaitAsync(ct);
-        try
+    private async Task<int> DispatchBatchAsync(CancellationToken ct)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async token =>
         {
-            var channel = await GetChannelAsync(ct);
-            await channel.BasicPublishAsync(Msg.Exchange, routingKey, mandatory: false, basicProperties: props, body: body, cancellationToken: ct);
-            logger.LogInformation("Olay yayınlandı: {RoutingKey} {EventId}", routingKey, @event.EventId);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Olay yayınlanamadı: {RoutingKey} {EventId}", routingKey, @event.EventId);
-            await ResetAsync();
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            await using var tx = await db.Database.BeginTransactionAsync(token);
+            var batch = await db.OutboxMessages
+                .FromSqlRaw("SELECT * FROM outbox_messages WHERE published_at IS NULL ORDER BY occurred_at LIMIT 50 FOR UPDATE SKIP LOCKED")
+                .ToListAsync(token);
+            if (batch.Count == 0) return 0;
+
+            var channel = await GetChannelAsync(token);
+            foreach (var msg in batch)
+            {
+                msg.Attempts++;
+                var props = new BasicProperties
+                {
+                    Persistent = true, ContentType = "application/json", MessageId = msg.Id.ToString(), Type = msg.RoutingKey,
+                    Timestamp = new AmqpTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()),
+                };
+                await channel.BasicPublishAsync(Msg.Exchange, msg.RoutingKey, mandatory: false, basicProperties: props,
+                    body: Encoding.UTF8.GetBytes(msg.Payload), cancellationToken: token);
+                msg.PublishedAt = DateTime.UtcNow;
+                logger.LogInformation("Olay yayınlandı: {RoutingKey} {EventId}", msg.RoutingKey, msg.Id);
+            }
+            await db.SaveChangesAsync(token);
+            await tx.CommitAsync(token);
+            return batch.Count;
+        }, ct);
     }
 
     private async Task<IChannel> GetChannelAsync(CancellationToken ct)
     {
         if (_channel is { IsOpen: true }) return _channel;
         await ResetAsync();
-
         var factory = RabbitMqTopology.CreateFactory(options.Value, "stajdesk-api");
         _connection = await factory.CreateConnectionAsync(ct);
-        _channel = await _connection.CreateChannelAsync(
-            new CreateChannelOptions(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true), ct);
+        // Publisher confirm: broker mesajı diske aldığını onaylamadan "yayınlandı" saymayız.
+        _channel = await _connection.CreateChannelAsync(new CreateChannelOptions(publisherConfirmationsEnabled: true, publisherConfirmationTrackingEnabled: true), ct);
         await RabbitMqTopology.DeclareAsync(_channel, ct);
+        logger.LogInformation("Outbox dağıtıcısı RabbitMQ'ya bağlandı ({Host})", options.Value.Host);
         return _channel;
     }
 
@@ -113,5 +139,9 @@ internal sealed class RabbitMqEventPublisher(IOptions<RabbitMqOptions> options, 
         _connection = null;
     }
 
-    public async ValueTask DisposeAsync() => await ResetAsync();
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await base.StopAsync(cancellationToken);
+        await ResetAsync();
+    }
 }

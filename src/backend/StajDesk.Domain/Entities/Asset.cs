@@ -18,6 +18,9 @@ public class Asset : BaseEntity
     public DateOnly? WarrantyEndDate { get; set; }
     public string? Notes { get; set; }
 
+    public int? StoreId { get; set; }
+    public Store? Store { get; set; }
+
     public int? AssignedUserId { get; set; }
     public User? AssignedUser { get; set; }
 

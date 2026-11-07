@@ -15,6 +15,16 @@ internal sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> log
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext ctx, Exception ex, CancellationToken ct)
     {
+        // OAuth uç noktaları RFC 6749 §5.2 biçiminde hata döner: { error, error_description }
+        if (ex is StajDesk.Application.Features.Auth.OAuthException oauth)
+        {
+            logger.LogInformation("OAuth isteği reddedildi: {Error} {Description}", oauth.Error, oauth.Message);
+            ctx.Response.StatusCode = oauth.Status;
+            ctx.Response.Headers.CacheControl = "no-store";
+            await ctx.Response.WriteAsJsonAsync(new Dictionary<string, string> { ["error"] = oauth.Error, ["error_description"] = oauth.Message }, ct);
+            return true;
+        }
+
         var (status, message, errors) = ex switch
         {
             ValidationException v => (StatusCodes.Status400BadRequest, "Bazı alanlar eksik veya geçersiz. İşaretli alanları düzeltip tekrar deneyin.", ToErrors(v)),
