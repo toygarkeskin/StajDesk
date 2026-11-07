@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Application: kullanım senaryoları (servisler), DTO'lar, doğrulama kuralları ve soyutlamalar. -->
+  <ItemGroup>
+    <ProjectReference Include="..\StajDesk.Domain\StajDesk.Domain.csproj" />
+    <ProjectReference Include="..\StajDesk.Contracts\StajDesk.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="StajDesk.UnitTests" />
+  </ItemGroup>
+</Project>

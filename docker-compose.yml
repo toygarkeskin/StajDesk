@@ -1,0 +1,126 @@
+# StajDesk — tüm sistem tek komutla:  docker compose up -d --build
+# Arayüz: http://localhost:8080 · API dokümanı: http://localhost:5080/docs
+# Seq (loglar): http://localhost:5380 · RabbitMQ yönetim: http://localhost:15672
+
+name: stajdesk
+
+x-dotnet-env: &dotnet-env
+  ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-stajdesk};Username=${POSTGRES_USER:-stajdesk};Password=${POSTGRES_PASSWORD:-stajdesk_dev}
+  RabbitMq__Host: rabbitmq
+  RabbitMq__UserName: ${RABBITMQ_USER:-stajdesk}
+  RabbitMq__Password: ${RABBITMQ_PASSWORD:-stajdesk_dev}
+  Seq__ServerUrl: http://seq:5341
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stajdesk}
+      POSTGRES_USER: ${POSTGRES_USER:-stajdesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stajdesk_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-stajdesk}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-stajdesk_dev}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
+  seq:
+    image: datalust/seq:latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"
+    ports:
+      - "${SEQ_UI_PORT:-5380}:80"
+      - "5341:5341"
+    volumes:
+      - seqdata:/data
+
+  api:
+    build:
+      context: ./src/backend
+      dockerfile: api.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *dotnet-env
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Redis: redis:6379
+      Jwt__Key: ${JWT_KEY:-dev-only-key-change-me-0123456789-abcdefghijkl}
+      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@stajdesk.local}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin123!}
+      Seed__DemoData: ${SEED_DEMO_DATA:-true}
+      Seed__DemoPassword: ${DEMO_PASSWORD:-Demo123!}
+    ports:
+      - "${API_PORT:-5080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      seq:
+        condition: service_started
+
+  worker:
+    build:
+      context: ./src/backend
+      dockerfile: worker.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *dotnet-env
+      DOTNET_ENVIRONMENT: Production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  web:
+    build:
+      context: ./src/frontend
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  rabbitdata:
+  seqdata:

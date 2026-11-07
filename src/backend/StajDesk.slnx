@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/StajDesk.UnitTests/StajDesk.UnitTests.csproj" />
+  </Folder>
+  <Project Path="StajDesk.Api/StajDesk.Api.csproj" />
+  <Project Path="StajDesk.Application/StajDesk.Application.csproj" />
+  <Project Path="StajDesk.Contracts/StajDesk.Contracts.csproj" />
+  <Project Path="StajDesk.Domain/StajDesk.Domain.csproj" />
+  <Project Path="StajDesk.Infrastructure/StajDesk.Infrastructure.csproj" />
+  <Project Path="StajDesk.Worker/StajDesk.Worker.csproj" />
+</Solution>

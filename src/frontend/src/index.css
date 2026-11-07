@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+/* Sınıf tabanlı karanlık tema: <html class="dark"> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --container-page: 80rem;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --text-sm--line-height: 1.5;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    @apply bg-gray-100 text-gray-600 antialiased dark:bg-gray-900 dark:text-gray-400;
+  }
+  body {
+    @apply font-sans text-sm;
+  }
+  h1, h2, h3, h4 {
+    @apply text-gray-800 dark:text-gray-100;
+  }
+  ::selection {
+    @apply bg-violet-500/20;
+  }
+  button:not(:disabled), [role='button'] {
+    cursor: pointer;
+  }
+  /* Görünür odak halkası — açık ve koyu temada */
+  :focus-visible {
+    outline: 2px solid var(--color-violet-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* Hareket azaltma tercihi: anlık değişim */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+  }
+}
+
+/* ---------- Bileşen sınıfları ---------- */
+@utility card {
+  @apply rounded-xl bg-white shadow-xs dark:bg-gray-800;
+}
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium whitespace-nowrap shadow-xs transition disabled:cursor-not-allowed disabled:opacity-60;
+}
+@utility btn-primary {
+  @apply btn border-transparent bg-gray-900 text-gray-100 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-800 dark:hover:bg-white;
+}
+@utility btn-violet {
+  @apply btn border-transparent bg-violet-500 text-white hover:bg-violet-600;
+}
+@utility btn-secondary {
+  @apply btn border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-gray-700/60 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600;
+}
+@utility btn-danger {
+  @apply btn border-transparent bg-rose-500 text-white hover:bg-rose-600;
+}
+@utility form-field {
+  @apply min-h-11 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 shadow-xs outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20 disabled:opacity-60 aria-invalid:border-rose-400 aria-invalid:focus:ring-rose-500/20 dark:border-gray-700/60 dark:bg-gray-900/40 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:border-violet-500;
+}
+@utility form-label {
+  @apply mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300;
+}
+@utility table-head {
+  @apply bg-gray-50 text-left text-xs font-semibold tracking-wide text-gray-500 uppercase dark:bg-gray-900/20 dark:text-gray-400;
+}
+
+/* Yandan açılan panel ve pencere animasyonları */
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility animate-slide-in {
+  animation: slide-in 200ms var(--ease-out);
+}
+@utility animate-fade-in {
+  animation: fade-in 150ms var(--ease-out);
+}

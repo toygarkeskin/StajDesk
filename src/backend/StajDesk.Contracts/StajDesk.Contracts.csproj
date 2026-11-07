@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- API ile Worker arasında RabbitMQ üzerinden taşınan mesajların ortak sözleşmesi. -->
+</Project>
