@@ -19,4 +19,4 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 
 **Testler:** 51 birim, 33 uçtan uca, 12 sayfa × 375 px taşma kontrolü.
 
-**Aşama 1 (analiz):** `docs/PORTAL_ANALIZ.md` — kararlar bekleniyor.
+**Aşama 1 (analiz) tamamlandı:** `docs/PORTAL_ANALIZ.md`. Kararlar: React, Form + İş Akışı motoru, açık sitede yalnızca kurumsal içerik, TCMB + Open-Meteo (altın anahtar bekliyor). Sıradaki: Aşama 3 — kimlik ve organizasyon.

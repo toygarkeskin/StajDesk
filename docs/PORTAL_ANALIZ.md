@@ -166,3 +166,12 @@ form verisi JSONB + raporlanan alanlar için GIN index.
 | 9 Test & iyileştirme | Güvenlik, responsive, performans, dokümantasyon | Tüm testler yeşil, docs güncel |
 
 Her aşama ayrı commit/push, `docs/GELISTIRME_LOG.md` kaydı ve aşama raporu ile kapanır.
+
+## 8. Alınan kararlar (12.11.2026)
+
+| Konu | Karar |
+|---|---|
+| Frontend | React + Vite + Tailwind'de kalınır; portal ve karşılama sitesi aynı uygulamaya eklenir |
+| Departman uygulamaları | Yapılandırılabilir Form + İş Akışı motoru; özel hesaplamalı modüller (izin, ciro, vardiya, masraf/avans, fiş) ayrı kodlanır |
+| Herkese açık site | Yalnızca kurumsal içerik; doğum günü, çalışanlar, haftanın çalışanı yalnızca giriş sonrası portalda |
+| Canlı veri | USD/EUR: TCMB · Hava: Open-Meteo · Gram altın: anahtarlı sağlayıcı yapılandırılana kadar kart "kaynak yapılandırılmadı" der |
