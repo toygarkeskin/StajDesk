@@ -57,6 +57,13 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
     public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
     public DbSet<AnnouncementRead> AnnouncementReads => Set<AnnouncementRead>();
+    public DbSet<SocialPost> SocialPosts => Set<SocialPost>();
+    public DbSet<SocialComment> SocialComments => Set<SocialComment>();
+    public DbSet<SocialLike> SocialLikes => Set<SocialLike>();
+    public DbSet<SocialReport> SocialReports => Set<SocialReport>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<FaqItem> FaqItems => Set<FaqItem>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -99,6 +106,13 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<WorkTask>().HasOne(x => x.Assignee).WithMany().HasForeignKey(x => x.AssigneeId);
         b.Entity<WorkTask>().HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedById);
         b.Entity<Announcement>().HasOne(x => x.TargetDepartment).WithMany().HasForeignKey(x => x.TargetDepartmentId);
+        b.Entity<SocialLike>().HasKey(x => new { x.PostId, x.UserId });
+        b.Entity<SocialLike>().HasOne<SocialPost>().WithMany(p => p.Likes).HasForeignKey(x => x.PostId);
+        b.Entity<SocialPost>().HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId);
+        b.Entity<SocialComment>().HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId);
+        b.Entity<SocialReport>().HasOne(x => x.Reporter).WithMany().HasForeignKey(x => x.ReporterId);
+        b.Entity<Conversation>().HasOne(x => x.UserA).WithMany().HasForeignKey(x => x.UserAId);
+        b.Entity<Conversation>().HasOne(x => x.UserB).WithMany().HasForeignKey(x => x.UserBId);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);

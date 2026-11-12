@@ -55,6 +55,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
     public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
     public DbSet<AnnouncementRead> AnnouncementReads => Set<AnnouncementRead>();
+    public DbSet<SocialPost> SocialPosts => Set<SocialPost>();
+    public DbSet<SocialComment> SocialComments => Set<SocialComment>();
+    public DbSet<SocialLike> SocialLikes => Set<SocialLike>();
+    public DbSet<SocialReport> SocialReports => Set<SocialReport>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<DirectMessage> DirectMessages => Set<DirectMessage>();
+    public DbSet<FaqItem> FaqItems => Set<FaqItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

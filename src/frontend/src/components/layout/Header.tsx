@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Bell, ChevronDown, LogOut, Menu, Moon, Sun, UserRound } from 'lucide-react'
+import { Bell, ChevronDown, HelpCircle, LogOut, Menu, MessageSquare, Moon, Sun, UserRound } from 'lucide-react'
+import { socialApi } from '@/lib/social'
 import { api } from '@/lib/api'
 import { usePopover } from '@/lib/hooks'
 import { timeAgo } from '@/lib/format'
@@ -145,6 +146,19 @@ function LiveDot({ status }: { status: RealtimeStatus }) {
   )
 }
 
+/** Mesajlar: okunmamış sayısı SignalR ile anında, bağlantı yoksa 30 sn'de bir yenilenir. */
+function MessagesButton() {
+  const unread = useQuery({ queryKey: ['messages', 'unread'], queryFn: socialApi.unread, refetchInterval: 30_000 })
+  const n = unread.data ?? 0
+  return (
+    <Link to="/messages" aria-label={n ? `Mesajlar, ${n} okunmamış` : 'Mesajlar'} title="Mesajlar"
+      className="relative grid size-11 place-items-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700/40">
+      <MessageSquare className="size-[18px]" aria-hidden="true" />
+      {n > 0 && <span className="absolute top-1.5 right-1.5 grid min-w-4 place-items-center rounded-full bg-violet-500 px-1 text-[10px] font-semibold text-white" aria-hidden="true">{n > 9 ? '9+' : n}</span>}
+    </Link>
+  )
+}
+
 export function Header() {
   const setSidebarOpen = useUi((s) => s.setSidebarOpen)
   const theme = useUi((s) => s.theme)
@@ -162,6 +176,10 @@ export function Header() {
         </div>
         <div className="flex items-center gap-1">
           <LiveDot status={realtime} />
+          <MessagesButton />
+          <Link to="/faq" aria-label="Yardım ve sık sorulan sorular" title="Yardım" className="hidden size-11 place-items-center rounded-lg text-gray-500 hover:bg-gray-100 sm:grid dark:text-gray-400 dark:hover:bg-gray-700/40">
+            <HelpCircle className="size-[18px]" aria-hidden="true" />
+          </Link>
           <NotificationsMenu live={realtime === 'live'} />
           <IconButton label={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"} onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}

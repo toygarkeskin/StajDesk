@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Award, Briefcase, Cake, CalendarDays, CheckSquare, ListTodo, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
+import { Award, Briefcase, Cake, CalendarDays, CheckSquare, Heart, ListTodo, MessageCircle, Newspaper, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
 import { api, errorMessage } from '@/lib/api'
 import { portalApi, type DashboardLayout, type DashboardWidget, type PersonRef } from '@/lib/portal'
 import { siteApi } from '@/lib/site'
 import { workApi } from '@/lib/work'
+import { socialApi } from '@/lib/social'
 import { employmentLabels } from '@/lib/labels'
 import { formatDate } from '@/lib/format'
 import { useAuth } from '@/stores/auth'
@@ -338,6 +339,31 @@ export function MyTasksWidget({ className }: { className?: string }) {
             </ul>
           )}
         </>
+      )}
+    </Widget>
+  )
+}
+
+export function SocialFeedWidget({ className }: { className?: string }) {
+  const q = useQuery({ queryKey: ['social', 'feed', 'widget'], queryFn: () => socialApi.feed(1), staleTime: 60_000 })
+  const posts = q.data?.items.slice(0, 3) ?? []
+  return (
+    <Widget title="Sosyal akış" icon={<Newspaper className="size-4" />} action={{ label: 'Akışa git', to: '/social' }} className={className}>
+      {q.isLoading ? <Loading /> : q.isError ? <WidgetEmpty text={errorMessage(q.error)} /> : posts.length === 0 ? <WidgetEmpty icon={<Newspaper className="size-8" />} text="Henüz paylaşım yok." action={<Link to="/social" className="text-xs font-medium text-violet-600 dark:text-violet-400">İlk paylaşımı yap</Link>} /> : (
+        <ul className="space-y-3">
+          {posts.map((p) => (
+            <li key={p.id}>
+              <Link to={`/social?post=${p.id}`} className="-mx-2 flex gap-3 rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                <PersonAvatar id={p.author.id} name={p.author.fullName} photoVersion={p.author.hasPhoto ? p.author.photoVersion : null} size="sm" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-gray-800 dark:text-gray-100">{p.author.fullName}</span>
+                  <span className="line-clamp-2 text-xs text-gray-600 dark:text-gray-300">{p.body || 'Bir görsel paylaştı.'}</span>
+                  <span className="mt-0.5 flex gap-3 text-[11px] text-gray-400"><span className="inline-flex items-center gap-1"><Heart className="size-3" aria-hidden="true" />{p.likeCount}</span><span className="inline-flex items-center gap-1"><MessageCircle className="size-3" aria-hidden="true" />{p.commentCount}</span></span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </Widget>
   )

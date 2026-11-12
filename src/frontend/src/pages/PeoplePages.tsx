@@ -215,6 +215,7 @@ function ProfileHeader({ p }: { p: EmployeeDetail }) {
           <p className="truncate text-sm text-gray-500">{[p.position?.name, p.department?.name].filter(Boolean).join(' · ') || 'Unvan ve departman girilmedi'}</p>
           {!p.isActive && <p className="mt-1 text-xs font-medium text-rose-600">Bu çalışan ayrıldı / hesabı pasif.</p>}
         </div>
+        {!p.access.isSelf && p.isActive && <Link to={`/messages?with=${p.id}`} className="btn-secondary shrink-0">Mesaj gönder</Link>}
       </div>
     </section>
   )

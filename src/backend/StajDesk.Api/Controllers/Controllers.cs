@@ -19,6 +19,7 @@ using StajDesk.Application.Features.Portal;
 using StajDesk.Application.Features.Workflows;
 using StajDesk.Application.Features.Leave;
 using StajDesk.Application.Features.Tasks;
+using StajDesk.Application.Features.Social;
 using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
 
@@ -980,4 +981,107 @@ public sealed class TasksController(ITaskService tasks) : ApiControllerBase
         await tasks.DeleteAsync(id, ct);
         return NoContent();
     }
+}
+
+/// <summary>Sosyal akış (giriş sonrası). Paylaşım: social.post; moderasyon: social.moderate.</summary>
+[Route("api/social")]
+public sealed class SocialController(ISocialService social) : ApiControllerBase
+{
+    [HttpGet("posts")]
+    public async Task<ActionResult<ApiResponse<PagedResult<SocialPostDto>>>> Feed([FromQuery] SimplePagedQuery query, CancellationToken ct) => Envelope(await social.FeedAsync(query, ct));
+
+    /// <summary>Metin + isteğe bağlı görsel (multipart: body, image).</summary>
+    [HttpPost("posts"), RequirePermission(Permissions.SocialPost), RequestSizeLimit(4 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<SocialPostDto>>> Create([FromForm] string? body, IFormFile? image, CancellationToken ct)
+    {
+        await using var stream = image?.OpenReadStream();
+        return StatusCode(201, ApiResponse<SocialPostDto>.Ok(await social.CreateAsync(body ?? "", image?.FileName, stream, image?.Length ?? 0, ct), "Paylaşıldı."));
+    }
+
+    [HttpDelete("posts/{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) { await social.DeleteAsync(id, ct); return NoContent(); }
+
+    [HttpPost("posts/{id:int}/like"), RequirePermission(Permissions.SocialPost)]
+    public async Task<ActionResult<ApiResponse<SocialPostDto>>> Like(int id, CancellationToken ct) => Envelope(await social.ToggleLikeAsync(id, ct));
+
+    [HttpGet("posts/{id:int}/comments")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SocialCommentDto>>>> Comments(int id, CancellationToken ct) => Envelope(await social.CommentsAsync(id, ct));
+
+    [HttpPost("posts/{id:int}/comments"), RequirePermission(Permissions.SocialPost)]
+    public async Task<ActionResult<ApiResponse<SocialCommentDto>>> Comment(int id, CreateCommentRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<SocialCommentDto>.Ok(await social.CommentAsync(id, request.Body, ct)));
+
+    [HttpDelete("comments/{id:int}")]
+    public async Task<IActionResult> DeleteComment(int id, CancellationToken ct) { await social.DeleteCommentAsync(id, ct); return NoContent(); }
+
+    [HttpPost("posts/{id:int}/report")]
+    public async Task<ActionResult<ApiResponse<object>>> Report(int id, ReportPostRequest request, CancellationToken ct)
+    {
+        await social.ReportAsync(id, request.Reason, ct);
+        return Envelope<object>(new { id }, "Şikayetiniz moderatörlere iletildi.");
+    }
+
+    [HttpPost("posts/{id:int}/remove"), RequirePermission(Permissions.SocialModerate)]
+    public async Task<ActionResult<ApiResponse<object>>> Remove(int id, RemoveContentRequest request, CancellationToken ct)
+    {
+        await social.RemoveAsync(id, request.Reason, ct);
+        return Envelope<object>(new { id }, "Paylaşım kaldırıldı; sahibine bildirildi.");
+    }
+
+    [HttpGet("reports"), RequirePermission(Permissions.SocialModerate)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SocialReportDto>>>> Reports(CancellationToken ct) => Envelope(await social.PendingReportsAsync(ct));
+
+    [HttpPost("reports/{id:int}/resolve"), RequirePermission(Permissions.SocialModerate)]
+    public async Task<ActionResult<ApiResponse<object>>> Resolve(int id, ResolveReportRequest request, CancellationToken ct)
+    {
+        await social.ResolveReportAsync(id, request.RemovePost, request.Reason, ct);
+        return Envelope<object>(new { id }, request.RemovePost ? "Paylaşım kaldırıldı." : "Şikayet yersiz bulundu, paylaşım yayında kaldı.");
+    }
+
+    [HttpGet("posts/{id:int}/image")]
+    public async Task<IActionResult> Image(int id, CancellationToken ct)
+    {
+        var img = await social.ImageAsync(id, ct);
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(img.Content, img.ContentType);
+    }
+}
+
+/// <summary>Birebir mesajlaşma: mesajı yalnızca iki taraf görür.</summary>
+[Route("api/messages")]
+public sealed class MessagesController(IMessageService messages) : ApiControllerBase
+{
+    [HttpGet("conversations")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ConversationDto>>>> Conversations(CancellationToken ct) => Envelope(await messages.ConversationsAsync(ct));
+
+    [HttpGet("unread-count")]
+    public async Task<ActionResult<ApiResponse<int>>> Unread(CancellationToken ct) => Envelope(await messages.UnreadCountAsync(ct));
+
+    [HttpGet("with/{userId:int}")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DirectMessageDto>>>> With(int userId, [FromQuery] long? before, CancellationToken ct) => Envelope(await messages.WithAsync(userId, before, ct));
+
+    [HttpPost("with/{userId:int}")]
+    public async Task<ActionResult<ApiResponse<DirectMessageDto>>> Send(int userId, SendMessageRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<DirectMessageDto>.Ok(await messages.SendAsync(userId, request.Body, ct)));
+
+    [HttpPost("with/{userId:int}/read")]
+    public async Task<IActionResult> Read(int userId, CancellationToken ct) { await messages.MarkReadAsync(userId, ct); return NoContent(); }
+}
+
+/// <summary>Sık sorulan sorular: herkes okur; faq.manage yönetir.</summary>
+[Route("api/faq")]
+public sealed class FaqController(IFaqService faq) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<FaqItemDto>>>> List([FromQuery] string? q, CancellationToken ct) => Envelope(await faq.ListAsync(q, ct));
+
+    [HttpPost, RequirePermission(Permissions.FaqManage)]
+    public async Task<ActionResult<ApiResponse<FaqItemDto>>> Create(SaveFaqRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<FaqItemDto>.Ok(await faq.SaveAsync(null, request, ct), "Soru eklendi."));
+
+    [HttpPut("{id:int}"), RequirePermission(Permissions.FaqManage)]
+    public async Task<ActionResult<ApiResponse<FaqItemDto>>> Update(int id, SaveFaqRequest request, CancellationToken ct) => Envelope(await faq.SaveAsync(id, request, ct), "Soru güncellendi.");
+
+    [HttpDelete("{id:int}"), RequirePermission(Permissions.FaqManage)]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct) { await faq.DeleteAsync(id, ct); return NoContent(); }
 }

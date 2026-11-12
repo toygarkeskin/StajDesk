@@ -705,3 +705,85 @@ internal sealed class AnnouncementTargetConfiguration : IEntityTypeConfiguration
         b.Property(x => x.AttachmentContentType).HasMaxLength(100);
     }
 }
+
+internal sealed class SocialPostConfiguration : IEntityTypeConfiguration<SocialPost>
+{
+    public void Configure(EntityTypeBuilder<SocialPost> b)
+    {
+        b.Property(x => x.Body).HasMaxLength(2000);
+        b.Property(x => x.ImageKey).HasMaxLength(40);
+        b.Property(x => x.ImageContentType).HasMaxLength(50);
+        b.Property(x => x.RemovedReason).HasMaxLength(500);
+        b.HasIndex(x => new { x.RemovedAt, x.CreatedAt });
+        b.HasIndex(x => new { x.AuthorId, x.CreatedAt });
+        b.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Cascade);
+        b.HasMany(x => x.Comments).WithOne(x => x.Post).HasForeignKey(x => x.PostId).OnDelete(DeleteBehavior.Cascade);
+        b.HasMany(x => x.Likes).WithOne().HasForeignKey(x => x.PostId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class SocialCommentConfiguration : IEntityTypeConfiguration<SocialComment>
+{
+    public void Configure(EntityTypeBuilder<SocialComment> b)
+    {
+        b.Property(x => x.Body).HasMaxLength(1000);
+        b.HasIndex(x => new { x.PostId, x.CreatedAt });
+        b.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class SocialLikeConfiguration : IEntityTypeConfiguration<SocialLike>
+{
+    public void Configure(EntityTypeBuilder<SocialLike> b)
+    {
+        b.HasKey(x => new { x.PostId, x.UserId });
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class SocialReportConfiguration : IEntityTypeConfiguration<SocialReport>
+{
+    public void Configure(EntityTypeBuilder<SocialReport> b)
+    {
+        b.Property(x => x.Reason).HasMaxLength(500);
+        b.Property(x => x.Resolution).HasMaxLength(20);
+        b.HasIndex(x => new { x.ResolvedAt, x.CreatedAt });
+        b.HasOne(x => x.Post).WithMany().HasForeignKey(x => x.PostId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Reporter).WithMany().HasForeignKey(x => x.ReporterId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
+{
+    public void Configure(EntityTypeBuilder<Conversation> b)
+    {
+        b.HasIndex(x => new { x.UserAId, x.UserBId }).IsUnique();
+        b.HasIndex(x => new { x.UserBId, x.LastMessageAt });
+        b.HasOne(x => x.UserA).WithMany().HasForeignKey(x => x.UserAId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.UserB).WithMany().HasForeignKey(x => x.UserBId).OnDelete(DeleteBehavior.Cascade);
+        b.HasMany(x => x.Messages).WithOne(x => x.Conversation).HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        b.ToTable(t => t.HasCheckConstraint("ck_conversations_pair", "user_a_id < user_b_id"));
+    }
+}
+
+internal sealed class DirectMessageConfiguration : IEntityTypeConfiguration<DirectMessage>
+{
+    public void Configure(EntityTypeBuilder<DirectMessage> b)
+    {
+        b.Property(x => x.Body).HasMaxLength(2000);
+        b.HasIndex(x => new { x.ConversationId, x.Id });
+        b.HasIndex(x => new { x.SenderId, x.CreatedAt });
+    }
+}
+
+internal sealed class FaqItemConfiguration : IEntityTypeConfiguration<FaqItem>
+{
+    public void Configure(EntityTypeBuilder<FaqItem> b)
+    {
+        b.ToTable("faq_items");
+        b.Property(x => x.Category).HasMaxLength(60);
+        b.Property(x => x.Question).HasMaxLength(300);
+        b.Property(x => x.Answer).HasMaxLength(5000);
+        b.HasIndex(x => new { x.Category, x.SortOrder });
+    }
+}

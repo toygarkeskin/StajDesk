@@ -718,6 +718,51 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Conversation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("LastMessageAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_message_at");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UserAId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_a_id");
+
+                    b.Property<int>("UserBId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_b_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_conversations");
+
+                    b.HasIndex("UserAId", "UserBId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_conversations_user_a_id_user_b_id");
+
+                    b.HasIndex("UserBId", "LastMessageAt")
+                        .HasDatabaseName("ix_conversations_user_b_id_last_message_at");
+
+                    b.ToTable("conversations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_conversations_pair", "user_a_id < user_b_id");
+                        });
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.DashboardWidgetConfig", b =>
                 {
                     b.Property<string>("Key")
@@ -819,6 +864,49 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_departments_not_own_parent", "parent_id IS NULL OR parent_id <> id");
                         });
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.DirectMessage", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("body");
+
+                    b.Property<int>("ConversationId")
+                        .HasColumnType("integer")
+                        .HasColumnName("conversation_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<int>("SenderId")
+                        .HasColumnType("integer")
+                        .HasColumnName("sender_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_direct_messages");
+
+                    b.HasIndex("ConversationId", "Id")
+                        .HasDatabaseName("ix_direct_messages_conversation_id_id");
+
+                    b.HasIndex("SenderId", "CreatedAt")
+                        .HasDatabaseName("ix_direct_messages_sender_id_created_at");
+
+                    b.ToTable("direct_messages", (string)null);
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.EmployeeProfile", b =>
@@ -930,6 +1018,58 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasName("pk_external_snapshots");
 
                     b.ToTable("external_snapshots", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.FaqItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Answer")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)")
+                        .HasColumnName("answer");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("category");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("question");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_faq_items");
+
+                    b.HasIndex("Category", "SortOrder")
+                        .HasDatabaseName("ix_faq_items_category_sort_order");
+
+                    b.ToTable("faq_items", (string)null);
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.JobOpening", b =>
@@ -1952,6 +2092,201 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("site_settings", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer")
+                        .HasColumnName("post_id");
+
+                    b.Property<DateTime?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<int?>("RemovedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("removed_by_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_comments");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_social_comments_author_id");
+
+                    b.HasIndex("PostId", "CreatedAt")
+                        .HasDatabaseName("ix_social_comments_post_id_created_at");
+
+                    b.ToTable("social_comments", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialLike", b =>
+                {
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer")
+                        .HasColumnName("post_id");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.HasKey("PostId", "UserId")
+                        .HasName("pk_social_likes");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_social_likes_user_id");
+
+                    b.ToTable("social_likes", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("image_content_type");
+
+                    b.Property<string>("ImageKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("image_key");
+
+                    b.Property<DateTime?>("RemovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("removed_at");
+
+                    b.Property<int?>("RemovedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("removed_by_id");
+
+                    b.Property<string>("RemovedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("removed_reason");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_posts");
+
+                    b.HasIndex("AuthorId", "CreatedAt")
+                        .HasDatabaseName("ix_social_posts_author_id_created_at");
+
+                    b.HasIndex("RemovedAt", "CreatedAt")
+                        .HasDatabaseName("ix_social_posts_removed_at_created_at");
+
+                    b.ToTable("social_posts", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("PostId")
+                        .HasColumnType("integer")
+                        .HasColumnName("post_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("ReporterId")
+                        .HasColumnType("integer")
+                        .HasColumnName("reporter_id");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("resolution");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resolved_at");
+
+                    b.Property<int?>("ResolvedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("resolved_by_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_social_reports");
+
+                    b.HasIndex("PostId")
+                        .HasDatabaseName("ix_social_reports_post_id");
+
+                    b.HasIndex("ReporterId")
+                        .HasDatabaseName("ix_social_reports_reporter_id");
+
+                    b.HasIndex("ResolvedAt", "CreatedAt")
+                        .HasDatabaseName("ix_social_reports_resolved_at_created_at");
+
+                    b.ToTable("social_reports", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Store", b =>
                 {
                     b.Property<int>("Id")
@@ -2964,6 +3299,27 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_company_events_users_created_by_id");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Conversation", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "UserA")
+                        .WithMany()
+                        .HasForeignKey("UserAId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_conversations_users_user_a_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "UserB")
+                        .WithMany()
+                        .HasForeignKey("UserBId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_conversations_users_user_b_id");
+
+                    b.Navigation("UserA");
+
+                    b.Navigation("UserB");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.User", "Manager")
@@ -2981,6 +3337,18 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Manager");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.DirectMessage", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Conversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_direct_messages_conversations_conversation_id");
+
+                    b.Navigation("Conversation");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.EmployeeProfile", b =>
@@ -3181,6 +3549,77 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialComment", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_comments_users_author_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.SocialPost", "Post")
+                        .WithMany("Comments")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_comments_social_posts_post_id");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialLike", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.SocialPost", null)
+                        .WithMany("Likes")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_likes_social_posts_post_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_likes_users_user_id");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialPost", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_posts_users_author_id");
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialReport", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.SocialPost", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_reports_social_posts_post_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_social_reports_users_reporter_id");
+
+                    b.Navigation("Post");
+
+                    b.Navigation("Reporter");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Ticket", b =>
@@ -3488,6 +3927,11 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Tickets");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Conversation", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
                 {
                     b.Navigation("Children");
@@ -3500,6 +3944,13 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Permissions");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.SocialPost", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Store", b =>

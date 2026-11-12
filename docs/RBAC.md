@@ -54,6 +54,9 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `leave.manage` — izin türleri, haklar, tüm talepler (rol: **İzin Yöneticisi**; İK rolünden ayrı) | ✔ | | | |
 | `workflows.manage` — onay zincirlerini tanımlama | ✔ | | | |
 | `tasks.manage` — tüm görevleri görme, herkese görev atama (yöneticiler kendi ekibine bu izin olmadan atar) | ✔ | | | |
+| `social.post` — sosyal akışta paylaşım, yorum, beğeni | ✔ | ✔ | ✔ | ✔ |
+| `social.moderate` — uygunsuz içeriği kaldırma, şikayetleri sonuçlandırma | ✔ | | | |
+| `faq.manage` — sık sorulan soruları yönetme | ✔ | ✔ | | |
 
 **İzin Yöneticisi (`leave_admin`)**: `leave.request`, `leave.manage` — izin yönetimi İK rolüne bağlı değildir; ayrıca atanır.
 

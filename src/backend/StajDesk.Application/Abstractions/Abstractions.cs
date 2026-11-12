@@ -56,6 +56,13 @@ public interface IAppDbContext
     DbSet<LeaveRequest> LeaveRequests { get; }
     DbSet<WorkTask> WorkTasks { get; }
     DbSet<AnnouncementRead> AnnouncementReads { get; }
+    DbSet<SocialPost> SocialPosts { get; }
+    DbSet<SocialComment> SocialComments { get; }
+    DbSet<SocialLike> SocialLikes { get; }
+    DbSet<SocialReport> SocialReports { get; }
+    DbSet<Conversation> Conversations { get; }
+    DbSet<DirectMessage> DirectMessages { get; }
+    DbSet<FaqItem> FaqItems { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Kaydedilmemiş değişiklikleri atar. Toplu işlemlerde başarısız olan bir öğenin yarım değişikliği sonrakilere taşınmasın diye.</summary>

@@ -69,6 +69,7 @@ public static class DependencyInjection
             return ConnectionMultiplexer.Connect(opts);
         });
         services.AddSingleton<RealtimePublisher>();
+        services.AddSingleton<Application.Features.Social.IRealtimeNotifier, RealtimeNotifier>();
         return services;
     }
 }

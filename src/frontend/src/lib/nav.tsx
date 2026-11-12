@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import {
-  Bell, Building2, CalendarClock, CalendarDays, CheckSquare, GitBranch, ListTodo, FolderKanban, Globe, LayoutDashboard, LayoutGrid, Mail, Megaphone, MonitorSmartphone, Network, PlusCircle, ScrollText,
+  Bell, Building2, CalendarClock, CalendarDays, CheckSquare, GitBranch, HelpCircle, ListTodo, MessageSquare, Newspaper, FolderKanban, Globe, LayoutDashboard, LayoutGrid, Mail, Megaphone, MonitorSmartphone, Network, PlusCircle, ScrollText,
   ShieldCheck, Store as StoreIcon, Tags, Ticket, UserCheck, Users, UsersRound,
 } from 'lucide-react'
 import { useCan } from '@/stores/auth'
@@ -32,9 +32,12 @@ export function useNavGroups(): NavGroup[] {
       id: 'general', title: 'Genel', items: keep([
         { to: '/portal', label: 'Ana sayfa', keywords: 'özet panel dashboard widget', icon: <LayoutDashboard className={i} />, isActive: (p) => p === '/portal' },
         { to: '/announcements', label: 'Duyurular', keywords: 'haber bilgilendirme', icon: <Megaphone className={i} />, isActive: (p) => p === '/announcements' },
+        { to: '/social', label: 'Sosyal akış', keywords: 'paylaşım gönderi beğeni yorum', icon: <Newspaper className={i} />, isActive: (p) => p === '/social' },
+        { to: '/messages', label: 'Mesajlar', keywords: 'mesaj sohbet yazışma', icon: <MessageSquare className={i} />, isActive: (p) => p === '/messages' },
         { to: '/notifications', label: 'Bildirimler', icon: <Bell className={i} />, isActive: (p) => p === '/notifications' },
         { to: '/tasks', label: 'Görevler', keywords: 'yapılacak iş atama görev', icon: <ListTodo className={i} />, isActive: (p) => p === '/tasks' },
         { to: '/approvals', label: 'Onay kutum', keywords: 'onay bekleyen iş akışı', icon: <CheckSquare className={i} />, isActive: (p) => p === '/approvals' },
+        { to: '/faq', label: 'Sık sorulan sorular', keywords: 'yardım sss soru cevap', icon: <HelpCircle className={i} />, isActive: (p) => p === '/faq' },
         { to: '/oncall', label: 'Nöbetçi personel', keywords: 'nöbet çizelgesi bt', icon: <CalendarClock className={i} />, isActive: (p) => p === '/oncall' },
       ]),
     },

@@ -18,6 +18,7 @@ export type Permission =
   | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
   | 'content.manage' | 'ads.manage' | 'widgets.manage'
   | 'leave.request' | 'leave.manage' | 'workflows.manage' | 'tasks.manage'
+  | 'social.post' | 'social.moderate' | 'faq.manage'
 
 export interface ApiResponse<T> {
   success: boolean

@@ -39,6 +39,7 @@ public static class WidgetCatalog
         new("birthdays", "Doğum günleri", "Önümüzdeki 7 gün (yalnızca paylaşmayı seçen çalışanlar)", "Kurumsal", WidgetSize.Small, 120, []),
         new("new-hires", "Aramıza katılanlar", "Son 30 günde işe başlayan çalışanlar", "Kurumsal", WidgetSize.Small, 130, []),
         new("recognitions", "Takdirler", "Haftanın çalışanı ve çalışan başarıları", "Kurumsal", WidgetSize.Small, 140, []),
+        new("social-feed", "Sosyal akış", "Çalışanların son kurumsal paylaşımları", "Kurumsal", WidgetSize.Small, 145, []),
         new("events", "Şirket etkinlikleri", "Yaklaşan etkinlikler", "Kurumsal", WidgetSize.Small, 150, []),
         new("open-positions", "Açık pozisyonlar", "Kariyer sayfasındaki açık ilanlar", "Kurumsal", WidgetSize.Small, 160, []),
         new("portal-ads", "Portal duyuru bannerları", "Kurumsal site yönetiminden portal için yayınlanan bannerlar", "Kurumsal", WidgetSize.Small, 170, []),

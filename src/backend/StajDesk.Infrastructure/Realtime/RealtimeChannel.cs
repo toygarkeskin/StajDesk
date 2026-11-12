@@ -33,3 +33,10 @@ public sealed class RealtimePublisher(IConnectionMultiplexer redis, ILogger<Real
         }
     }
 }
+
+/// <summary>Uygulama katmanının anlık sinyal arayüzü: aynı Redis kanalı → API → SignalR yolunu kullanır.</summary>
+public sealed class RealtimeNotifier(RealtimePublisher publisher) : Application.Features.Social.IRealtimeNotifier
+{
+    public Task NotifyAsync(IReadOnlyCollection<int> userIds, string kind, string? title, CancellationToken ct = default) =>
+        publisher.PublishAsync(new RealtimeMessage(userIds.ToArray(), kind, null, title));
+}

@@ -13,7 +13,7 @@ namespace StajDesk.Infrastructure.Persistence;
 /// istenirse demo verisini (mağazalar, kullanıcılar, cihazlar, talepler) ekler.
 /// Şifreler yapılandırmadan (.env / ortam değişkenleri) okunur; koda yazılmaz.
 /// </summary>
-public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfiguration config, ILogger<DbSeeder> logger, IFileStorage storage)
+public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfiguration config, ILogger<DbSeeder> logger, IFileStorage storage, ICacheService cache)
 {
     public const string WebClientId = "stajdesk-web";
     public const string ReportingClientId = "stajdesk-reporting";
@@ -41,6 +41,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         await SeedPositionsAsync(ct);
         await SeedSiteSettingsAsync(ct);
         await SeedWorkflowsAndLeaveAsync(ct);
+        await SeedFaqAsync(ct);
         if (config.GetValue("Seed:DemoData", false))
         {
             await SeedDemoAsync(ct);
@@ -94,6 +95,12 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             }
         }
         await db.SaveChangesAsync(ct);
+        // Yeni izin eklendiyse kullanıcıların önbellekteki izin listeleri eskidi: hepsini düşür (aksi hâlde yeni izin önbellek süresi dolana kadar görünmez).
+        if (addedKeys.Count > 0 && !firstRun)
+        {
+            await cache.RemoveByPrefixAsync(CacheKeys.PermissionsPrefix, ct);
+            logger.LogInformation("Yeni izinler eklendi ({Keys}); izin önbelleği temizlendi", string.Join(", ", addedKeys));
+        }
     }
 
     private async Task SeedClientsAsync(CancellationToken ct)
@@ -590,5 +597,19 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         deniz.Roles.Add(new UserRole { RoleId = role.Id });
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo: deniz.ik kullanıcısına İzin Yöneticisi rolü verildi");
+    }
+
+    /// <summary>Başlangıç SSS (yalnızca hiç soru yoksa; sonra Yardım ekranından yönetilir).</summary>
+    private async Task SeedFaqAsync(CancellationToken ct)
+    {
+        if (await db.FaqItems.AnyAsync(ct)) return;
+        db.FaqItems.AddRange(
+            new FaqItem { Category = "Hesap ve giriş", SortOrder = 1, Question = "Şifremi unuttum, ne yapmalıyım?", Answer = "Giriş ekranındaki \"Şifremi unuttum\" bağlantısına tıklayın. Kurumsal e-postanıza gelen bağlantıyla yeni şifre belirleyin. Bağlantı 1 saat geçerlidir." },
+            new FaqItem { Category = "Hesap ve giriş", SortOrder = 2, Question = "Portal hesabımı kim açar?", Answer = "Portal kapalıdır; hesabı kendiniz açamazsınız. İşe başladığınızda İnsan Kaynakları hesap talebi açar, Bilgi Teknolojileri onaylar ve size ilk şifre bağlantısı gönderilir." },
+            new FaqItem { Category = "Destek talepleri", SortOrder = 1, Question = "Talebim neden \"Yeni\" durumunda bekliyor?", Answer = "Yeni talepler destek ekibinin ilk incelemesini bekler. Ekip talebi kabul ettiğinde \"Açık\", birine atandığında \"İşlemde\" olur. Durum değiştikçe bildirim alırsınız." },
+            new FaqItem { Category = "Destek talepleri", SortOrder = 2, Question = "Talebime ekran görüntüsü nasıl eklerim?", Answer = "Talep oluştururken veya talep sayfasındaki Ekler kartından dosya yükleyin. PNG, JPG, PDF, Word, Excel ve metin dosyaları, en fazla 5 MB." },
+            new FaqItem { Category = "İzin", SortOrder = 1, Question = "İzin talebim kimlere gider?", Answer = "Önce yöneticinize, ardından izin yöneticisine. Onay zincirini İzin talepleri ekranındaki talebinizde adım adım görebilirsiniz." },
+            new FaqItem { Category = "İzin", SortOrder = 2, Question = "Bakiyemde neden \"bekleyen\" gün görünüyor?", Answer = "Onay bekleyen izinleriniz bakiyenizden ayrılmış görünür. Talep reddedilir veya geri çekilirse günler bakiyenize geri döner." });
+        await db.SaveChangesAsync(ct);
     }
 }

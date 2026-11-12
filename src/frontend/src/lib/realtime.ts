@@ -36,6 +36,12 @@ export function useRealtime(): RealtimeStatus {
       if (msg.ticketId) qc.invalidateQueries({ queryKey: ['ticket', msg.ticketId] })
       if (msg.title) toast(msg.title)
     })
+    // Birebir mesaj: konuşma listesi ve okunmamış sayısı yenilenir; mesajlar sayfasında değilse kısa bildirim gösterilir.
+    connection.on('message', (msg: { title?: string | null }) => {
+      qc.invalidateQueries({ queryKey: ['messages'] })
+      if (!location.pathname.startsWith('/messages')) toast(`${msg.title ?? 'Bir çalışma arkadaşınız'} size mesaj gönderdi.`)
+    })
+    connection.on('message-read', () => qc.invalidateQueries({ queryKey: ['messages'] }))
     connection.onreconnecting(() => setStatus('connecting'))
     connection.onreconnected(() => setStatus('live'))
     connection.onclose(() => setStatus('offline'))

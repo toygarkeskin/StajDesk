@@ -150,3 +150,19 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Doğrulama:** 141 birim testi (10 yeni); smoke 110/110 (16 yeni).
 
 **Sıradaki (Aşama 6.3):** sosyal akış (paylaşım, yorum, beğeni, moderasyon), mesajlaşma, SSS.
+
+## 12.11.2026 — Aşama 6.3: Sosyal akış, mesajlaşma, SSS (Aşama 6 tamamlandı)
+
+**Yapılan**
+- Sosyal akış: metin + görsel paylaşım, beğeni, yorum, şikayet, moderasyon kuyruğu (kaldırma gerekçeli ve bildirimli), kutucuk.
+- Birebir mesajlaşma: konuşma listesi, okunmamış sayısı (üst çubuk), okundu işareti, SignalR ile anlık iletim; profilde "Mesaj gönder".
+- Sık sorulan sorular: kategori, arama, taslak, yönetim (destek personeli); üst çubukta yardım ikonu; başlangıç içeriği.
+- Uygulama katmanına `IRealtimeNotifier` eklendi (mevcut Redis → SignalR köprüsünü kullanır).
+
+**Hata → çözüm**
+- Sürümle gelen yeni izinler kullanıcıların izin önbelleği (5 dk) dolana kadar görünmüyordu: başlangıçtaki izin eşitleme artık yeni izin eklediğinde önbelleği temizliyor.
+- Elle önbellek temizliğinde `perms:*` deseni hiçbir anahtarla eşleşmiyordu; anahtarlar `stajdesk:` önekli. (Önceki elle temizlemeler de etkisizdi; zararı yok, önbellek 5 dakikada kendiliğinden yenilenir.)
+- Konuşma listesindeki iç içe projeksiyon test sağlayıcısında hata verdi: sorgu iki adıma bölündü.
+- Moderasyon adımı başarısız olan smoke çalıştırmalarından kalan test paylaşımları moderasyon ucuyla kaldırıldı.
+
+**Doğrulama:** 149 birim testi (8 yeni); smoke 125/125 (15 yeni).

@@ -29,6 +29,9 @@ import { WidgetsAdminPage } from './pages/WidgetsAdminPage'
 import { ApprovalsPage } from './pages/ApprovalsPage'
 import { LeavePage } from './pages/LeavePage'
 import { TasksPage } from './pages/TasksPage'
+import { SocialPage } from './pages/SocialPage'
+import { MessagesPage } from './pages/MessagesPage'
+import { FaqPage } from './pages/FaqPage'
 import { WorkflowsAdminPage } from './pages/WorkflowsAdminPage'
 
 
@@ -88,6 +91,9 @@ export const router = createBrowserRouter([
       { path: 'admin/workflows', element: <RequireAuth perms={['workflows.manage']}><WorkflowsAdminPage /></RequireAuth> },
       { path: 'approvals', element: <ApprovalsPage /> },
       { path: 'tasks', element: <TasksPage /> },
+      { path: 'social', element: <SocialPage /> },
+      { path: 'messages', element: <MessagesPage /> },
+      { path: 'faq', element: <FaqPage /> },
       { path: 'leave', element: <RequireAuth perms={['leave.request', 'leave.manage']}><LeavePage /></RequireAuth> },
       { path: 'portal/*', element: <NotFoundPage /> },
     ],

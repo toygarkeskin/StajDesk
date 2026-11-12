@@ -227,6 +227,26 @@ check "Yönetici okuyanları görür" "$(curl -s "$API/api/announcements/$ANN/re
 check "Hedefli duyuru kurumsal sitede yok" "$(curl -s "$API/api/public/announcements" | grep -c 'Smoke hedefli duyuru')" 0
 check "Test duyurusu silinir" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/announcements/$ANN" -H "Authorization: Bearer $ADMIN")" 204
 
+echo "== Sosyal akış, mesajlaşma, SSS"
+POST=$(curl -s -X POST "$API/api/social/posts" -H "Authorization: Bearer $USER" -F "body=Smoke paylasimi $STAMP" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$POST" ] && ok "Çalışan paylaşım yapar (#$POST)" || bad "Paylaşım yapılamadı"
+check "Başka çalışan beğenir" "$(curl -s -X POST "$API/api/social/posts/$POST/like" -H "Authorization: Bearer $OTHER" | grep -c '"likedByMe":true')" 1
+check "Yorum yapılır" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/social/posts/$POST/comments" -H "Authorization: Bearer $OTHER" -H 'Content-Type: application/json' -d '{"body":"Tebrikler"}')" 201
+check "Başkasının paylaşımı silinemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/social/posts/$POST" -H "Authorization: Bearer $OTHER")" 403
+check "Çalışan moderasyon yapamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/social/posts/$POST/remove" -H "Authorization: Bearer $OTHER" -H 'Content-Type: application/json' -d '{"reason":"x"}')" 403
+check "Uygunsuz içerik bildirilir" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/social/posts/$POST/report" -H "Authorization: Bearer $OTHER" -H 'Content-Type: application/json' -d '{"reason":"Smoke sikayeti"}')" 200
+check "Moderatör şikayeti görür" "$(curl -s "$API/api/social/reports" -H "Authorization: Bearer $ADMIN" | grep -c "Smoke sikayeti")" 1
+check "Moderatör gerekçeyle kaldırır" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/social/posts/$POST/remove" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"reason":"Smoke testi temizligi"}')" 200
+check "Kaldırılan paylaşım akışta yok" "$(curl -s "$API/api/social/posts?pageSize=50" -H "Authorization: Bearer $OTHER" | grep -c "Smoke paylasimi $STAMP")" 0
+OTHER_ID=$(curl -s "$API/api/auth/me" -H "Authorization: Bearer $OTHER" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+USER_ID=$(curl -s "$API/api/auth/me" -H "Authorization: Bearer $USER" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+check "Birebir mesaj gönderilir" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/messages/with/$OTHER_ID" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d "{\"body\":\"Smoke mesaji $STAMP\"}")" 201
+check "Alıcı mesajı görür" "$(curl -s "$API/api/messages/with/$USER_ID" -H "Authorization: Bearer $OTHER" | grep -c "Smoke mesaji $STAMP")" 1
+check "Üçüncü kişi konuşmayı göremez" "$(curl -s "$API/api/messages/with/$OTHER_ID" -H "Authorization: Bearer $AGENT" | grep -c "Smoke mesaji $STAMP")" 0
+check "Okundu işaretlenir" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/messages/with/$USER_ID/read" -H "Authorization: Bearer $OTHER")" 204
+check "SSS listelenir" "$(curl -s "$API/api/faq" -H "Authorization: Bearer $USER" | grep -c '"question"')" 1
+check "Çalışan SSS ekleyemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/faq" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"category":"x","question":"y","answer":"z","sortOrder":1,"isPublished":true}')" 403
+
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null
 sleep 4
