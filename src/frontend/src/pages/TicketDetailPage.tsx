@@ -10,6 +10,7 @@ import { formatDateTime, timeAgo } from '@/lib/format'
 import type { TicketDetail, TicketHistory, TicketPriority, TicketStatus, TicketType } from '@/lib/types'
 import { useAuth, useRole } from '@/stores/auth'
 import { toast } from '@/stores/ui'
+import { AttachmentsCard } from '@/components/Attachments'
 import { Avatar, BlockSkeleton, CategoryText, ConfirmDialog, ErrorState, Field, PriorityText, SlideOver, Spinner, StatusBadge } from '@/components/ui'
 
 /* Detail / Record kalıbı: ad · iz · durum + üst veri · sekmeler. Düzenleme yan panelde, silme isimli onayla. */
@@ -22,6 +23,8 @@ function historyText(h: TicketHistory): ReactNode {
     case 'StatusChanged': return <>durumu <b className="font-medium">{s(h.oldValue)}</b> → <b className="font-medium">{s(h.newValue)}</b> yaptı</>
     case 'Assigned': return h.newValue ? <>talebi <b className="font-medium">{h.newValue}</b> kişisine atadı</> : 'atamayı kaldırdı'
     case 'PriorityChanged': return <>önceliği <b className="font-medium">{p(h.oldValue)}</b> → <b className="font-medium">{p(h.newValue)}</b> yaptı</>
+    case 'AttachmentAdded': return <><b className="font-medium">{h.newValue}</b> dosyasını ekledi</>
+    case 'AttachmentRemoved': return <><b className="font-medium">{h.oldValue}</b> dosyasını sildi</>
     default: return 'talep bilgilerini güncelledi'
   }
 }
@@ -209,6 +212,8 @@ export function TicketDetailPage() {
               {t.closedAt && <Meta label="Kapanma">{formatDateTime(t.closedAt)}</Meta>}
             </div>
           </div>
+
+          <AttachmentsCard ticketId={t.id} attachments={t.attachments} canAttach={t.permissions.canAttach} />
 
           {t.asset && (
             <div className="card p-5">

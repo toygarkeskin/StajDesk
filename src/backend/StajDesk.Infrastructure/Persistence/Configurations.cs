@@ -56,6 +56,13 @@ internal sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         b.HasIndex(x => x.AssigneeId);
         b.HasIndex(x => x.CategoryId);
         b.HasIndex(x => x.CreatedAt);
+
+        // PostgreSQL tam metin arama: başlık + açıklamadan Türkçe kök bulma (stemming) ile üretilen tsvector.
+        // Sütun veritabanında hesaplanır (STORED); GIN index sayesinde aramada tüm tablo taranmaz.
+        // Domain'i Npgsql tipine bağlamamak için gölge (shadow) özellik olarak tanımlandı.
+        b.Property<NpgsqlTypes.NpgsqlTsVector>(TicketSearch.VectorProperty)
+            .HasComputedColumnSql("to_tsvector('turkish', coalesce(title, '') || ' ' || coalesce(description, ''))", stored: true);
+        b.HasIndex(TicketSearch.VectorProperty).HasMethod("GIN");
     }
 }
 
@@ -273,5 +280,46 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         b.Property(x => x.Ip).HasMaxLength(64);
         b.HasOne(x => x.Actor).WithMany().HasForeignKey(x => x.ActorId).OnDelete(DeleteBehavior.SetNull);
         b.HasIndex(x => x.CreatedAt);
+    }
+}
+
+// ---------- Panel: duyurular, nöbet çizelgesi; talep ekleri ----------
+
+internal sealed class AnnouncementConfiguration : IEntityTypeConfiguration<Announcement>
+{
+    public void Configure(EntityTypeBuilder<Announcement> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+        b.Property(x => x.Level).HasConversion<string>().HasMaxLength(20);
+        b.HasOne(x => x.Store).WithMany().HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        // Panel sorgusu: yayında olan duyurular, en yenisi önce
+        b.HasIndex(x => new { x.PublishAt, x.ExpiresAt });
+    }
+}
+
+internal sealed class OnCallShiftConfiguration : IEntityTypeConfiguration<OnCallShift>
+{
+    public void Configure(EntityTypeBuilder<OnCallShift> b)
+    {
+        b.Property(x => x.Note).HasMaxLength(200);
+        b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(x => new { x.StartsOn, x.EndsOn });
+        b.ToTable(t => t.HasCheckConstraint("ck_on_call_shifts_range", "ends_on >= starts_on"));
+    }
+}
+
+internal sealed class TicketAttachmentConfiguration : IEntityTypeConfiguration<TicketAttachment>
+{
+    public void Configure(EntityTypeBuilder<TicketAttachment> b)
+    {
+        b.Property(x => x.FileName).HasMaxLength(200).IsRequired();
+        b.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+        b.Property(x => x.StorageKey).HasMaxLength(100).IsRequired();
+        b.HasIndex(x => x.StorageKey).IsUnique();
+        b.HasOne(x => x.Ticket).WithMany(t => t.Attachments).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.UploadedBy).WithMany().HasForeignKey(x => x.UploadedById).OnDelete(DeleteBehavior.Restrict);
+        b.ToTable(t => t.HasCheckConstraint("ck_ticket_attachments_size", "size > 0"));
     }
 }

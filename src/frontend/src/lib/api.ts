@@ -2,19 +2,23 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuth } from '@/stores/auth'
 import { refresh } from './oauth'
 import type {
+  Announcement,
   ApiResponse,
   AssetDetail,
   AssetListItem,
   AuditLog,
   Category,
   DashboardStats,
+  Home,
   Me,
   NotificationItem,
+  OnCallShift,
   PagedResult,
   PermissionInfo,
   RoleInfo,
   SentEmail,
   Store,
+  TicketAttachment,
   TicketDetail,
   TicketListItem,
   UserListItem,
@@ -115,6 +119,16 @@ export const api = {
     assign: (id: number, assigneeId: number | null) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/assign`, { assigneeId })),
     comment: (id: number, body: string, isInternal: boolean) => unwrap<{ id: number }>(http.post(`/tickets/${id}/comments`, { body, isInternal })),
     remove: (id: number) => http.delete(`/tickets/${id}`),
+    upload: (id: number, file: File, onProgress?: (percent: number) => void) => {
+      const form = new FormData()
+      form.append('file', file)
+      return unwrap<TicketAttachment>(http.post(`/tickets/${id}/attachments`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => onProgress?.(e.total ? Math.round((e.loaded / e.total) * 100) : 0),
+      }))
+    },
+    download: (id: number, attachmentId: number) => http.get<Blob>(`/tickets/${id}/attachments/${attachmentId}`, { responseType: 'blob' }).then((r) => r.data),
+    removeAttachment: (id: number, attachmentId: number) => http.delete(`/tickets/${id}/attachments/${attachmentId}`),
   },
   categories: {
     list: (includeInactive = false) => unwrap<Category[]>(http.get('/categories', { params: { includeInactive } })),
@@ -152,6 +166,18 @@ export const api = {
   },
   stats: {
     dashboard: () => unwrap<DashboardStats>(http.get('/stats')),
+  },
+  home: () => unwrap<Home>(http.get('/home')),
+  announcements: {
+    list: (all = false) => unwrap<Announcement[]>(http.get('/announcements', { params: { all } })),
+    create: (body: object) => unwrap<Announcement>(http.post('/announcements', body)),
+    update: (id: number, body: object) => unwrap<Announcement>(http.put(`/announcements/${id}`, body)),
+    remove: (id: number) => http.delete(`/announcements/${id}`),
+  },
+  onCall: {
+    list: () => unwrap<OnCallShift[]>(http.get('/oncall')),
+    create: (body: object) => unwrap<OnCallShift>(http.post('/oncall', body)),
+    remove: (id: number) => http.delete(`/oncall/${id}`),
   },
   notifications: {
     list: (q: Query) => unwrap<PagedResult<NotificationItem>>(http.get('/notifications', { params: clean(q) })),

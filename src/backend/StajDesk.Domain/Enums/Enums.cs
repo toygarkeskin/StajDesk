@@ -53,5 +53,15 @@ public enum TicketHistoryAction
     StatusChanged = 1,
     Assigned = 2,
     PriorityChanged = 3,
-    Updated = 4
+    Updated = 4,
+    AttachmentAdded = 5,
+    AttachmentRemoved = 6
+}
+
+/// <summary>Duyurunun önemi: arayüzde renk ve sıralama için.</summary>
+public enum AnnouncementLevel
+{
+    Info = 0,
+    Warning = 1,
+    Critical = 2
 }

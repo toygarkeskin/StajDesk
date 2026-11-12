@@ -45,3 +45,23 @@ Her kayıt: bağlam → karar → sonuç. Yeni bir karar alındığında en alta
 ## ADR-009 — Arayüz: önceki Mosaic görünümü + yeni UX davranışları
 **Bağlam:** UX yenilemesinden sonra eski görünüm daha çok beğenildi.
 **Karar:** Mosaic Lite benzeri görsel dil korunurken yeni davranışlar (filtre çipleri, kaydedilmemiş değişiklik uyarısı, klavye kısayolları, iskelet yükleyiciler) tutuldu.
+
+## ADR-010 — Anlık bildirim: SignalR + Redis pub/sub köprüsü
+**Bağlam:** Bildirimleri Worker üretir, tarayıcı bağlantıları API'dedir; iki ayrı süreç.
+**Karar:** Worker bildirimi kaydettikten sonra Redis kanalına kısa bir sinyal bırakır; API bu kanalı dinleyip SignalR ile ilgili kullanıcıya iletir. Kanal veri taşımaz.
+**Sonuç:** Redis zaten sistemde olduğu için yeni altyapı eklenmedi. Redis/hub kapalıysa 15 sn'lik yoklama yedek yol olarak çalışır.
+
+## ADR-011 — Tam metin arama PostgreSQL'de
+**Bağlam:** Ayrı bir arama motoru (Elasticsearch) bu ölçek için gereksiz.
+**Karar:** `to_tsvector('turkish', …)` hesaplanan sütun + GIN index; uygulama katmanı `ITicketSearch` arayüzünü bilir.
+**Sonuç:** Türkçe kök bulma ile arama; testler veritabanından bağımsız kalır.
+
+## ADR-012 — Dosya ekleri yerel diskte (volume)
+**Bağlam:** Nesne depolama (S3/MinIO) demo ortamını büyütür.
+**Karar:** `IFileStorage` arayüzü; şimdilik Docker volume'u. Anahtar rastgele, içerik imzası doğrulanır.
+**Sonuç:** İleride MinIO/S3'e geçmek yalnızca yeni bir `IFileStorage` uygulaması demektir.
+
+## ADR-013 — Refresh token yeniden kullanımında 20 sn tolerans
+**Bağlam:** İki sekme aynı anda yenileyince kullanıcı "güvenlik nedeniyle" oturumdan atılıyordu.
+**Karar:** Az önce döndürülmüş token, zincir açıksa 20 sn içinde tekrar kabul edilir; süre dışı tekrar kullanım zinciri iptal eder.
+**Sonuç:** Gerçek saldırı tespiti korunur, çoklu sekme kullanımı bozulmaz.

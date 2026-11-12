@@ -91,6 +91,7 @@ services:
       ConnectionStrings__Redis: redis:6379
       Jwt__Issuer: ${PUBLIC_API_URL:-http://localhost:5080}
       Jwt__KeysDirectory: /app/keys
+      Storage__Path: /app/uploads
       OAuth__WebUrl: ${PUBLIC_WEB_URL:-http://localhost:8080}
       OAuth__WebRedirectUris: ${PUBLIC_WEB_URL:-http://localhost:8080}/auth/callback,http://localhost:5173/auth/callback
       OAuth__ReportingClientSecret: ${REPORTING_CLIENT_SECRET:-Reporting!Dev2026}
@@ -102,6 +103,7 @@ services:
       - "${API_PORT:-5080}:8080"
     volumes:
       - apikeys:/app/keys
+      - uploads:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,6 +122,7 @@ services:
     environment:
       <<: *dotnet-env
       DOTNET_ENVIRONMENT: Production
+      ConnectionStrings__Redis: redis:6379
       Smtp__Host: mailpit
       Smtp__Port: "1025"
       Smtp__WebUrl: ${PUBLIC_WEB_URL:-http://localhost:8080}
@@ -127,6 +130,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       mailpit:
         condition: service_started
@@ -147,3 +152,4 @@ volumes:
   rabbitdata:
   seqdata:
   apikeys:
+  uploads:

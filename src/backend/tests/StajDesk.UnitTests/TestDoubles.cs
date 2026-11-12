@@ -28,6 +28,9 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<SentEmail> SentEmails => Set<SentEmail>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<Announcement> Announcements => Set<Announcement>();
+    public DbSet<OnCallShift> OnCallShifts => Set<OnCallShift>();
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {

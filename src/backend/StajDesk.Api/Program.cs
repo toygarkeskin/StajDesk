@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -62,6 +63,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // 401/403 yanıtları da standart zarfla dönsün.
         o.Events = new JwtBearerEvents
         {
+            // WebSocket bağlantısında tarayıcı başlık gönderemez; SignalR token'ı yalnızca /hubs için sorgu parametresiyle taşır.
+            // (nginx bu yolda erişim logunu kapatır, Serilog istek logu sorgu dizesini yazmaz → token loglanmaz.)
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs")) ctx.Token = token;
+                return Task.CompletedTask;
+            },
             OnChallenge = async ctx =>
             {
                 ctx.HandleResponse();
@@ -114,6 +123,11 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(allowedOrigi
 
 builder.Services.AddOpenApi();
 
+// ---------- Gerçek zamanlı bildirimler (SignalR + Redis kanalı) ----------
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IUserIdProvider, SubUserIdProvider>();
+builder.Services.AddHostedService<RealtimeBridge>();
+
 var app = builder.Build();
 
 // ---------- Açılışta migration + seed ----------
@@ -123,6 +137,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseForwardedHeaders();
+// İstek logu hata yakalayıcının DIŞINDA: işlenmiş hatalar (400/401/404) Seq'te gerçek durum koduyla görünür, 500 diye değil.
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 // Güvenlik başlıkları (XSS, clickjacking, MIME sniffing)
 app.Use(async (ctx, next) =>
@@ -135,7 +151,6 @@ app.Use(async (ctx, next) =>
         h.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";
     await next();
 });
-app.UseSerilogRequestLogging();
 app.UseCors();
 app.UseAuthentication();
 app.UseMiddleware<PermissionLoadingMiddleware>();
@@ -153,6 +168,7 @@ app.MapGet("/api/health", async (AppDbContext db, IConnectionMultiplexer redis) 
 }).AllowAnonymous();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
 

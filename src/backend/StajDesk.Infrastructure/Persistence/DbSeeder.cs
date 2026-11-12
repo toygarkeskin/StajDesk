@@ -38,17 +38,27 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         await SeedClientsAsync(ct);
         await SeedCategoriesAsync(ct);
         await SeedSystemAdminAsync(ct);
-        if (config.GetValue("Seed:DemoData", false)) await SeedDemoAsync(ct);
+        if (config.GetValue("Seed:DemoData", false))
+        {
+            await SeedDemoAsync(ct);
+            await SeedWorkspaceDemoAsync(ct);
+        }
     }
 
     /// <summary>Kodda tanımlı izinler veritabanına eklenir; Sistem Yöneticisi her zaman tüm izinlere sahip olur.</summary>
     private async Task SyncPermissionsAndRolesAsync(CancellationToken ct)
     {
         var existing = await db.Permissions.ToDictionaryAsync(p => p.Key, ct);
+        var firstRun = existing.Count == 0;
+        var addedKeys = new HashSet<string>();
         foreach (var def in Permissions.All)
         {
             if (existing.TryGetValue(def.Key, out var p)) { p.Group = def.Group; p.Description = def.Description; }
-            else db.Permissions.Add(new Permission { Key = def.Key, Group = def.Group, Description = def.Description });
+            else
+            {
+                db.Permissions.Add(new Permission { Key = def.Key, Group = def.Group, Description = def.Description });
+                addedKeys.Add(def.Key);
+            }
         }
         await db.SaveChangesAsync(ct);
 
@@ -66,6 +76,13 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             {
                 role.Permissions.Clear();
                 foreach (var key in def.Permissions) role.Permissions.Add(new RolePermission { PermissionId = permissionIds[key] });
+            }
+            else if (!firstRun)
+            {
+                // Sürüm güncellemesiyle gelen YENİ izinler, varsayılanında bu izni içeren rollere bir kez eklenir.
+                // (Yöneticinin ekrandan kaldırdığı eski izinlere dokunulmaz.)
+                foreach (var key in def.Permissions.Where(addedKeys.Contains))
+                    role.Permissions.Add(new RolePermission { PermissionId = permissionIds[key] });
             }
         }
         await db.SaveChangesAsync(ct);
@@ -164,6 +181,8 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         var user2 = U("Mehmet Çelik", "mehmet@stajdesk.local", RoleNames.User, "Kasa", kadikoy);
         var user3 = U("Zeynep Arslan", "zeynep@stajdesk.local", RoleNames.User, "Satış", besiktas);
         var user4 = U("Emre Şahin", "emre@stajdesk.local", RoleNames.User, "Depo", kizilay);
+        agent1.Phone = "0555 010 10 01";
+        agent2.Phone = "0555 010 10 02";
         db.Users.AddRange(agent1, agent2, owner1, owner2, user1, user2, user3, user4);
         await db.SaveChangesAsync(ct);
 
@@ -249,5 +268,51 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         }
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo verisi eklendi: 3 mağaza, 8 kullanıcı, {Assets} cihaz, {Tickets} talep", assets.Length, tickets.Count);
+    }
+
+    /// <summary>Panel demo verisi: duyurular ve bu haftanın / gelecek haftanın nöbetçileri. Mevcut veritabanına da (bir kez) eklenir.</summary>
+    private async Task SeedWorkspaceDemoAsync(CancellationToken ct)
+    {
+        var agents = await db.Users.Where(u => u.Email == "elif.destek@stajdesk.local" || u.Email == "burak.destek@stajdesk.local")
+            .OrderBy(u => u.Email).ToListAsync(ct);
+        var admin = await db.Users.Where(u => u.Roles.Any(r => r.Role.Name == RoleNames.SystemAdmin)).OrderBy(u => u.Id).FirstOrDefaultAsync(ct);
+        if (agents.Count < 2 || admin is null) return;
+        var burak = agents[0];
+        var elif = agents[1];
+        burak.Phone ??= "0555 010 10 02";
+        elif.Phone ??= "0555 010 10 01";
+
+        if (!await db.Announcements.AnyAsync(ct))
+        {
+            var kadikoy = await db.Stores.Where(s => s.Code == "IST-01").Select(s => (int?)s.Id).FirstOrDefaultAsync(ct);
+            var now = DateTime.UtcNow;
+            db.Announcements.AddRange(
+                new Announcement
+                {
+                    Title = "Cumartesi 02:00–04:00 planlı bakım", AuthorId = admin.Id, Level = AnnouncementLevel.Warning, IsPinned = true, PublishAt = now.AddDays(-1), ExpiresAt = now.AddDays(10),
+                    Body = "Merkez sunucularda güncelleme yapılacaktır. Bu saatlerde stok programına ve ortak klasörlere erişilemeyecektir. Kasa sistemleri çalışmaya devam eder.",
+                },
+                new Announcement
+                {
+                    Title = "Yeni talep kategorisi: Kasa / POS", AuthorId = admin.Id, Level = AnnouncementLevel.Info, PublishAt = now.AddDays(-3),
+                    Body = "POS cihazı, barkod okuyucu ve kasa yazıcısı sorunları için artık Kasa / POS kategorisini seçin. Bu talepler mağaza ekibine öncelikli yönlendirilir.",
+                },
+                new Announcement
+                {
+                    Title = "Kadıköy: Wi-Fi erişim noktası değişimi", AuthorId = admin.Id, Level = AnnouncementLevel.Info, PublishAt = now.AddHours(-6), ExpiresAt = now.AddDays(5), StoreId = kadikoy,
+                    Body = "Perşembe sabahı mağaza açılmadan önce kablosuz erişim noktaları değiştirilecek. El terminallerinde kısa süreli bağlantı kesintisi yaşanabilir.",
+                });
+        }
+
+        if (!await db.OnCallShifts.AnyAsync(ct))
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(3));
+            var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+            db.OnCallShifts.AddRange(
+                new OnCallShift { UserId = elif.Id, StartsOn = monday, EndsOn = monday.AddDays(6), Note = "Mesai dışı acil durumlar için" },
+                new OnCallShift { UserId = burak.Id, StartsOn = monday.AddDays(7), EndsOn = monday.AddDays(13), Note = "Mesai dışı acil durumlar için" },
+                new OnCallShift { UserId = elif.Id, StartsOn = monday.AddDays(14), EndsOn = monday.AddDays(20) });
+        }
+        await db.SaveChangesAsync(ct);
     }
 }

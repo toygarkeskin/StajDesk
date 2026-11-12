@@ -15,6 +15,7 @@ export default defineConfig({
       '/api': { target: process.env.VITE_API_PROXY ?? 'http://localhost:5080', changeOrigin: true },
       '/connect': { target: process.env.VITE_API_PROXY ?? 'http://localhost:5080', changeOrigin: true },
       '/.well-known': { target: process.env.VITE_API_PROXY ?? 'http://localhost:5080', changeOrigin: true },
+      '/hubs': { target: process.env.VITE_API_PROXY ?? 'http://localhost:5080', changeOrigin: true, ws: true },
     },
   },
 })

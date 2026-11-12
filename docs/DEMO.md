@@ -44,7 +44,11 @@ docker compose down -v
    - *Gönderilen e-postalar*: Worker'ın gönderdiği tüm e-postalar.
 6. **Şifremi unuttum.** Giriş ekranında *Şifremi unuttum* → `zeynep@stajdesk.local`. Bağlantı Mailpit'e gelir; yeni şifre belirleyip giriş yapın.
 7. **Kaba kuvvet koruması.** Aynı e-postayla 5 kez yanlış şifre girin → 6. denemede "çok fazla deneme" uyarısı (429).
-8. **Loglar.** http://localhost:5380 (Seq) → `Application = 'StajDesk.Worker'` ile Worker loglarını filtreleyin.
+8. **Panel ve anlık bildirim.** İki ayrı tarayıcıda Ayşe ve Elif olarak girin. Ayşe talep açtığında Elif'in ekranında
+   sayfayı yenilemeden bildirim belirir (üst çubuktaki nokta yeşilse bağlantı canlıdır).
+9. **Dosya eki.** Talep detayında "Dosya ekle" ile ekran görüntüsü yükleyin; Selin aynı talepte dosyayı görür, Zeynep (başka mağaza) göremez.
+10. **Duyuru ve nöbet.** Sistem yöneticisi olarak Duyurular sayfasından yalnızca Kadıköy'e duyuru yayınlayın; Selin görür, Can görmez.
+11. **Loglar.** http://localhost:5380 (Seq) → `Application = 'StajDesk.Worker'` ile Worker loglarını filtreleyin.
 
 ## Otomatik kontrol
 

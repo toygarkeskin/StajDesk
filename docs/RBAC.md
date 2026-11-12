@@ -41,6 +41,11 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `reports.read.all` — genel özet paneli | ✔ | ✔ | | |
 | `audit.read` — denetim kayıtları | ✔ | | | |
 | `mail.read` — gönderilen e-postalar | ✔ | ✔ | | |
+| `announcements.manage` — duyuru yayınlama | ✔ | | | |
+| `oncall.manage` — nöbet çizelgesi | ✔ | ✔ | | |
+
+Sürüm güncellemesiyle gelen yeni bir izin, varsayılanında o izni içeren rollere açılışta bir kez eklenir.
+Yöneticinin ekrandan kaldırdığı eski izinlere dokunulmaz.
 
 ## Veri kapsamı (kim hangi satırı görür?)
 

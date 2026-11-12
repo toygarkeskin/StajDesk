@@ -107,6 +107,9 @@ bash scripts/smoke-test.sh
 | [docs/RBAC.md](docs/RBAC.md) | Roller, izinler, veri kapsamı (kendi / mağaza / tümü) |
 | [docs/SECURITY.md](docs/SECURITY.md) | XSS, CSP, hız sınırı, denetim kaydı, kontrol listesi |
 | [docs/DEMO.md](docs/DEMO.md) | Demo hesapları ve adım adım deneme senaryosu |
+| [docs/PANEL.md](docs/PANEL.md) | Ana sayfa paneli, duyurular, nöbet çizelgesi, dosya ekleri, anlık bildirim, tam metin arama |
+| [docs/postman/](docs/postman) | Postman koleksiyonu (PKCE girişi dahil tüm uçlar) |
+| [docs/SUNUM.md](docs/SUNUM.md) | Final sunumu taslağı ve demo senaryosu |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Mimari karar kayıtları (neden böyle yaptık?) |
 | [AGENTS.md](AGENTS.md) | Projede çalışan geliştiriciler ve kod asistanları için kurallar |
 | [docs/playbooks/](docs/playbooks) | Sık yapılan işler için adım adım rehberler |

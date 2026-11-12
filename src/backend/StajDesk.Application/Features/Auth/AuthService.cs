@@ -54,6 +54,11 @@ public sealed class AuthOptions
     public string WebUrl { get; set; } = "http://localhost:8080";
     public int LoginMaxFailed { get; set; } = 5;
     public int LoginWindowSeconds { get; set; } = 300;
+    /// <summary>
+    /// Aynı refresh token birkaç saniye içinde ikinci kez gelirse (iki sekme aynı anda yeniledi) bu saldırı sayılmaz.
+    /// Süre dışındaki tekrar kullanım çalınma belirtisidir ve tüm oturum zinciri iptal edilir.
+    /// </summary>
+    public int RefreshReuseGraceSeconds { get; set; } = 20;
 }
 
 /// <summary>
@@ -267,6 +272,15 @@ internal sealed partial class AuthService(
         var hash = Sha256(token);
         var rec = await db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
         if (rec is null || rec.ClientId != client.ClientId) throw new OAuthException("invalid_grant", "Oturum bulunamadı. Tekrar giriş yapın.");
+        if (rec.RevokedAt is not null && rec.ReplacedBy is not null && (DateTime.UtcNow - rec.RevokedAt.Value).TotalSeconds <= options.Value.RefreshReuseGraceSeconds)
+        {
+            // Eşzamanlı yenileme (çoklu sekme): zincir hâlâ açıksa aynı aileden yeni token ver, eskisine dokunma.
+            var familyAlive = await db.RefreshTokens.AnyAsync(t => t.FamilyId == rec.FamilyId && t.RevokedAt == null && t.ExpiresAt > DateTime.UtcNow, ct);
+            if (!familyAlive) throw new OAuthException("invalid_grant", "Oturum sonlandırılmış. Tekrar giriş yapın.");
+            var concurrentUser = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == rec.UserId && u.IsActive, ct)
+                                 ?? throw new OAuthException("invalid_grant", "Hesap pasif.");
+            return await IssueUserTokensAsync(client, concurrentUser, rec.Scope, rec.FamilyId, null, userAgent, ct);
+        }
         if (rec.RevokedAt is not null)
         {
             // Daha önce döndürülmüş bir token tekrar geldi → çalınmış olabilir: tüm zinciri iptal et.
@@ -318,9 +332,14 @@ internal sealed partial class AuthService(
         return new TokenResult(access, "Bearer", tokens.ExpiresInSeconds, scope, refresh, client.IsFirstParty);
     }
 
-    private Task RevokeFamilyAsync(Guid familyId, CancellationToken ct) =>
-        db.RefreshTokens.Where(t => t.FamilyId == familyId && t.RevokedAt == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow), ct);
+    /// <summary>Oturum zincirini iptal eder (idempotent; bir zincirde birkaç token olur).</summary>
+    private async Task RevokeFamilyAsync(Guid familyId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var t in await db.RefreshTokens.Where(t => t.FamilyId == familyId && t.RevokedAt == null).ToListAsync(ct))
+            t.RevokedAt = now;
+        await db.SaveChangesAsync(ct);
+    }
 
     private static string UserScope(string? requested)
     {

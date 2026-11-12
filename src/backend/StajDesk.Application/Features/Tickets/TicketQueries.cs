@@ -29,7 +29,7 @@ public static class TicketProjections
             t.CreatedAt, t.UpdatedAt));
 }
 
-internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser user) : IRequestHandler<ListTicketsQuery, PagedResult<TicketListItemDto>>
+internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser user, ITicketSearch? search = null) : IRequestHandler<ListTicketsQuery, PagedResult<TicketListItemDto>>
 {
     public async Task<PagedResult<TicketListItemDto>> HandleAsync(ListTicketsQuery request, CancellationToken ct)
     {
@@ -45,13 +45,7 @@ internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser user) : 
         if (f.AssetId is not null) q = q.Where(t => t.AssetId == f.AssetId);
         if (f.Unassigned == true) q = q.Where(t => t.AssigneeId == null);
         if (f.ActiveOnly == true) q = q.Where(t => t.Status != TicketStatus.Closed);
-        if (!string.IsNullOrWhiteSpace(f.Search))
-        {
-            var s = f.Search.Trim().ToLower();
-            q = int.TryParse(s.TrimStart('#'), out var idSearch)
-                ? q.Where(t => t.Id == idSearch || t.Title.ToLower().Contains(s))
-                : q.Where(t => t.Title.ToLower().Contains(s) || t.Description.ToLower().Contains(s));
-        }
+        if (!string.IsNullOrWhiteSpace(f.Search)) q = (search ?? new ContainsTicketSearch()).Apply(q, f.Search);
 
         q = f.Sort?.ToLowerInvariant() switch
         {
@@ -72,6 +66,7 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser user) : IR
             .Include(x => x.Category).Include(x => x.Store).Include(x => x.Requester).Include(x => x.Assignee).Include(x => x.Asset)
             .Include(x => x.Comments.OrderBy(c => c.CreatedAt)).ThenInclude(c => c.Author)
             .Include(x => x.History.OrderBy(h => h.CreatedAt)).ThenInclude(h => h.Actor)
+            .Include(x => x.Attachments.OrderBy(a => a.CreatedAt)).ThenInclude(a => a.UploadedBy)
             .FirstOrDefaultAsync(x => x.Id == request.Id, ct) ?? throw NotFoundException.For("Talep", request.Id);
         TicketAccess.EnsureCanSee(user, t);
 
@@ -91,12 +86,15 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser user) : IR
             t.Comments.Where(c => showInternal || !c.IsInternal)
                 .Select(c => new TicketCommentDto(c.Id, c.Body, c.IsInternal, new CommentAuthorDto(c.Author.Id, c.Author.FullName, staffIds.Contains(c.AuthorId)), c.CreatedAt)).ToList(),
             t.History.Select(h => new TicketHistoryDto(h.Id, h.Action, h.OldValue, h.NewValue, h.Actor is null ? null : Sum(h.Actor), h.CreatedAt)).ToList(),
+            t.Attachments.Select(a => new TicketAttachmentDto(a.Id, a.FileName, a.ContentType, a.Size, Sum(a.UploadedBy), a.CreatedAt,
+                AttachmentAccess.CanDelete(user, t, a))).ToList(),
             TicketAccess.AllowedStatuses(user, t),
             new TicketPermissionsDto(
                 CanEdit: TicketAccess.CanEdit(user, t),
                 CanManage: user.Has(Permissions.TicketsManage),
                 CanDelete: user.Has(Permissions.TicketsDelete),
                 CanComment: user.Has(Permissions.CommentsCreate) && t.Status != TicketStatus.Closed,
-                CanInternal: showInternal));
+                CanInternal: showInternal,
+                CanAttach: AttachmentAccess.CanUpload(user, t)));
     }
 }

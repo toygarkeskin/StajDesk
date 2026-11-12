@@ -5,7 +5,7 @@ export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type TicketType = 'Incident' | 'Request'
 export type AssetType = 'Computer' | 'Laptop' | 'Monitor' | 'Printer' | 'Phone' | 'NetworkDevice' | 'Software' | 'Other' | 'PointOfSale'
 export type AssetStatus = 'InUse' | 'InStock' | 'InRepair' | 'Retired'
-export type HistoryAction = 'Created' | 'StatusChanged' | 'Assigned' | 'PriorityChanged' | 'Updated'
+export type HistoryAction = 'Created' | 'StatusChanged' | 'Assigned' | 'PriorityChanged' | 'Updated' | 'AttachmentAdded' | 'AttachmentRemoved'
 
 /** Sunucudaki izin anahtarları (StajDesk.Domain.Security.Permissions). */
 export type Permission =
@@ -14,7 +14,7 @@ export type Permission =
   | 'categories.read' | 'categories.manage' | 'stores.read' | 'stores.manage'
   | 'assets.read.own' | 'assets.read.store' | 'assets.read.all' | 'assets.manage'
   | 'users.read' | 'users.manage' | 'roles.manage' | 'reports.read.store' | 'reports.read.all'
-  | 'audit.read' | 'mail.read'
+  | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -120,7 +120,18 @@ export interface TicketDetail extends Omit<TicketListItem, 'commentCount'> {
   comments: TicketComment[]
   history: TicketHistory[]
   allowedStatuses: TicketStatus[]
-  permissions: { canEdit: boolean; canManage: boolean; canDelete: boolean; canComment: boolean; canInternal: boolean }
+  attachments: TicketAttachment[]
+  permissions: { canEdit: boolean; canManage: boolean; canDelete: boolean; canComment: boolean; canInternal: boolean; canAttach: boolean }
+}
+
+export interface TicketAttachment {
+  id: number
+  fileName: string
+  contentType: string
+  size: number
+  uploadedBy: UserSummary
+  createdAt: string
+  canDelete: boolean
 }
 
 export interface AssetListItem {
@@ -235,4 +246,55 @@ export interface DashboardStats {
   userCount: number
   storeCount: number
   generatedAt: string
+}
+
+// ---------- Ana sayfa paneli ----------
+
+export type AnnouncementLevel = 'Info' | 'Warning' | 'Critical'
+
+export interface Announcement {
+  id: number
+  title: string
+  body: string
+  level: AnnouncementLevel
+  isPinned: boolean
+  publishAt: string
+  expiresAt?: string | null
+  storeId?: number | null
+  storeName?: string | null
+  authorName: string
+}
+
+export interface OnCallShift {
+  id: number
+  userId: number
+  fullName: string
+  email: string
+  phone?: string | null
+  department?: string | null
+  /** yyyy-MM-dd */
+  startsOn: string
+  endsOn: string
+  note?: string | null
+  isCurrent: boolean
+}
+
+export interface Activity {
+  ticketId: number
+  ticketTitle: string
+  action: HistoryAction
+  oldValue?: string | null
+  newValue?: string | null
+  actorName?: string | null
+  createdAt: string
+}
+
+export interface Home {
+  welcome: { userId: number; fullName: string; department?: string | null; storeName?: string | null; roles: string[]; memberSince: string }
+  counters: { myOpenTickets: number; awaitingMyApproval: number; assignedToMe: number; myAssets: number; unreadNotifications: number }
+  announcements: Announcement[]
+  onCall: OnCallShift[]
+  myTasks: TicketListItem[]
+  awaitingApproval: TicketListItem[]
+  activity: Activity[]
 }

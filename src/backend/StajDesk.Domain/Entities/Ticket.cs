@@ -57,6 +57,7 @@ public class Ticket : BaseEntity
 
     public ICollection<TicketComment> Comments { get; private set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; private set; } = new List<TicketHistory>();
+    public ICollection<TicketAttachment> Attachments { get; private set; } = new List<TicketAttachment>();
 
     public bool IsEditable => Status is TicketStatus.Open or TicketStatus.InProgress or TicketStatus.Pending;
 

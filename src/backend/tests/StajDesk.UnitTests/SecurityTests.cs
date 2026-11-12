@@ -40,7 +40,7 @@ public class SecurityTests
         public FakeTokenIssuer Tokens { get; } = new();
         public AuthService Auth { get; }
 
-        public Fixture()
+        public Fixture(int graceSeconds = 20)
         {
             var roles = Db.SeedRoles();
             Db.OAuthClients.Add(new OAuthClient { ClientId = "web", Name = "Web", IsFirstParty = true, RedirectUris = ["http://app/cb"], GrantTypes = ["authorization_code", "refresh_token"] });
@@ -50,11 +50,60 @@ public class SecurityTests
             Db.Users.Add(user);
             Db.SaveChanges();
             Auth = new AuthService(Db, new FakeHasher(), Tokens, Limiter, new FakeEventPublisher(), new NoAudit(), Current,
-                Options.Create(new AuthOptions()), NullLogger<AuthService>.Instance);
+                Options.Create(new AuthOptions { RefreshReuseGraceSeconds = graceSeconds }), NullLogger<AuthService>.Instance);
         }
+
+        /// <summary>Girişten sonraki durumu kurar: veritabanında bir oturum zinciri ve ona ait refresh token.</summary>
+        public Task<string> SignInAsync()
+        {
+            var raw = AuthService.RandomToken();
+            Db.RefreshTokens.Add(new RefreshToken
+            {
+                TokenHash = AuthService.Sha256(raw), UserId = Db.Users.Single().Id, ClientId = "web", FamilyId = Guid.NewGuid(),
+                Scope = "openid profile api", ExpiresAt = DateTime.UtcNow.AddDays(1),
+            });
+            Db.SaveChanges();
+            return Task.FromResult(raw);
+        }
+
+        public Task<TokenResult> RefreshAsync(string token) =>
+            Auth.TokenAsync(new TokenRequest("refresh_token", null, null, null, token, null, "web", null), null);
 
         public AuthorizeRequest Login(string password = "Dogru!Sifre1", string redirect = "http://app/cb", string method = "S256") =>
             new("code", "web", redirect, Challenge(Verifier), method, null, "xyz", "ayse@test", password);
+    }
+
+    [Fact]
+    public async Task Concurrent_refresh_from_two_tabs_keeps_session()
+    {
+        var f = new Fixture();
+        var rt = await f.SignInAsync();
+        await f.RefreshAsync(rt);                 // 1. sekme yeniledi
+        var second = await f.RefreshAsync(rt);    // 2. sekme aynı anda eski token'ı gönderdi
+        Assert.NotNull(second.RefreshToken);
+        Assert.Contains(f.Db.RefreshTokens, t => t.RevokedAt == null); // oturum açık kaldı
+    }
+
+    [Fact]
+    public async Task Refresh_token_reuse_after_grace_revokes_whole_session()
+    {
+        var f = new Fixture(graceSeconds: 0);
+        var rt = await f.SignInAsync();
+        var next = await f.RefreshAsync(rt);
+        await Task.Delay(20);
+        await Assert.ThrowsAsync<OAuthException>(() => f.RefreshAsync(rt));            // çalınmış token
+        await Assert.ThrowsAsync<OAuthException>(() => f.RefreshAsync(next.RefreshToken!)); // meşru zincir de iptal
+        Assert.DoesNotContain(f.Db.RefreshTokens, t => t.RevokedAt == null);
+    }
+
+    [Fact]
+    public async Task Grace_window_does_not_revive_logged_out_session()
+    {
+        var f = new Fixture();
+        var rt = await f.SignInAsync();
+        var next = await f.RefreshAsync(rt);
+        await f.Auth.RevokeAsync(next.RefreshToken, "web"); // çıkış yapıldı
+        await Assert.ThrowsAsync<OAuthException>(() => f.RefreshAsync(rt));
     }
 
     [Fact]

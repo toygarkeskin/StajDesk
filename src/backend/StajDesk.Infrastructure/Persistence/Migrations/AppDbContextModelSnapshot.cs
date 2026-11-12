@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using StajDesk.Infrastructure.Persistence;
 
 #nullable disable
@@ -22,6 +23,76 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pinned");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("level");
+
+                    b.Property<DateTime>("PublishAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("publish_at");
+
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("integer")
+                        .HasColumnName("store_id");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_announcements");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_announcements_author_id");
+
+                    b.HasIndex("StoreId")
+                        .HasDatabaseName("ix_announcements_store_id");
+
+                    b.HasIndex("PublishAt", "ExpiresAt")
+                        .HasDatabaseName("ix_announcements_publish_at_expires_at");
+
+                    b.ToTable("announcements", (string)null);
+                });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Asset", b =>
                 {
@@ -381,6 +452,55 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasName("pk_oauth_clients");
 
                     b.ToTable("oauth_clients", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.OnCallShift", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("EndsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("ends_on");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("note");
+
+                    b.Property<DateOnly>("StartsOn")
+                        .HasColumnType("date")
+                        .HasColumnName("starts_on");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_on_call_shifts");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_on_call_shifts_user_id");
+
+                    b.HasIndex("StartsOn", "EndsOn")
+                        .HasDatabaseName("ix_on_call_shifts_starts_on_ends_on");
+
+                    b.ToTable("on_call_shifts", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_on_call_shifts_range", "ends_on >= starts_on");
+                        });
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.OutboxMessage", b =>
@@ -806,6 +926,12 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("resolved_at");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasColumnName("search_vector")
+                        .HasComputedColumnSql("to_tsvector('turkish', coalesce(title, '') || ' ' || coalesce(description, ''))", true);
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
@@ -846,6 +972,11 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.HasIndex("RequesterId")
                         .HasDatabaseName("ix_tickets_requester_id");
 
+                    b.HasIndex("SearchVector")
+                        .HasDatabaseName("ix_tickets_search_vector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
                     b.HasIndex("Status")
                         .HasDatabaseName("ix_tickets_status");
 
@@ -853,6 +984,72 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_tickets_store_id");
 
                     b.ToTable("tickets", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.TicketAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("storage_key");
+
+                    b.Property<int>("TicketId")
+                        .HasColumnType("integer")
+                        .HasColumnName("ticket_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UploadedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("uploaded_by_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ticket_attachments");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_ticket_attachments_storage_key");
+
+                    b.HasIndex("TicketId")
+                        .HasDatabaseName("ix_ticket_attachments_ticket_id");
+
+                    b.HasIndex("UploadedById")
+                        .HasDatabaseName("ix_ticket_attachments_uploaded_by_id");
+
+                    b.ToTable("ticket_attachments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_ticket_attachments_size", "size > 0");
+                        });
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.TicketComment", b =>
@@ -1042,6 +1239,26 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("user_roles", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_announcements_users_author_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_announcements_stores_store_id");
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Store");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Asset", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.User", "AssignedUser")
@@ -1105,6 +1322,18 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_notifications_users_user_id");
 
                     b.Navigation("Ticket");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.OnCallShift", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_on_call_shifts_users_user_id");
 
                     b.Navigation("User");
                 });
@@ -1204,6 +1433,27 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.TicketAttachment", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Attachments")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_attachments_tickets_ticket_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_ticket_attachments_users_uploaded_by_id");
+
+                    b.Navigation("Ticket");
+
+                    b.Navigation("UploadedBy");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.TicketComment", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.User", "Author")
@@ -1301,6 +1551,8 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Ticket", b =>
                 {
+                    b.Navigation("Attachments");
+
                     b.Navigation("Comments");
 
                     b.Navigation("History");

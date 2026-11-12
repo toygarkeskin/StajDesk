@@ -5,7 +5,7 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --container-page: 80rem;
+  --container-page: 100rem;
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.04);
   --text-sm--line-height: 1.5;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -23,6 +23,11 @@
   }
   ::selection {
     @apply bg-violet-500/20;
+  }
+  /* Yatay kaydırılan tablo kutuları, içindeki "absolute" öğeleri (ör. sr-only etiketler) de kırpsın.
+     Aksi hâlde bu öğeler kutudan taşar, telefonda sayfa genişler ve uzaklaştırılmış görünür. */
+  .overflow-x-auto {
+    position: relative;
   }
   button:not(:disabled), [role='button'] {
     cursor: pointer;

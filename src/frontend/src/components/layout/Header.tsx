@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -8,17 +8,18 @@ import { api } from '@/lib/api'
 import { usePopover } from '@/lib/hooks'
 import { timeAgo } from '@/lib/format'
 import { revoke } from '@/lib/oauth'
+import { useRealtime, type RealtimeStatus } from '@/lib/realtime'
 import { useAuth } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
 import { Avatar, IconButton, Tooltip } from '../ui'
 
-function NotificationsMenu() {
+function NotificationsMenu({ live }: { live: boolean }) {
   const pop = usePopover()
   const qc = useQueryClient()
   const navigate = useNavigate()
 
-  // Polling: 15 sn'de bir okunmamış bildirim sayısını sor.
-  const unread = useQuery({ queryKey: ['notifications', 'unread'], queryFn: api.notifications.unreadCount, refetchInterval: 15_000 })
+  // Anlık bağlantı açıkken sinyal gelince yenilenir; bağlantı yoksa 15 sn'de bir sorulur (yedek yol).
+  const unread = useQuery({ queryKey: ['notifications', 'unread'], queryFn: api.notifications.unreadCount, refetchInterval: live ? 60_000 : 15_000 })
   const list = useQuery({ queryKey: ['notifications', 'menu'], queryFn: () => api.notifications.list({ pageSize: 6 }), enabled: pop.open })
   const markAll = useMutation({ mutationFn: api.notifications.markAllRead, onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }) })
 
@@ -123,12 +124,43 @@ function UserMenu() {
   )
 }
 
+const liveText: Record<RealtimeStatus, string> = {
+  live: 'Anlık bildirimler açık',
+  connecting: 'Anlık bildirim bağlantısı kuruluyor',
+  offline: 'Anlık bağlantı yok; bildirimler 15 saniyede bir yenileniyor',
+}
+
+function LiveDot({ status }: { status: RealtimeStatus }) {
+  return (
+    <Tooltip label={liveText[status]}>
+      <span role="status" aria-label={liveText[status]} tabIndex={0} className="inline-flex size-11 items-center justify-center rounded-full">
+        <span className={clsx('size-2.5 rounded-full', status === 'live' ? 'bg-emerald-500' : status === 'connecting' ? 'bg-amber-400' : 'bg-gray-400')} />
+      </span>
+    </Tooltip>
+  )
+}
+
 export function Header() {
   const setSidebarOpen = useUi((s) => s.setSidebarOpen)
   const theme = useUi((s) => s.theme)
   const toggleTheme = useUi((s) => s.toggleTheme)
   const navigate = useNavigate()
   const [q, setQ] = useState("")
+  const searchRef = useRef<HTMLInputElement>(null)
+  const realtime = useRealtime()
+
+  // Ctrl+K / ⌘K: aramaya odaklan
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        if (searchRef.current?.offsetParent) searchRef.current.focus()
+        else navigate('/tickets')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [navigate])
 
   const onSearch = (e: FormEvent) => {
     e.preventDefault()
@@ -145,11 +177,16 @@ export function Header() {
           <form role="search" onSubmit={onSearch} className="relative hidden w-full max-w-sm md:block">
             <label htmlFor="header-search" className="sr-only">Talep ara</label>
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-            <input id="header-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} className="form-field pl-9" placeholder="Talep ara (başlık veya #numara)…" />
+            <input ref={searchRef} id="header-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} className="form-field pr-16 pl-9" placeholder="Talep ara (başlık, açıklama veya #numara)…" />
+            <kbd className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-gray-200 px-1.5 text-[11px] font-medium text-gray-400 lg:block dark:border-gray-700">Ctrl K</kbd>
           </form>
         </div>
         <div className="flex items-center gap-1">
-          <NotificationsMenu />
+          <div className="md:hidden">
+            <IconButton label="Taleplerde ara" onClick={() => navigate('/tickets')}><Search className="size-[18px]" /></IconButton>
+          </div>
+          <LiveDot status={realtime} />
+          <NotificationsMenu live={realtime === 'live'} />
           <IconButton label={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"} onClick={toggleTheme}>
             {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
           </IconButton>

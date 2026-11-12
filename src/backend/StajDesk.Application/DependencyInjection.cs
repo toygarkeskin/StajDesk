@@ -8,6 +8,8 @@ using StajDesk.Application.Features.Categories;
 using StajDesk.Application.Features.Notifications;
 using StajDesk.Application.Features.Stats;
 using StajDesk.Application.Features.Users;
+using StajDesk.Application.Features.Workspace;
+using StajDesk.Application.Abstractions;
 
 namespace StajDesk.Application;
 
@@ -28,6 +30,9 @@ public static class DependencyInjection
         services.AddScoped<IStatsService, StatsService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IWorkspaceService, WorkspaceService>();
+        services.AddScoped<ITicketSearch, ContainsTicketSearch>(); // Infrastructure PostgreSQL tam metin aramasıyla değiştirir
+        services.AddSingleton(TimeProvider.System);
 
         // PasswordRule bir "alt kural"dır; her string parametreye uygulanmasın diye otomatik kayıttan hariç.
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true, filter: r => r.ValidatorType != typeof(PasswordRule));

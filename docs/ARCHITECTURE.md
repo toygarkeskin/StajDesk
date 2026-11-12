@@ -135,6 +135,8 @@ erDiagram
 ```
 
 Sistem tabloları: `outbox_messages`, `processed_messages`, `sent_emails`, `audit_logs`.
+Panel tabloları: `announcements` (isteğe bağlı mağaza hedefi), `on_call_shifts` (tarih aralığı CHECK kısıtı), `ticket_attachments` (talep silinince CASCADE).
+`tickets.search_vector` tam metin arama için hesaplanan sütundur (GIN index). Ayrıntı: [PANEL.md](PANEL.md).
 
 Veri bütünlüğü kuralları:
 
@@ -179,6 +181,14 @@ Veri bütünlüğü kuralları:
 | GET | `/api/system/emails` | `mail.read` | Gönderilen e-postalar |
 | GET | `/api/stats` | Oturum | Kapsam: `all` / `store` / `user` |
 | GET / PATCH / POST | `/api/notifications…` | Oturum | |
+| POST | `/api/tickets/{id}/attachments` | Talebi görebilen + `comments.create` | Dosya ekle (multipart, 5 MB) |
+| GET / DELETE | `/api/tickets/{id}/attachments/{aid}` | Görünürlük / yükleyen veya destek | İndir / sil |
+| GET | `/api/home` | Oturum | Kişiye özel ana sayfa paneli |
+| GET | `/api/announcements` | Oturum | Yayındaki duyurular (`?all=true` yönetici) |
+| POST / PUT / DELETE | `/api/announcements` | `announcements.manage` | |
+| GET | `/api/oncall` | Oturum | Nöbet çizelgesi |
+| POST / DELETE | `/api/oncall` | `oncall.manage` | |
+| WS | `/hubs/notifications` | Oturum | SignalR anlık bildirim |
 | GET | `/api/health` | Anonim | DB ve Redis durumu |
 
 ## 5. Mesajlaşma

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router'
 import clsx from 'clsx'
-import { Bell, FolderKanban, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
+import { Bell, CalendarClock, FolderKanban, Megaphone, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useFocusTrap } from '@/lib/hooks'
 import { useCan } from '@/stores/auth'
@@ -61,6 +61,8 @@ function NavContent({ onNavigate }: { onNavigate: () => void }) {
     { to: '/tickets', label: ticketsLabel, icon: <Ticket className={i} />, isActive: (p, q) => isTicketPage(p) && q.get('mine') !== '1' },
     can('tickets.create') && { to: '/tickets/new', label: 'Yeni talep', icon: <PlusCircle className={i} />, isActive: (p) => p === '/tickets/new' },
     { to: '/notifications', label: 'Bildirimler', icon: <Bell className={i} />, isActive: (p) => p === '/notifications' },
+    { to: '/announcements', label: 'Duyurular', icon: <Megaphone className={i} />, isActive: (p) => p === '/announcements' },
+    { to: '/oncall', label: 'Nöbet çizelgesi', icon: <CalendarClock className={i} />, isActive: (p) => p === '/oncall' },
   ])
   const operations = keep([
     can('tickets.manage') && { to: '/tickets?mine=1', label: 'Bana atananlar', icon: <FolderKanban className={i} />, isActive: (p, q) => p === '/tickets' && q.get('mine') === '1' },

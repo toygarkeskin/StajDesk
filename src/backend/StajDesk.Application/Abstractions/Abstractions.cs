@@ -27,6 +27,9 @@ public interface IAppDbContext
     DbSet<OutboxMessage> OutboxMessages { get; }
     DbSet<SentEmail> SentEmails { get; }
     DbSet<AuditLog> AuditLogs { get; }
+    DbSet<Announcement> Announcements { get; }
+    DbSet<OnCallShift> OnCallShifts { get; }
+    DbSet<TicketAttachment> TicketAttachments { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
@@ -116,7 +119,37 @@ public interface IAuditLogger
 public static class CacheKeys
 {
     public const string Categories = "categories:all";
+    public const string HomePrefix = "home:";
     public const string StatsPrefix = "stats:";
     public static string Permissions(int userId) => $"perms:user:{userId}";
     public const string PermissionsPrefix = "perms:";
+}
+
+/// <summary>
+/// Talep araması. Varsayılan uygulama basit "içerir" araması yapar (testler, bellek içi veritabanı);
+/// Infrastructure PostgreSQL tam metin aramasıyla değiştirir.
+/// </summary>
+public interface ITicketSearch
+{
+    IQueryable<Ticket> Apply(IQueryable<Ticket> query, string term);
+}
+
+internal sealed class ContainsTicketSearch : ITicketSearch
+{
+    public IQueryable<Ticket> Apply(IQueryable<Ticket> query, string term)
+    {
+        var s = term.Trim().ToLower();
+        if (s.Length == 0) return query;
+        return int.TryParse(s.TrimStart('#'), out var id)
+            ? query.Where(t => t.Id == id || t.Title.ToLower().Contains(s))
+            : query.Where(t => t.Title.ToLower().Contains(s) || t.Description.ToLower().Contains(s));
+    }
+}
+
+/// <summary>Talep eklerinin saklandığı yer (yerelde disk / Docker volume). Anahtar her zaman sunucu tarafında üretilir.</summary>
+public interface IFileStorage
+{
+    Task SaveAsync(string key, Stream content, CancellationToken ct = default);
+    Task<Stream?> OpenReadAsync(string key, CancellationToken ct = default);
+    Task DeleteAsync(string key, CancellationToken ct = default);
 }

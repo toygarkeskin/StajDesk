@@ -44,6 +44,10 @@ Her refresh isteğinde eski token iptal edilir, aynı "aile"den yenisi verilir. 
 bu çalınma belirtisidir: **ailenin tamamı** iptal edilir, kullanıcı yeniden giriş yapmak zorunda kalır ve
 `auth.refresh_reuse_detected` denetim kaydı yazılır.
 
+**Eşzamanlı yenileme istisnası:** iki sekme (veya sayfanın yeniden yüklenmesi) aynı anda yenileme yaparsa aynı token iki kez gelir.
+Token 20 saniye içinde döndürülmüşse ve oturum zinciri hâlâ açıksa bu saldırı sayılmaz; aynı aileden yeni token verilir.
+Süre `OAuth:RefreshReuseGraceSeconds` ile ayarlanır. Çıkış yapılmış (zinciri kapanmış) bir oturum bu istisnayla geri açılamaz.
+
 ## Access token içeriği
 
 ```json

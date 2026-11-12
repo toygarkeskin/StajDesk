@@ -3,6 +3,7 @@ using StajDesk.Contracts;
 using StajDesk.Domain.Entities;
 using StajDesk.Domain.Security;
 using StajDesk.Infrastructure.Persistence;
+using StajDesk.Infrastructure.Realtime;
 
 namespace StajDesk.Worker;
 
@@ -10,7 +11,7 @@ namespace StajDesk.Worker;
 /// Bir olaydan kimin hangi bildirimi / e-postayı alacağına karar verir.
 /// Idempotent: aynı olay (EventId) ikinci kez gelirse işlenmez (en az bir kez teslimde çift bildirim olmaz).
 /// </summary>
-public sealed class NotificationHandler(AppDbContext db, Mailer mailer, ILogger<NotificationHandler> logger)
+public sealed class NotificationHandler(AppDbContext db, Mailer mailer, RealtimePublisher realtime, ILogger<NotificationHandler> logger)
 {
     private static readonly Dictionary<string, string> StatusTr = new()
     {
@@ -35,8 +36,14 @@ public sealed class NotificationHandler(AppDbContext db, Mailer mailer, ILogger<
             case PasswordResetRequestedEvent e: await OnPasswordResetAsync(e, ct); break;
         }
 
+        var added = db.ChangeTracker.Entries<Notification>().Where(e => e.State == EntityState.Added).Select(e => e.Entity).ToList();
+
         db.ProcessedMessages.Add(new ProcessedMessage { MessageId = evt.EventId });
         await db.SaveChangesAsync(ct);
+
+        // Kayıt kalıcı olduktan sonra tarayıcılara "yeni bildirim var" sinyali (SignalR köprüsü üzerinden).
+        foreach (var n in added.DistinctBy(n => n.UserId))
+            await realtime.PublishAsync(new RealtimeMessage([n.UserId], "notification", n.TicketId, n.Title));
     }
 
     private string TicketUrl(int id) => $"{mailer.WebUrl}/tickets/{id}";

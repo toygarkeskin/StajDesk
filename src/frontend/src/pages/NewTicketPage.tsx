@@ -7,7 +7,9 @@ import clsx from 'clsx'
 import { assetTypeLabels, colorOf, priorityLabels, typeLabels } from '@/lib/labels'
 import { useAuth } from '@/stores/auth'
 import { toast } from '@/stores/ui'
-import { Field, PageHeader, Spinner } from '@/components/ui'
+import { Paperclip, X } from 'lucide-react'
+import { ATTACHMENT_ACCEPT, ATTACHMENT_MAX_MB, formatSize, precheck } from '@/components/Attachments'
+import { Field, IconButton, PageHeader, Spinner } from '@/components/ui'
 import { UnsavedChangesGuard } from '@/components/UnsavedChangesGuard'
 
 /* Form (Page) kalıbı: dar sütun · etiketler üstte · yapışkan Vazgeç / Kaydet · taslak otomatik kaydı · ayrılırken uyarı */
@@ -60,10 +62,26 @@ export function NewTicketPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories.data])
 
+  const [files, setFiles] = useState<File[]>([])
+  const fileInput = useRef<HTMLInputElement>(null)
+  const addFiles = (list: FileList | null) => {
+    const picked = Array.from(list ?? [])
+    const problem = picked.map(precheck).find(Boolean)
+    if (problem) return toast(problem, 'error')
+    setFiles((prev) => [...prev, ...picked].slice(0, 10))
+  }
+
   const create = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const v = form.values
-      return api.tickets.create({ title: v.title, description: v.description, categoryId: Number(v.categoryId), priority: v.priority, type: v.type, assetId: v.assetId ? Number(v.assetId) : null })
+      const t = await api.tickets.create({ title: v.title, description: v.description, categoryId: Number(v.categoryId), priority: v.priority, type: v.type, assetId: v.assetId ? Number(v.assetId) : null })
+      // Talep oluştuktan sonra ekler yüklenir; biri başarısız olsa bile talep kaybolmaz.
+      let failed = 0
+      for (const f of files) {
+        try { await api.tickets.upload(t.id, f) } catch { failed++ }
+      }
+      if (failed > 0) toast(`${failed} dosya eklenemedi. Talep detayından tekrar ekleyebilirsiniz.`, 'error')
+      return t
     },
     onSuccess: (t) => {
       safeDel(draftKey)
@@ -155,6 +173,23 @@ export function NewTicketPage() {
                 {assets.data?.map((a) => <option key={a.id} value={a.id}>{a.name} · {assetTypeLabels[a.type]} ({a.inventoryNumber})</option>)}
               </select>
             </Field>
+          </div>
+          <div className="card p-6">
+            <div className="form-label flex items-center gap-2"><Paperclip className="size-4" aria-hidden="true" /> Ekler <span className="font-normal text-gray-400">(isteğe bağlı)</span></div>
+            {files.length > 0 && (
+              <ul className="mb-3 space-y-1">
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-center gap-2 rounded-lg border border-gray-200 py-0.5 pl-3 text-sm dark:border-gray-700/60">
+                    <span className="min-w-0 flex-1 truncate" title={f.name}>{f.name}</span>
+                    <span className="shrink-0 text-xs text-gray-500">{formatSize(f.size)}</span>
+                    <IconButton label={`${f.name} dosyasını listeden çıkar`} onClick={() => setFiles(files.filter((_, j) => j !== i))}><X className="size-4" /></IconButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <input ref={fileInput} id="f-files" type="file" multiple accept={ATTACHMENT_ACCEPT} className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = '' }} />
+            <button type="button" className="btn-secondary w-full" onClick={() => fileInput.current?.click()}>Ekran görüntüsü veya dosya seç</button>
+            <p className="mt-2 text-xs text-gray-500">Dosya başına en fazla {ATTACHMENT_MAX_MB} MB · resim, PDF, metin, Word, Excel</p>
           </div>
           <div className="flex gap-2">
             <Link to="/tickets" className="btn-secondary flex-1">Vazgeç</Link>

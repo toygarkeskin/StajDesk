@@ -32,12 +32,13 @@ public sealed record TicketCommentDto(int Id, string Body, bool IsInternal, Comm
 public sealed record TicketHistoryDto(int Id, TicketHistoryAction Action, string? OldValue, string? NewValue, UserSummaryDto? Actor, DateTime CreatedAt);
 
 /// <summary>Arayüzün hangi butonları göstereceğini sunucu söyler (kural tek yerde).</summary>
-public sealed record TicketPermissionsDto(bool CanEdit, bool CanManage, bool CanDelete, bool CanComment, bool CanInternal);
+public sealed record TicketPermissionsDto(bool CanEdit, bool CanManage, bool CanDelete, bool CanComment, bool CanInternal, bool CanAttach);
 
 public sealed record TicketDetailDto(int Id, string Title, string Description, TicketStatus Status, TicketPriority Priority,
     TicketType Type, CategoryRefDto Category, StoreRefDto? Store, UserSummaryDto Requester, UserSummaryDto? Assignee,
     AssetRefDto? Asset, DateTime CreatedAt, DateTime? UpdatedAt, DateTime? ResolvedAt, DateTime? ClosedAt,
     IReadOnlyList<TicketCommentDto> Comments, IReadOnlyList<TicketHistoryDto> History,
+    IReadOnlyList<TicketAttachmentDto> Attachments,
     IReadOnlyList<TicketStatus> AllowedStatuses, TicketPermissionsDto Permissions);
 
 public sealed record CreateTicketRequest(string Title, string Description, int CategoryId,

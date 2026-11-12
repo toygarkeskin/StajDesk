@@ -11,6 +11,7 @@ using StajDesk.Application.Features.Notifications;
 using StajDesk.Application.Features.Stats;
 using StajDesk.Application.Features.Tickets;
 using StajDesk.Application.Features.Users;
+using StajDesk.Application.Features.Workspace;
 using StajDesk.Domain.Security;
 
 namespace StajDesk.Api.Controllers;
@@ -112,6 +113,32 @@ public sealed class TicketsController(IDispatcher dispatcher) : ApiControllerBas
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         await dispatcher.SendAsync(new DeleteTicketCommand(id), ct);
+        return NoContent();
+    }
+
+    /// <summary>Dosya ekle (multipart/form-data, alan adı "file"). En fazla 5 MB; izin verilen türler sunucuda kontrol edilir.</summary>
+    [HttpPost("{id:int}/attachments"), RequestSizeLimit(6 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<TicketAttachmentDto>>> Upload(int id, IFormFile? file, CancellationToken ct)
+    {
+        if (file is null) throw new StajDesk.Domain.Common.DomainException("Yüklenecek dosyayı seçin.");
+        await using var stream = file.OpenReadStream();
+        var dto = await dispatcher.SendAsync(new UploadAttachmentCommand(id, file.FileName, file.Length, stream), ct);
+        return StatusCode(201, ApiResponse<TicketAttachmentDto>.Ok(dto, "Dosya eklendi."));
+    }
+
+    /// <summary>Dosyayı indir. Her zaman "attachment" olarak gönderilir; tarayıcıda çalıştırılmaz.</summary>
+    [HttpGet("{id:int}/attachments/{attachmentId:int}")]
+    public async Task<IActionResult> Download(int id, int attachmentId, CancellationToken ct)
+    {
+        var file = await dispatcher.SendAsync(new DownloadAttachmentQuery(id, attachmentId), ct);
+        Response.Headers.ContentSecurityPolicy = "default-src 'none'; sandbox";
+        return File(file.Content, file.ContentType, file.FileName);
+    }
+
+    [HttpDelete("{id:int}/attachments/{attachmentId:int}")]
+    public async Task<IActionResult> DeleteAttachment(int id, int attachmentId, CancellationToken ct)
+    {
+        await dispatcher.SendAsync(new DeleteAttachmentCommand(id, attachmentId), ct);
         return NoContent();
     }
 }
@@ -267,4 +294,47 @@ public sealed class NotificationsController(INotificationService notifications) 
 
     [HttpPost("read-all")]
     public async Task<ActionResult<ApiResponse<int>>> MarkAllRead(CancellationToken ct) => Envelope(await notifications.MarkAllReadAsync(ct));
+}
+
+[Route("api")]
+public sealed class WorkspaceController(IWorkspaceService workspace) : ApiControllerBase
+{
+    /// <summary>Ana sayfa paneli: karşılama, duyurular, nöbetçi personel, görevlerim, onay bekleyenler, son hareketler.</summary>
+    [HttpGet("home")]
+    public async Task<ActionResult<ApiResponse<HomeDto>>> Home(CancellationToken ct) => Envelope(await workspace.GetHomeAsync(ct));
+
+    /// <summary>Yayındaki duyurular. Yönetici <c>?all=true</c> ile zamanlanmış ve süresi dolmuşları da görür.</summary>
+    [HttpGet("announcements")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AnnouncementDto>>>> Announcements([FromQuery] bool all, CancellationToken ct) =>
+        Envelope(await workspace.GetAnnouncementsAsync(all, ct));
+
+    [HttpPost("announcements"), RequirePermission(Permissions.AnnouncementsManage)]
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> CreateAnnouncement(UpsertAnnouncementRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<AnnouncementDto>.Ok(await workspace.SaveAnnouncementAsync(null, request, ct), "Duyuru yayınlandı."));
+
+    [HttpPut("announcements/{id:int}"), RequirePermission(Permissions.AnnouncementsManage)]
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> UpdateAnnouncement(int id, UpsertAnnouncementRequest request, CancellationToken ct) =>
+        Envelope(await workspace.SaveAnnouncementAsync(id, request, ct), "Duyuru güncellendi.");
+
+    [HttpDelete("announcements/{id:int}"), RequirePermission(Permissions.AnnouncementsManage)]
+    public async Task<IActionResult> DeleteAnnouncement(int id, CancellationToken ct)
+    {
+        await workspace.DeleteAnnouncementAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>Nöbet çizelgesi: geçen haftadan 60 gün sonrasına kadar.</summary>
+    [HttpGet("oncall")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<OnCallShiftDto>>>> OnCall(CancellationToken ct) => Envelope(await workspace.GetOnCallAsync(ct));
+
+    [HttpPost("oncall"), RequirePermission(Permissions.OnCallManage)]
+    public async Task<ActionResult<ApiResponse<OnCallShiftDto>>> CreateOnCall(CreateOnCallShiftRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<OnCallShiftDto>.Ok(await workspace.CreateOnCallAsync(request, ct), "Nöbet eklendi."));
+
+    [HttpDelete("oncall/{id:int}"), RequirePermission(Permissions.OnCallManage)]
+    public async Task<IActionResult> DeleteOnCall(int id, CancellationToken ct)
+    {
+        await workspace.DeleteOnCallAsync(id, ct);
+        return NoContent();
+    }
 }

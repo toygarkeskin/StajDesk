@@ -33,6 +33,8 @@ public static class Permissions
     public const string ReportsReadAll = "reports.read.all";
     public const string AuditRead = "audit.read";
     public const string MailRead = "mail.read";
+    public const string AnnouncementsManage = "announcements.manage";
+    public const string OnCallManage = "oncall.manage";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -62,6 +64,8 @@ public static class Permissions
         new(ReportsReadAll, "Raporlar", "Genel özet paneli ve ekip iş yükü"),
         new(AuditRead, "Sistem", "Denetim kayıtlarını görme"),
         new(MailRead, "Sistem", "Gönderilen e-postaları görme (demo posta kutusu)"),
+        new(AnnouncementsManage, "Panel", "Duyuru yayınlama / düzenleme"),
+        new(OnCallManage, "Panel", "Bilgi işlem nöbet çizelgesini düzenleme"),
     ];
 
     public static bool IsKnown(string key) => All.Any(p => p.Key == key);
@@ -85,7 +89,7 @@ public static class RoleNames
             Security.Permissions.TicketsManage, Security.Permissions.CommentsCreate, Security.Permissions.CommentsInternal,
             Security.Permissions.CategoriesRead, Security.Permissions.StoresRead, Security.Permissions.AssetsReadOwn,
             Security.Permissions.AssetsReadAll, Security.Permissions.AssetsManage, Security.Permissions.UsersRead,
-            Security.Permissions.ReportsReadAll, Security.Permissions.MailRead,
+            Security.Permissions.ReportsReadAll, Security.Permissions.MailRead, Security.Permissions.OnCallManage,
         ]),
         new(StoreOwner, "Mağaza Sahibi", "Kendi mağazasının taleplerini, cihazlarını ve raporunu görür.",
         [

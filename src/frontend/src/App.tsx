@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router'
+import { AnnouncementsPage, OnCallPage } from './pages/WorkspacePages'
 import { AppLayout, RequireAuth } from './components/layout/AppLayout'
 import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
 import { StoresPage } from './pages/StoresPage'
@@ -33,6 +34,8 @@ export const router = createBrowserRouter([
       { path: 'tickets/new', element: <NewTicketPage /> },
       { path: 'tickets/:id', element: <TicketDetailPage /> },
       { path: 'notifications', element: <NotificationsPage /> },
+      { path: 'announcements', element: <AnnouncementsPage /> },
+      { path: 'oncall', element: <OnCallPage /> },
       { path: 'assets', element: <RequireAuth perms={['assets.read.all', 'assets.read.store']}><AssetsPage /></RequireAuth> },
       { path: 'assets/new', element: <RequireAuth perms={['assets.manage']}><AssetFormPage /></RequireAuth> },
       { path: 'assets/:id', element: <AssetDetailPage /> },

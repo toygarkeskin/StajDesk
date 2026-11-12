@@ -20,6 +20,6 @@ ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 COPY --from=build /app .
 # İmza anahtarı klasörü (docker volume); uygulama kullanıcısı yazabilsin
-RUN mkdir -p /app/keys && chown $APP_UID /app/keys
+RUN mkdir -p /app/keys /app/uploads && chown $APP_UID /app/keys /app/uploads
 USER $APP_UID
 ENTRYPOINT ["dotnet", "StajDesk.Api.dll"]

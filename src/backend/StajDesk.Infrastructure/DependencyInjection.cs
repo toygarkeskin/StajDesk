@@ -6,7 +6,9 @@ using StajDesk.Application.Abstractions;
 using StajDesk.Infrastructure.Caching;
 using StajDesk.Infrastructure.Messaging;
 using StajDesk.Infrastructure.Persistence;
+using StajDesk.Infrastructure.Realtime;
 using StajDesk.Infrastructure.Security;
+using StajDesk.Infrastructure.Storage;
 
 namespace StajDesk.Infrastructure;
 
@@ -31,17 +33,9 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.AddPersistence(config);
-
-        var redisCs = config.GetConnectionString("Redis") ?? "localhost:6379";
-        services.AddSingleton<IConnectionMultiplexer>(_ =>
-        {
-            var opts = ConfigurationOptions.Parse(redisCs);
-            opts.AbortOnConnectFail = false; // Redis kapalı olsa da uygulama açılsın, arka planda yeniden bağlansın
-            opts.ConnectTimeout = 2000;
-            opts.SyncTimeout = 2000;
-            opts.AsyncTimeout = 2000;
-            return ConnectionMultiplexer.Connect(opts);
-        });
+        services.AddRedis(config);
+        services.AddScoped<ITicketSearch, PostgresTicketSearch>(); // tam metin arama (Application'daki basit aramanın yerine)
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddSingleton<ICacheService, RedisCacheService>();
         services.Configure<RateLimitOptions>(config.GetSection("LoginRateLimit"));
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();
@@ -52,6 +46,23 @@ public static class DependencyInjection
 
         services.Configure<RabbitMqOptions>(config.GetSection("RabbitMq"));
         services.AddHostedService<OutboxDispatcher>();
+        return services;
+    }
+
+    /// <summary>Redis bağlantısı + gerçek zamanlı bildirim yayıncısı (API ve Worker ortak kullanır).</summary>
+    public static IServiceCollection AddRedis(this IServiceCollection services, IConfiguration config)
+    {
+        var redisCs = config.GetConnectionString("Redis") ?? "localhost:6379";
+        services.AddSingleton<IConnectionMultiplexer>(_ =>
+        {
+            var opts = ConfigurationOptions.Parse(redisCs);
+            opts.AbortOnConnectFail = false; // Redis kapalı olsa da uygulama açılsın, arka planda yeniden bağlansın
+            opts.ConnectTimeout = 2000;
+            opts.SyncTimeout = 2000;
+            opts.AsyncTimeout = 2000;
+            return ConnectionMultiplexer.Connect(opts);
+        });
+        services.AddSingleton<RealtimePublisher>();
         return services;
     }
 }

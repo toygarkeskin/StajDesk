@@ -80,6 +80,34 @@ done
 [ "$AFTER" -gt "$BEFORE" ] && ok "E-posta Mailpit'e ulaştı ($BEFORE → $AFTER)" || bad "E-posta gelmedi"
 check "Talep sahibine bildirim oluştu" "$(curl -s "$API/api/notifications/unread-count" -H "Authorization: Bearer $USER" | grep -c '"data":[1-9]')" 1
 
+echo "== Ana sayfa paneli, duyurular, nöbet"
+check "GET /api/home (kullanıcı)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/home" -H "Authorization: Bearer $USER")" 200
+check "Panelde nöbetçi personel var" "$(curl -s "$API/api/home" -H "Authorization: Bearer $USER" | grep -c '"onCall":\[{')" 1
+check "Kullanıcı duyuru yayınlayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/announcements" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"title":"Deneme","body":"Metin"}')" 403
+ANN=$(curl -s -X POST "$API/api/announcements" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"title":"Duman testi duyurusu","body":"Otomatik test metni"}' | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$ANN" ] && ok "Yönetici duyuru yayınlar (#$ANN)" || bad "Yönetici duyuru yayınlayamadı"
+check "Test duyurusu silinir (204)" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/announcements/$ANN" -H "Authorization: Bearer $ADMIN")" 204
+
+echo "== Talep ekleri (dosya yükleme)"
+TMP=$(mktemp -d)
+# Git Bash + Windows curl: /tmp yolu curl'a Windows yolu olarak verilmeli
+FILES="$TMP"; command -v cygpath >/dev/null 2>&1 && FILES=$(cygpath -m "$TMP")
+printf 'Hata kaydi: yazici baglantisi koptu\n' > "$TMP/hata.log"
+printf 'MZ\x90\x00\x03' > "$TMP/resim.png"
+check "Metin dosyası eklenir (201)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/tickets/$ID/attachments" -H "Authorization: Bearer $USER" -F "file=@$FILES/hata.log;type=text/plain")" 201
+check "Uzantısı .png olan sahte dosya reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/tickets/$ID/attachments" -H "Authorization: Bearer $USER" -F "file=@$FILES/resim.png;type=image/png")" 400
+ATT=$(curl -s "$API/api/tickets/$ID" -H "Authorization: Bearer $USER" | sed -n 's/.*"attachments":\[{"id":\([0-9]*\).*/\1/p')
+check "Ek indirilir (attachment olarak)" "$(curl -s -D - -o /dev/null "$API/api/tickets/$ID/attachments/$ATT" -H "Authorization: Bearer $USER" | grep -ci '^content-disposition: attachment')" 1
+OTHER=$(login "zeynep@stajdesk.local" "$DEMO_PASSWORD")
+check "Başka mağazadaki kullanıcı eki indiremez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/tickets/$ID/attachments/$ATT" -H "Authorization: Bearer $OTHER")" 403
+rm -rf "$TMP"
+
+echo "== Tam metin arama ve anlık bildirim"
+FOUND=$(curl -s "$API/api/tickets?search=yaz%C4%B1c%C4%B1lar" -H "Authorization: Bearer $AGENT" | sed -n 's/.*"totalCount":\([0-9]*\).*/\1/p')
+[ "${FOUND:-0}" -ge 1 ] && ok "Türkçe kök ile tam metin arama ('yazıcılar' → $FOUND talep)" || bad "Tam metin arama sonuç bulamadı"
+check "SignalR negotiate (token ile 200)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/hubs/notifications/negotiate?negotiateVersion=1" -H "Authorization: Bearer $USER")" 200
+check "SignalR negotiate (token yok → 401)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/hubs/notifications/negotiate?negotiateVersion=1")" 401
+
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null
 sleep 4

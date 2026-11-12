@@ -10,6 +10,20 @@
 | Tarayıcı | Sıkı CSP: arayüzde `default-src 'self'; script-src 'self'; frame-ancestors 'none'`, API yanıtlarında `default-src 'none'`. Inline script yoktur (tema betiği `public/theme.js`). |
 | Token | Access token yalnızca bellekte, refresh token `HttpOnly` cookie'de. XSS olsa bile kalıcı oturum çalınamaz. |
 
+## Dosya yükleme
+
+- Boyut (5 MB) ve sayı (talep başına 10) sınırı; nginx ayrıca 6 MB'ta keser.
+- Uzantı izin listesi + dosyanın ilk baytlarına bakılarak gerçek tür doğrulaması (magic number).
+- İçerik türünü istemci değil sunucu belirler; indirme her zaman `attachment` ve `CSP: default-src 'none'; sandbox` ile yapılır.
+- Diskteki ad sunucuda üretilen rastgele anahtardır; kullanıcının dosya adı yol olarak kullanılmaz (path traversal yok).
+- Dosyaya erişim, talebin kendisiyle aynı görünürlük kuralına bağlıdır.
+
+## Anlık bildirim kanalı
+
+- SignalR hub'ı yalnızca oturum açmış kullanıcıya açılır; mesajlar yalnızca ilgili kullanıcının bağlantılarına gider.
+- Token sorgu parametresi yalnızca `/hubs` yolunda kabul edilir; nginx bu yolda erişim logu tutmaz, Serilog sorgu dizesini yazmaz.
+- Kanal veri taşımaz, yalnızca "yenile" sinyali verir.
+
 ## Güvenlik başlıkları
 
 nginx ve API: `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` ve
