@@ -103,3 +103,21 @@ public enum AccountRequestStatus
     Rejected = 2,
     Cancelled = 3
 }
+
+/// <summary>Reklamın gösterileceği sayfa.</summary>
+public enum AdPage
+{
+    Landing = 0,
+    Portal = 1
+}
+
+/// <summary>Sayfa içindeki konum.</summary>
+public enum AdPlacement
+{
+    /// <summary>Üst büyük banner (döngülü)</summary>
+    Hero = 0,
+    /// <summary>Yan sütun</summary>
+    Sidebar = 1,
+    /// <summary>İçerik arası geniş şerit</summary>
+    Inline = 2
+}

@@ -13,6 +13,8 @@ public class Department : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+    /// <summary>Kurumsal sitenin "Departmanlarımız" bölümünde tanıtılsın mı?</summary>
+    public bool ShowOnWebsite { get; set; }
 
     public int? ParentId { get; set; }
     public Department? Parent { get; set; }

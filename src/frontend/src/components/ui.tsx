@@ -254,13 +254,15 @@ export function Field({ label, htmlFor, error, hint, optional, required, childre
    Yandan açılan panel (slide-over)
    ========================================================= */
 
-export function SlideOver({ open, onClose, title, description, children, footer }: {
+export function SlideOver({ open, onClose, title, description, children, footer, wide }: {
   open: boolean
   onClose: () => void
   title: string
   description?: string
   children: ReactNode
   footer: ReactNode
+  /** Tablo içeren paneller için daha geniş görünüm (telefonda yine tam genişlik). */
+  wide?: boolean
 }) {
   const ref = useFocusTrap<HTMLDivElement>(open, onClose)
   const titleId = useId()
@@ -269,7 +271,7 @@ export function SlideOver({ open, onClose, title, description, children, footer 
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 animate-fade-in bg-gray-900/40" onClick={onClose} aria-hidden="true" />
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId}
-        className="absolute inset-y-0 right-0 flex w-full max-w-md animate-slide-in flex-col bg-white shadow-xl dark:bg-gray-800">
+        className={clsx('absolute inset-y-0 right-0 flex w-full animate-slide-in flex-col bg-white shadow-xl dark:bg-gray-800', wide ? 'max-w-3xl' : 'max-w-md')}>
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-3 dark:border-gray-700/60">
           <div className="py-2">
             <h2 id={titleId} className="font-semibold">{title}</h2>

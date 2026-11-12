@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuth } from '@/stores/auth'
 import { refresh } from './oauth'
 import type {
+  AccountImportResult,
   AccountRequestItem,
   Announcement,
   ApiResponse,
@@ -205,6 +206,12 @@ export const api = {
     cancel: (id: number) => unwrap<object>(http.post(`/account-requests/${id}/cancel`)),
     approve: (id: number, body: { username?: string | null; roles?: string[]; note?: string | null }) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/approve`, body)),
     reject: (id: number, reason: string) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/reject`, { reason })),
+    importCsv: (file: File, dryRun: boolean) => {
+      const form = new FormData()
+      form.append('file', file)
+      return unwrap<AccountImportResult>(http.post('/account-requests/import', form, { params: { dryRun }, headers: { 'Content-Type': 'multipart/form-data' } }))
+    },
+    importTemplate: () => http.get<Blob>('/account-requests/import/template', { responseType: 'blob' }).then((r) => r.data),
   },
   org: {
     chart: () => unwrap<OrgChart>(http.get('/org/chart')),

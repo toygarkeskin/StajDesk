@@ -2,6 +2,7 @@
   <!-- Infrastructure: dış dünyaya bağlanan her şey (PostgreSQL, Redis, RabbitMQ, şifre hash). -->
   <ItemGroup>
     <ProjectReference Include="..\StajDesk.Application\StajDesk.Application.csproj" />
+    <InternalsVisibleTo Include="StajDesk.UnitTests" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />

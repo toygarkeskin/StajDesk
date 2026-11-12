@@ -35,6 +35,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
     public DbSet<AccountRequest> AccountRequests => Set<AccountRequest>();
+    public DbSet<NewsArticle> News => Set<NewsArticle>();
+    public DbSet<Advertisement> Advertisements => Set<Advertisement>();
+    public DbSet<AdStatDaily> AdStats => Set<AdStatDaily>();
+    public DbSet<JobOpening> JobOpenings => Set<JobOpening>();
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+    public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
+    public DbSet<ExternalSnapshot> ExternalSnapshots => Set<ExternalSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

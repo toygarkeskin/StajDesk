@@ -172,6 +172,109 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.AdStatDaily", b =>
+                {
+                    b.Property<int>("AdvertisementId")
+                        .HasColumnType("integer")
+                        .HasColumnName("advertisement_id");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("Clicks")
+                        .HasColumnType("integer")
+                        .HasColumnName("clicks");
+
+                    b.Property<int>("Impressions")
+                        .HasColumnType("integer")
+                        .HasColumnName("impressions");
+
+                    b.HasKey("AdvertisementId", "Day")
+                        .HasName("pk_ad_stats_daily");
+
+                    b.ToTable("ad_stats_daily", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Advertisement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("ImageKey")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("image_key");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("link_url");
+
+                    b.Property<string>("Page")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("page");
+
+                    b.Property<string>("Placement")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("placement");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_advertisements");
+
+                    b.HasIndex("Page", "Placement", "IsActive")
+                        .HasDatabaseName("ix_advertisements_page_placement_is_active");
+
+                    b.ToTable("advertisements", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_advertisements_dates", "ends_at IS NULL OR ends_at > starts_at");
+                        });
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
                 {
                     b.Property<int>("Id")
@@ -202,6 +305,10 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean")
                         .HasColumnName("is_pinned");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_public");
 
                     b.Property<string>("Level")
                         .IsRequired()
@@ -540,6 +647,10 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("parent_id");
 
+                    b.Property<bool>("ShowOnWebsite")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_on_website");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -643,6 +754,223 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_employee_profiles_dates", "termination_date IS NULL OR hire_date IS NULL OR termination_date >= hire_date");
                         });
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.ExternalSnapshot", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTime>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source");
+
+                    b.HasKey("Key")
+                        .HasName("pk_external_snapshots");
+
+                    b.ToTable("external_snapshots", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.JobOpening", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("ClosesOn")
+                        .HasColumnType("date")
+                        .HasColumnName("closes_on");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("department_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EmploymentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employment_type");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("location");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("Requirements")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)")
+                        .HasColumnName("requirements");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_job_openings");
+
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_job_openings_department_id");
+
+                    b.HasIndex("IsPublished", "PublishedAt")
+                        .HasDatabaseName("ix_job_openings_is_published_published_at");
+
+                    b.ToTable("job_openings", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.MediaFile", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.Property<int>("UploadedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("uploaded_by_id");
+
+                    b.HasKey("Key")
+                        .HasName("pk_media_files");
+
+                    b.HasIndex("UploadedById")
+                        .HasDatabaseName("ix_media_files_uploaded_by_id");
+
+                    b.ToTable("media_files", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.NewsArticle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("author_id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)")
+                        .HasColumnName("body");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("ImageKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("image_key");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("summary");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_news");
+
+                    b.HasIndex("AuthorId")
+                        .HasDatabaseName("ix_news_author_id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_news_slug");
+
+                    b.HasIndex("IsPublished", "PublishedAt")
+                        .HasDatabaseName("ix_news_is_published_published_at");
+
+                    b.ToTable("news", (string)null);
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Notification", b =>
@@ -1220,6 +1548,29 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("sent_emails", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.SiteSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Key")
+                        .HasName("pk_site_settings");
+
+                    b.ToTable("site_settings", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Store", b =>
                 {
                     b.Property<int>("Id")
@@ -1775,6 +2126,18 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("TargetUser");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.AdStatDaily", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Advertisement", "Advertisement")
+                        .WithMany("Stats")
+                        .HasForeignKey("AdvertisementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ad_stats_daily_advertisements_advertisement_id");
+
+                    b.Navigation("Advertisement");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.User", "Author")
@@ -1871,6 +2234,39 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_employee_profiles_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.JobOpening", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_job_openings_departments_department_id");
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.MediaFile", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_media_files_users_uploaded_by_id");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.NewsArticle", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_news_users_author_id");
+
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Notification", b =>
@@ -2138,6 +2534,11 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_user_settings_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Advertisement", b =>
+                {
+                    b.Navigation("Stats");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Asset", b =>

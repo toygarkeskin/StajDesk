@@ -129,6 +129,11 @@ REQ=$(curl -s -X POST "$API/api/account-requests/new-account" -H "Authorization:
   -d "{\"fullName\":\"Duman Test\",\"email\":\"duman.$STAMP@stajdesk.local\",\"employeeNumber\":\"T$STAMP\",\"departmentId\":1,\"positionId\":1,\"employmentType\":\"Intern\",\"hireDate\":\"2026-12-01\"}" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
 [ -n "$REQ" ] && ok "İK yeni çalışan hesabı talebi açar (#$REQ)" || bad "İK hesap talebi açamadı"
 check "İK talebi onaylayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/$REQ/approve" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d '{}')" 403
+# CSV ile toplu talep: yalnızca önizleme (dryRun) denenir, veri değişmez
+csv_body() { printf 'Ad Soyad;E-posta;Personel Kodu;Departman;Unvan;İşe Başlama\r\nCsv Test;csv.%s@stajdesk.local;C%s;MG;Uzman;01.12.2026\r\nHatalı;gecersiz;;MG;Uzman;01.12.2026\r\n' "$STAMP" "$STAMP"; }
+check "CSV şablonu indirilir" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/account-requests/import/template" -H "Authorization: Bearer $HR")" 200
+check "CSV önizlemesi hatalı satırı ayırır" "$(csv_body | curl -s -X POST "$API/api/account-requests/import?dryRun=true" -H "Authorization: Bearer $HR" -F "file=@-;filename=personel.csv;type=text/csv" | grep -o '"validCount":1' | head -1)" '"validCount":1'
+check "Çalışan CSV ile talep açamaz (403)" "$(csv_body | curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/import?dryRun=true" -H "Authorization: Bearer $USER" -F "file=@-;filename=personel.csv;type=text/csv")" 403
 IT=$(login "kaan" "$DEMO_PASSWORD")
 check "BT sistem yöneticisi rolü veremez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/$REQ/approve" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d '{"roles":["system_admin"]}')" 403
 BEFORE_INV=$(curl -s "$MAILPIT/api/v1/search?query=subject:hesab%C4%B1n%C4%B1z" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); BEFORE_INV=${BEFORE_INV:-0}

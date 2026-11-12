@@ -418,3 +418,28 @@ export interface AccountRequestItem {
   reviewNote?: string | null
   createdUserId?: number | null
 }
+
+/** CSV ile toplu hesap talebi: satır sonucu ve özet. */
+export interface AccountImportRow {
+  line: number
+  fullName: string
+  email: string
+  employeeNumber?: string | null
+  department?: string | null
+  position?: string | null
+  employmentType: EmploymentType
+  hireDate?: string | null
+  phone?: string | null
+  valid: boolean
+  errors: string[]
+  requestId?: number | null
+}
+export interface AccountImportResult {
+  dryRun: boolean
+  total: number
+  validCount: number
+  createdCount: number
+  newDepartments: string[]
+  newPositions: string[]
+  rows: AccountImportRow[]
+}

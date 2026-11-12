@@ -13,6 +13,8 @@ public class Announcement : BaseEntity
     public string Body { get; set; } = string.Empty;
     public AnnouncementLevel Level { get; set; } = AnnouncementLevel.Info;
     public bool IsPinned { get; set; }
+    /// <summary>Herkese açık kurumsal sitede de gösterilsin mi? (Yalnızca mağazaya özel olmayan duyurular.)</summary>
+    public bool IsPublic { get; set; }
     public DateTime PublishAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
 

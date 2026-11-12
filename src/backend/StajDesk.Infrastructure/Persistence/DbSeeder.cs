@@ -13,7 +13,7 @@ namespace StajDesk.Infrastructure.Persistence;
 /// istenirse demo verisini (mağazalar, kullanıcılar, cihazlar, talepler) ekler.
 /// Şifreler yapılandırmadan (.env / ortam değişkenleri) okunur; koda yazılmaz.
 /// </summary>
-public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfiguration config, ILogger<DbSeeder> logger)
+public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfiguration config, ILogger<DbSeeder> logger, IFileStorage storage)
 {
     public const string WebClientId = "stajdesk-web";
     public const string ReportingClientId = "stajdesk-reporting";
@@ -39,12 +39,14 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         await SeedCategoriesAsync(ct);
         await SeedSystemAdminAsync(ct);
         await SeedPositionsAsync(ct);
+        await SeedSiteSettingsAsync(ct);
         if (config.GetValue("Seed:DemoData", false))
         {
             await SeedDemoAsync(ct);
             await SeedWorkspaceDemoAsync(ct);
             await SeedOrganizationDemoAsync(ct);
             await SeedItDemoAsync(ct);
+            await SeedSiteDemoAsync(ct);
         }
     }
 
@@ -433,5 +435,91 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         db.Users.Add(it);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo BT hesap yöneticisi eklendi: {Email}", email);
+    }
+
+    /// <summary>Kurumsal sitenin temel metinleri (yalnızca eksik anahtarlar eklenir; yöneticinin değiştirdikleri korunur).</summary>
+    private async Task SeedSiteSettingsAsync(CancellationToken ct)
+    {
+        var defaults = new Dictionary<string, string>
+        {
+            [Application.Features.Site.SiteKeys.CompanyName] = "StajDesk Perakende A.Ş.",
+            [Application.Features.Site.SiteKeys.Tagline] = "Mağazalarımız ve ekiplerimiz için tek kurumsal portal.",
+            [Application.Features.Site.SiteKeys.AboutTitle] = "Hakkımızda",
+            [Application.Features.Site.SiteKeys.AboutBody] = "Türkiye genelindeki mağazalarımız, merkez ofisimiz ve depolarımızla müşterilerimize hizmet veriyoruz. StajDesk; destek talepleri, duyurular ve iş süreçlerini tek bir yerde toplayan kurumsal portalımızdır.\n\nBu metin demo içeriktir; Kurumsal site → Site metinleri ekranından değiştirilebilir.",
+            [Application.Features.Site.SiteKeys.Mission] = "Çalışanlarımızın işini kolaylaştıran, hızlı ve güvenilir iç hizmetler sunmak.",
+            [Application.Features.Site.SiteKeys.Vision] = "Tüm iş süreçlerinin tek portaldan, kâğıtsız ve izlenebilir yürütüldüğü bir şirket olmak.",
+            [Application.Features.Site.SiteKeys.ContactAddress] = "Örnek Mah. Demo Cad. No:1, İstanbul",
+            [Application.Features.Site.SiteKeys.ContactPhone] = "0212 000 00 00",
+            [Application.Features.Site.SiteKeys.ContactEmail] = "iletisim@stajdesk.local",
+            [Application.Features.Site.SiteKeys.CareerEmail] = "kariyer@stajdesk.local",
+            [Application.Features.Site.SiteKeys.WeatherCity] = "İstanbul",
+            [Application.Features.Site.SiteKeys.Links] = "[]",
+        };
+        var existing = await db.SiteSettings.Select(x => x.Key).ToListAsync(ct);
+        foreach (var (key, value) in defaults.Where(d => !existing.Contains(d.Key)))
+            db.SiteSettings.Add(new SiteSetting { Key = key, Value = value });
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Demo kurumsal site içeriği: haberler, açık pozisyonlar, herkese açık duyuru, reklamlar (bir kez).</summary>
+    private async Task SeedSiteDemoAsync(CancellationToken ct)
+    {
+        if (await db.News.AnyAsync(ct) || await db.Advertisements.AnyAsync(ct)) return;
+        var author = await db.Users.Where(u => u.Roles.Any(r => r.Role.Name == RoleNames.SystemAdmin)).OrderBy(u => u.Id).FirstOrDefaultAsync(ct);
+        if (author is null) return;
+        var now = DateTime.UtcNow;
+
+        // Departman tanıtımları: üst düzey birimler sitede görünür
+        foreach (var d in await db.Departments.Where(d => d.Parent != null && d.Parent.Code == "GM").ToListAsync(ct))
+        {
+            d.ShowOnWebsite = true;
+            d.Description ??= d.Code switch
+            {
+                "IK" => "İşe alım, eğitim ve çalışan deneyimi.",
+                "LJ" => "Depo ve mağaza sevkiyatları.",
+                _ => d.Description,
+            };
+        }
+
+        async Task<string> Banner((byte, byte, byte) a, (byte, byte, byte) b, string name)
+        {
+            var key = Guid.NewGuid().ToString("N");
+            var bytes = DemoImages.Gradient(1200, 360, a, b);
+            await using (var ms = new MemoryStream(bytes)) await storage.SaveAsync(key, ms, ct);
+            db.MediaFiles.Add(new MediaFile { Key = key, ContentType = "image/png", Size = bytes.Length, FileName = name, UploadedById = author.Id });
+            return key;
+        }
+
+        var b1 = await Banner((49, 46, 129), (124, 58, 237), "demo-banner-1.png");
+        var b2 = await Banner((15, 118, 110), (14, 165, 233), "demo-banner-2.png");
+        var b3 = await Banner((154, 52, 18), (225, 29, 72), "demo-banner-3.png");
+        var side = await Banner((30, 41, 59), (71, 85, 105), "demo-yan.png");
+        db.Advertisements.AddRange(
+            new Advertisement { Title = "Kış sezonu mağazalarımızda", Description = "Yeni sezon ürünleri tüm mağazalarımızda. (Demo reklam)", ImageKey = b1, Page = AdPage.Landing, Placement = AdPlacement.Hero, SortOrder = 1, StartsAt = now.AddDays(-2), EndsAt = now.AddDays(45) },
+            new Advertisement { Title = "Kızılay mağazamız yenilendi", Description = "Ankara Kızılay mağazamız yeni yüzüyle hizmetinizde. (Demo reklam)", ImageKey = b2, Page = AdPage.Landing, Placement = AdPlacement.Hero, SortOrder = 2, StartsAt = now.AddDays(-1), EndsAt = now.AddDays(30) },
+            new Advertisement { Title = "Geçmiş kampanya", Description = "Süresi dolmuş reklam örneği: sitede görünmez.", ImageKey = b3, Page = AdPage.Landing, Placement = AdPlacement.Hero, SortOrder = 3, StartsAt = now.AddDays(-40), EndsAt = now.AddDays(-10) },
+            new Advertisement { Title = "Kariyer fırsatları", Description = "Açık pozisyonlarımıza göz atın.", ImageKey = side, Page = AdPage.Landing, Placement = AdPlacement.Sidebar, SortOrder = 1, StartsAt = now.AddDays(-1) },
+            new Advertisement { Title = "Portal ipucu: Talebinize ekran görüntüsü ekleyin", Description = "Sorunun ekran görüntüsü, çözüm süresini kısaltır.", ImageKey = b2, Page = AdPage.Portal, Placement = AdPlacement.Inline, SortOrder = 1, StartsAt = now.AddDays(-1) });
+
+        var newsImage = await Banner((67, 56, 202), (16, 185, 129), "demo-haber.png");
+        db.News.AddRange(
+            new NewsArticle { Slug = "kurumsal-portalimiz-yayinda", Title = "Kurumsal portalımız yayında", Summary = "Destek talepleri, duyurular ve hesap işlemleri artık tek portalda.", ImageKey = newsImage, IsPublished = true, PublishedAt = now.AddDays(-3), AuthorId = author.Id,
+                Body = "StajDesk ile destek taleplerinizi açabilir, durumunu anlık takip edebilir ve şirket duyurularını tek yerden görebilirsiniz.\n\nPortala erişim için İnsan Kaynakları hesap talebinizi açar; Bilgi Teknolojileri onayladığında size ilk şifre bağlantısı gönderilir. (Demo haber)" },
+            new NewsArticle { Slug = "kizilay-magazamiz-yenilendi", Title = "Kızılay mağazamız yenilendi", Summary = "Ankara Kızılay mağazamız yeni yerleşimi ve genişleyen ürün alanıyla açıldı.", IsPublished = true, PublishedAt = now.AddDays(-8), AuthorId = author.Id,
+                Body = "Kızılay mağazamızda kasa alanı genişletildi, yeni POS cihazları kuruldu ve depo düzeni yenilendi. (Demo haber)" },
+            new NewsArticle { Slug = "taslak-haber", Title = "Taslak haber", Summary = "Yayımlanmamış haber örneği: sitede görünmez.", Body = "Taslak.", IsPublished = false, PublishedAt = now, AuthorId = author.Id });
+
+        var bt = await db.Departments.FirstOrDefaultAsync(d => d.Code == "BT", ct);
+        var mg = await db.Departments.FirstOrDefaultAsync(d => d.Code == "MG", ct);
+        db.JobOpenings.AddRange(
+            new JobOpening { Title = "Satış Danışmanı", DepartmentId = mg?.Id, Location = "İstanbul / Kadıköy", EmploymentType = EmploymentType.PartTime, IsPublished = true, PublishedAt = now.AddDays(-5), ClosesOn = DateOnly.FromDateTime(now.AddDays(25)),
+                Description = "Mağazamızda müşterilerimize ürün danışmanlığı yapacak, kasa ve stok süreçlerine destek olacak takım arkadaşı arıyoruz.", Requirements = "Lise mezunu\nHafta sonu çalışabilecek\nMüşteri iletişimi güçlü" },
+            new JobOpening { Title = "BT Destek Uzmanı", DepartmentId = bt?.Id, Location = "İstanbul / Merkez", EmploymentType = EmploymentType.FullTime, IsPublished = true, PublishedAt = now.AddDays(-2),
+                Description = "Mağaza ve merkez ofis kullanıcılarının donanım, yazılım ve ağ taleplerini karşılayacak uzman arıyoruz.", Requirements = "Üniversitelerin ilgili bölümlerinden mezun\nWindows, ağ ve POS cihazları deneyimi\nTalep yönetimi araçlarına hâkim" });
+
+        var maintenance = await db.Announcements.FirstOrDefaultAsync(a => a.StoreId == null && a.IsPinned, ct);
+        if (maintenance is not null) maintenance.IsPublic = true;
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Demo kurumsal site içeriği eklendi (haberler, ilanlar, reklamlar)");
     }
 }

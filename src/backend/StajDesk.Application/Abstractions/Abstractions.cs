@@ -36,6 +36,13 @@ public interface IAppDbContext
     DbSet<UserSettings> UserSettings { get; }
     DbSet<OtpChallenge> OtpChallenges { get; }
     DbSet<AccountRequest> AccountRequests { get; }
+    DbSet<NewsArticle> News { get; }
+    DbSet<Advertisement> Advertisements { get; }
+    DbSet<AdStatDaily> AdStats { get; }
+    DbSet<JobOpening> JobOpenings { get; }
+    DbSet<SiteSetting> SiteSettings { get; }
+    DbSet<MediaFile> MediaFiles { get; }
+    DbSet<ExternalSnapshot> ExternalSnapshots { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
@@ -74,6 +81,9 @@ public interface ICurrentUser
 public interface ICacheService
 {
     Task<T> GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, TimeSpan ttl, CancellationToken ct = default);
+    /// <summary>Süre sonuca göre seçilir (ör. dış kaynak hatasında kısa süre, başarıda uzun süre).</summary>
+    Task<T> GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, Func<T, TimeSpan> ttl, CancellationToken ct = default) =>
+        GetOrSetAsync(key, factory, TimeSpan.FromMinutes(1), ct);
     Task RemoveAsync(string key, CancellationToken ct = default);
     Task RemoveByPrefixAsync(string prefix, CancellationToken ct = default);
 }
@@ -126,6 +136,7 @@ public static class CacheKeys
 {
     public const string Categories = "categories:all";
     public const string HomePrefix = "home:";
+    public const string SitePrefix = "site:";
     public const string StatsPrefix = "stats:";
     public static string Permissions(int userId) => $"perms:user:{userId}";
     public const string PermissionsPrefix = "perms:";

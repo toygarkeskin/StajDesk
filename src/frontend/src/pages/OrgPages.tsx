@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Building2, ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Building2, ChevronDown, ChevronRight, FileUp, Pencil, Plus, Trash2 } from 'lucide-react'
 import { api, errorDetails, errorMessage, fieldErrors } from '@/lib/api'
 import { useForm } from '@/lib/hooks'
 import type { Department, OrgPerson, Position } from '@/lib/types'
 import { toast } from '@/stores/ui'
 import { BlockSkeleton, ConfirmDialog, EmptyState, ErrorState, Field, IconButton, PageHeader, SlideOver, Spinner } from '@/components/ui'
 import { PersonAvatar } from '@/components/AuthImage'
+import { CsvImportPanel } from '@/components/CsvImport'
+import { useCan } from '@/stores/auth'
 
 /* =========================================================
    Organizasyon şeması: kişiler yönetici ilişkisine göre ağaç olarak.
@@ -116,9 +118,18 @@ function DepartmentTree({ items, parentId, selected, onSelect, depth }: { items:
 export function OrgAdminPage() {
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') === 'positions' ? 'positions' : 'departments'
+  const { can } = useCan()
+  const [importing, setImporting] = useState(false)
+  // CSV hesap AÇMAZ; hesap talebi açar. Bu yüzden talep açma yetkisi (İK) veya hesap yönetimi (BT) gerekir — API de aynısını denetler.
+  const canImport = can('accounts.request', 'users.manage')
   return (
     <>
-      <PageHeader title="Departmanlar ve unvanlar" description="Organizasyon yapısı. Unvan bir yetki değildir; yetkiler Roller ve İzinler ekranından verilir." />
+      <PageHeader
+        title="Departmanlar ve unvanlar"
+        description="Organizasyon yapısı. Unvan bir yetki değildir; yetkiler Roller ve İzinler ekranından verilir."
+        actions={canImport && <button className="btn-secondary" onClick={() => setImporting(true)}><FileUp className="size-4" aria-hidden="true" /> CSV ile çalışan ekle</button>}
+      />
+      <CsvImportPanel open={importing} onClose={() => setImporting(false)} />
       <div role="tablist" className="mb-6 flex gap-1 border-b border-gray-200 dark:border-gray-700/60">
         {(['departments', 'positions'] as const).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => setParams(t === 'departments' ? {} : { tab: t })}

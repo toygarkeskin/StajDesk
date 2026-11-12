@@ -14,6 +14,8 @@ using StajDesk.Application.Features.Users;
 using StajDesk.Application.Features.Workspace;
 using StajDesk.Application.Features.Employees;
 using StajDesk.Application.Features.Account;
+using StajDesk.Application.Features.Site;
+using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
 
 namespace StajDesk.Api.Controllers;
@@ -493,8 +495,34 @@ public sealed class AccountController(IAccountService account) : ApiControllerBa
 
 /// <summary>Kurumsal hesap talepleri: İK açar (accounts.request), BT / yönetici onaylar veya reddeder (users.manage).</summary>
 [Route("api/account-requests")]
-public sealed class AccountRequestsController(IAccountRequestService requests) : ApiControllerBase
+public sealed class AccountRequestsController(IAccountRequestService requests, IAccountImportService import) : ApiControllerBase
 {
+    /// <summary>
+    /// CSV ile toplu hesap talebi. dryRun=true önizlemedir (hiçbir şey kaydedilmez). Hesap AÇILMAZ; her geçerli satır
+    /// BT/Admin onayına düşen bir "yeni hesap talebi" olur. Eksik departman/unvan yalnızca org.manage ile oluşturulur.
+    /// </summary>
+    [HttpPost("import"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage), RequestSizeLimit(2 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<AccountImportResultDto>>> Import(IFormFile? file, [FromQuery] bool dryRun, CancellationToken ct)
+    {
+        if (file is null || file.Length == 0) throw new StajDesk.Domain.Common.DomainException("İçe aktarılacak CSV dosyasını seçin.");
+        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) && !file.FileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+            throw new StajDesk.Domain.Common.DomainException("Yalnızca .csv dosyası yüklenebilir.");
+        await using var stream = file.OpenReadStream();
+        var result = await import.ImportAsync(stream, dryRun, ct);
+        return Envelope(result, dryRun ? null : $"{result.CreatedCount} hesap talebi oluşturuldu ve onaya gönderildi.");
+    }
+
+    /// <summary>Örnek CSV şablonu (Excel'de Türkçe karakterler bozulmasın diye BOM'lu UTF-8, ayırıcı ";").</summary>
+    [HttpGet("import/template"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public IActionResult ImportTemplate()
+    {
+        const string csv = "Ad Soyad;E-posta;Personel Kodu;Departman;Unvan;Personel Türü;İşe Başlama;Telefon;Not\r\n" +
+                           "Ayşe Yılmaz;ayse.yilmaz@stajdesk.local;P1001;Mağazacılık;Satış Danışmanı;Tam zamanlı;01.12.2026;05320000000;\r\n" +
+                           "Mehmet Demir;mehmet.demir@stajdesk.local;P1002;Bilgi Teknolojileri ve Süreç Geliştirme;Uzman;Stajyer;15.12.2026;;Dönem stajı\r\n";
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray();
+        return File(bytes, "text/csv; charset=utf-8", "calisan-hesap-sablonu.csv");
+    }
+
     [HttpGet, RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
     public async Task<ActionResult<ApiResponse<PagedResult<AccountRequestDto>>>> List([FromQuery] AccountRequestQuery query, CancellationToken ct) =>
         Envelope(await requests.ListAsync(query, ct));
@@ -533,4 +561,153 @@ public sealed class AccountRequestsController(IAccountRequestService requests) :
     [HttpPost("{id:int}/reject"), RequirePermission(Permissions.UsersManage)]
     public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Reject(int id, RejectAccountRequest request, CancellationToken ct) =>
         Envelope(await requests.RejectAsync(id, request, ct), "Talep reddedildi.");
+}
+
+/// <summary>
+/// Herkese açık kurumsal site (giriş gerektirmez). Kişisel veri dönmez (KVKK kararı: docs/PORTAL_ANALIZ.md §8).
+/// </summary>
+[Route("api/public")]
+[AllowAnonymous]
+[EnableRateLimiting("public")]
+public sealed class PublicSiteController(IPublicSiteService site, ILiveDataService live) : ApiControllerBase
+{
+    [HttpGet("landing")]
+    public async Task<ActionResult<ApiResponse<LandingDto>>> Landing(CancellationToken ct) => Envelope(await site.GetLandingAsync(ct));
+
+    [HttpGet("site")]
+    public async Task<ActionResult<ApiResponse<SiteInfoDto>>> Site(CancellationToken ct) => Envelope(await site.GetSiteInfoAsync(ct));
+
+    [HttpGet("news")]
+    public async Task<ActionResult<ApiResponse<PagedResult<NewsCardDto>>>> News([FromQuery] SimplePagedQuery query, CancellationToken ct) => Envelope(await site.GetNewsAsync(query, ct));
+
+    [HttpGet("news/{slug}")]
+    public async Task<ActionResult<ApiResponse<NewsDetailDto>>> NewsDetail(string slug, CancellationToken ct) => Envelope(await site.GetNewsAsync(slug, ct));
+
+    [HttpGet("jobs")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<JobCardDto>>>> Jobs(CancellationToken ct) => Envelope(await site.GetJobsAsync(ct));
+
+    [HttpGet("jobs/{id:int}")]
+    public async Task<ActionResult<ApiResponse<JobDetailDto>>> Job(int id, CancellationToken ct) => Envelope(await site.GetJobAsync(id, ct));
+
+    [HttpGet("departments")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PublicDepartmentDto>>>> Departments(CancellationToken ct) => Envelope(await site.GetDepartmentsAsync(ct));
+
+    [HttpGet("announcements")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PublicAnnouncementDto>>>> Announcements(CancellationToken ct) => Envelope(await site.GetAnnouncementsAsync(ct));
+
+    /// <summary>Yayındaki reklamlar. Portal reklamları da buradan gelir (page=Portal); oturum gerekmez çünkü içerik herkese açık reklamdır.</summary>
+    [HttpGet("ads")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdDto>>>> Ads([FromQuery] AdPage page, CancellationToken ct) => Envelope(await site.GetAdsAsync(page, ct));
+
+    public sealed record ImpressionRequest(IReadOnlyList<int> Ids);
+
+    [HttpPost("ads/impressions")]
+    public async Task<IActionResult> Impressions(ImpressionRequest request, CancellationToken ct)
+    {
+        await site.RecordImpressionsAsync(request.Ids ?? [], ct);
+        return NoContent();
+    }
+
+    /// <summary>Tıklamayı sayar ve reklamın kayıtlı adresine yönlendirir (adres yalnızca yöneticinin kaydettiği http/https olabilir).</summary>
+    [HttpGet("ads/{id:int}/click")]
+    public async Task<IActionResult> Click(int id, CancellationToken ct)
+    {
+        var url = await site.RecordClickAsync(id, ct);
+        return url is not null && UrlRules.IsSafeHttpUrl(url) ? Redirect(url) : Redirect("/");
+    }
+
+    [HttpGet("media/{key:regex(^[[0-9a-f]]{{32}}$)}")]
+    public async Task<IActionResult> Media(string key, CancellationToken ct)
+    {
+        var media = await site.GetMediaAsync(key, ct);
+        if (media is null) return NotFound();
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable"; // anahtar rastgele ve değişmez
+        return File(media.Content, media.ContentType);
+    }
+
+    [HttpGet("cities")]
+    public ActionResult<ApiResponse<IReadOnlyList<CityDto>>> Cities() => Envelope(live.Cities);
+
+    [HttpGet("weather")]
+    public async Task<ActionResult<ApiResponse<LiveValue<WeatherDto>>>> Weather([FromQuery] string? city, CancellationToken ct) => Envelope(await live.WeatherAsync(city, ct));
+
+    [HttpGet("rates")]
+    public async Task<ActionResult<ApiResponse<LiveValue<RatesDto>>>> Rates(CancellationToken ct) => Envelope(await live.RatesAsync(ct));
+
+    [HttpGet("gold")]
+    public async Task<ActionResult<ApiResponse<LiveValue<GoldDto>>>> Gold(CancellationToken ct) => Envelope(await live.GoldAsync(ct));
+}
+
+/// <summary>Kurumsal site içerik yönetimi (portal içinden): haber, açık pozisyon, site metinleri (content.manage), reklam (ads.manage).</summary>
+[Route("api/content")]
+public sealed class ContentController(IContentAdminService content) : ApiControllerBase
+{
+    [HttpGet("ads"), RequirePermission(Permissions.AdsManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdAdminDto>>>> Ads(CancellationToken ct) => Envelope(await content.GetAdsAsync(ct));
+
+    [HttpGet("ads/{id:int}/stats"), RequirePermission(Permissions.AdsManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AdDailyStatDto>>>> AdStats(int id, CancellationToken ct) => Envelope(await content.GetAdStatsAsync(id, ct));
+
+    [HttpPost("ads"), RequirePermission(Permissions.AdsManage)]
+    public async Task<ActionResult<ApiResponse<AdAdminDto>>> CreateAd(UpsertAdRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<AdAdminDto>.Ok(await content.SaveAdAsync(null, request, ct), "Reklam kaydedildi."));
+
+    [HttpPut("ads/{id:int}"), RequirePermission(Permissions.AdsManage)]
+    public async Task<ActionResult<ApiResponse<AdAdminDto>>> UpdateAd(int id, UpsertAdRequest request, CancellationToken ct) =>
+        Envelope(await content.SaveAdAsync(id, request, ct), "Reklam güncellendi.");
+
+    [HttpDelete("ads/{id:int}"), RequirePermission(Permissions.AdsManage)]
+    public async Task<IActionResult> DeleteAd(int id, CancellationToken ct)
+    {
+        await content.DeleteAdAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("news"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<NewsAdminDto>>>> News(CancellationToken ct) => Envelope(await content.GetNewsAsync(ct));
+
+    [HttpPost("news"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<NewsAdminDto>>> CreateNews(UpsertNewsRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<NewsAdminDto>.Ok(await content.SaveNewsAsync(null, request, ct), "Haber kaydedildi."));
+
+    [HttpPut("news/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<NewsAdminDto>>> UpdateNews(int id, UpsertNewsRequest request, CancellationToken ct) =>
+        Envelope(await content.SaveNewsAsync(id, request, ct), "Haber güncellendi.");
+
+    [HttpDelete("news/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<IActionResult> DeleteNews(int id, CancellationToken ct)
+    {
+        await content.DeleteNewsAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("jobs"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<JobAdminDto>>>> Jobs(CancellationToken ct) => Envelope(await content.GetJobsAsync(ct));
+
+    [HttpPost("jobs"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<JobAdminDto>>> CreateJob(UpsertJobRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<JobAdminDto>.Ok(await content.SaveJobAsync(null, request, ct), "İlan kaydedildi."));
+
+    [HttpPut("jobs/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<JobAdminDto>>> UpdateJob(int id, UpsertJobRequest request, CancellationToken ct) =>
+        Envelope(await content.SaveJobAsync(id, request, ct), "İlan güncellendi.");
+
+    [HttpDelete("jobs/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<IActionResult> DeleteJob(int id, CancellationToken ct)
+    {
+        await content.DeleteJobAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpPut("settings"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<SiteInfoDto>>> SaveSettings(SaveSiteSettingsRequest request, CancellationToken ct) =>
+        Envelope(await content.SaveSettingsAsync(request, ct), "Site metinleri kaydedildi.");
+
+    [HttpPost("media"), RequirePermission(Permissions.ContentManage, Permissions.AdsManage), RequestSizeLimit(4 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<MediaUploadedDto>>> Upload(IFormFile? file, CancellationToken ct)
+    {
+        if (file is null) throw new StajDesk.Domain.Common.DomainException("Yüklenecek görseli seçin.");
+        await using var stream = file.OpenReadStream();
+        return StatusCode(201, ApiResponse<MediaUploadedDto>.Ok(await content.UploadMediaAsync(file.FileName, stream, ct), "Görsel yüklendi."));
+    }
 }

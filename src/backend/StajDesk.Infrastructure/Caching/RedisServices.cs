@@ -14,7 +14,10 @@ internal sealed class RedisCacheService(IConnectionMultiplexer redis, ILogger<Re
     private const string KeyPrefix = "stajdesk:";
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, TimeSpan ttl, CancellationToken ct = default)
+    public Task<T> GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, TimeSpan ttl, CancellationToken ct = default) =>
+        GetOrSetAsync(key, factory, _ => ttl, ct);
+
+    public async Task<T> GetOrSetAsync<T>(string key, Func<CancellationToken, Task<T>> factory, Func<T, TimeSpan> ttl, CancellationToken ct = default)
     {
         var fullKey = KeyPrefix + key;
         try
@@ -31,7 +34,7 @@ internal sealed class RedisCacheService(IConnectionMultiplexer redis, ILogger<Re
         var value = await factory(ct);
         try
         {
-            await redis.GetDatabase().StringSetAsync(fullKey, JsonSerializer.Serialize(value, Json), ttl);
+            await redis.GetDatabase().StringSetAsync(fullKey, JsonSerializer.Serialize(value, Json), ttl(value));
         }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {

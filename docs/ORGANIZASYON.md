@@ -151,6 +151,26 @@ Migration, eski serbest metin `users.department` değerlerini `departments` tabl
 | Duyuru e-postası tercihi | Duyurular henüz e-posta göndermiyor; işlevsiz anahtar gösterilmedi |
 | Gerçek SMS sağlayıcısı | Hesap bilgisi gerekiyor (bkz. §5) |
 
-## 10. Bekleyen
+## 10. CSV ile toplu çalışan ekleme
 
-- **Departman ve unvan listesi:** gönderileceği belirtilen CSV dosyası henüz ulaşmadı. Gelince bu listeler CSV'den yüklenecek (seed + mevcut kayıtlarla eşleştirme). O zamana kadar demo departmanları ve 15 varsayılan unvan kullanılıyor.
+**Ekran:** Departmanlar ve unvanlar → **CSV ile çalışan ekle**. Düğmeyi hesap talebi açabilen (İK, `accounts.request`) veya hesap yöneten (BT/Admin, `users.manage`) kişiler görür.
+
+Kapalı portal kuralı korunur: **CSV hesap açmaz.** Her geçerli satır, BT/Admin onayına düşen bir *yeni hesap talebi* olur. Hesap, Hesap talepleri ekranında onaylanınca açılır ve çalışana ilk şifre bağlantısı gider.
+
+| Adım | Ne olur |
+|---|---|
+| Şablonu indir | `GET /api/account-requests/import/template`. Dosya BOM'lu UTF-8, ayırıcı `;` (Türkçe Excel ile uyumlu). |
+| Dosya seç | `POST /api/account-requests/import?dryRun=true` ile önizlenir. Hiçbir şey kaydedilmez; satır satır hatalar gösterilir. |
+| Talepleri gönder | `POST /api/account-requests/import?dryRun=false`. Yalnızca geçerli satırlar için talep açılır. BT/Admin'e tek toplu bildirim gider ve her talep denetim kaydı bırakır. |
+
+**Sütunlar.** Zorunlu: Ad Soyad, E-posta, Personel Kodu, Departman, Unvan. İsteğe bağlı: Personel Türü (Tam zamanlı / Yarı zamanlı / Sözleşmeli / Stajyer; boşsa Tam zamanlı), İşe Başlama (`gg.aa.yyyy` veya `yyyy-aa-gg`), Telefon, Not. Başlıkta Türkçe karakter ve büyük/küçük harf farkı önemsizdir.
+
+**Kurallar**
+- Departman, kod veya adla eşleşir. Sistemde olmayan departman ve unvan yalnızca `org.manage` yetkisi olan kişi için otomatik oluşturulur (kod addan üretilir: "Satış Operasyonları" → `SO`). Diğer kişiler için bu satır hatalı sayılır.
+- Mevcut hesap, bekleyen talep veya dosya içinde tekrar eden e-posta ya da personel kodu reddedilir.
+- Satırlar tek formdaki kurallarla doğrulanır; HTML içeren alanlar reddedilir.
+- Sınırlar: en fazla 500 satır ve 1 MB. Dosya UTF-8 değilse Windows-1254 olarak okunur.
+
+## 11. Bekleyen
+
+- **Departman ve unvan listesi:** gönderileceği belirtilen CSV dosyası henüz ulaşmadı. Dosya gelince yukarıdaki içe aktarma ile yüklenebilir; çalışan satırlarındaki departman ve unvanlar otomatik oluşturulur.

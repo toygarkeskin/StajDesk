@@ -39,6 +39,8 @@ public static class Permissions
     public const string EmployeesManage = "employees.manage";
     public const string OrgManage = "org.manage";
     public const string AccountsRequest = "accounts.request";
+    public const string ContentManage = "content.manage";
+    public const string AdsManage = "ads.manage";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -74,6 +76,8 @@ public static class Permissions
         new(EmployeesManage, "Personel", "Personel kaydı oluşturma ve personel bilgilerini düzenleme (İK)"),
         new(OrgManage, "Personel", "Departman ve unvan yönetimi, organizasyon şeması"),
         new(AccountsRequest, "Personel", "Yeni çalışan hesabı / hesap kapatma talebi açma (İK)"),
+        new(ContentManage, "Kurumsal site", "Haber, açık pozisyon ve site metinlerini yönetme"),
+        new(AdsManage, "Kurumsal site", "Reklam ve banner yönetimi, gösterim/tıklama istatistikleri"),
     ];
 
     public static bool IsKnown(string key) => All.Any(p => p.Key == key);

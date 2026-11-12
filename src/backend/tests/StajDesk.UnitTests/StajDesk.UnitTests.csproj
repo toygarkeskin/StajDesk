@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\StajDesk.Application\StajDesk.Application.csproj" />
+    <ProjectReference Include="..\..\StajDesk.Infrastructure\StajDesk.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />

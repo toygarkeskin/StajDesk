@@ -37,6 +37,13 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
     public DbSet<AccountRequest> AccountRequests => Set<AccountRequest>();
+    public DbSet<NewsArticle> News => Set<NewsArticle>();
+    public DbSet<Advertisement> Advertisements => Set<Advertisement>();
+    public DbSet<AdStatDaily> AdStats => Set<AdStatDaily>();
+    public DbSet<JobOpening> JobOpenings => Set<JobOpening>();
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+    public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
+    public DbSet<ExternalSnapshot> ExternalSnapshots => Set<ExternalSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -59,6 +66,10 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<AccountRequest>().HasOne(x => x.ReviewedBy).WithMany().HasForeignKey(x => x.ReviewedById);
         b.Entity<AccountRequest>().HasOne(x => x.TargetUser).WithMany().HasForeignKey(x => x.TargetUserId);
         b.Entity<AccountRequest>().HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);
+        b.Entity<AdStatDaily>().HasKey(x => new { x.AdvertisementId, x.Day });
+        b.Entity<SiteSetting>().HasKey(x => x.Key);
+        b.Entity<MediaFile>().HasKey(x => x.Key);
+        b.Entity<ExternalSnapshot>().HasKey(x => x.Key);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);

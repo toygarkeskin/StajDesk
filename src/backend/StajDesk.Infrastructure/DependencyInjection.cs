@@ -37,6 +37,11 @@ public static class DependencyInjection
         services.AddScoped<ITicketSearch, PostgresTicketSearch>(); // tam metin arama (Application'daki basit aramanın yerine)
         services.AddSingleton<IFileStorage, LocalFileStorage>();
         services.AddSingleton<ISmsSender, Sms.NotConfiguredSmsSender>();
+        // Canlı veri sağlayıcıları (hava, kur, altın): çağrılar yalnızca sunucudan yapılır.
+        services.AddSingleton<LiveData.LiveDataHttp>();
+        services.AddSingleton<Application.Features.Site.IWeatherProvider, LiveData.OpenMeteoWeatherProvider>();
+        services.AddSingleton<Application.Features.Site.IExchangeRateProvider, LiveData.TcmbExchangeRateProvider>();
+        services.AddSingleton<Application.Features.Site.IGoldPriceProvider, LiveData.NotConfiguredGoldProvider>();
         services.AddSingleton<ICacheService, RedisCacheService>();
         services.Configure<RateLimitOptions>(config.GetSection("LoginRateLimit"));
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();

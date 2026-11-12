@@ -33,6 +33,10 @@ public static class DependencyInjection
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<Features.Employees.IEmployeeService, Features.Employees.EmployeeService>();
         services.AddScoped<IAccountRequestService, AccountRequestService>();
+        services.AddScoped<IAccountImportService, AccountImportService>();
+        services.AddScoped<Features.Site.IPublicSiteService, Features.Site.PublicSiteService>();
+        services.AddScoped<Features.Site.IContentAdminService, Features.Site.ContentAdminService>();
+        services.AddScoped<Features.Site.ILiveDataService, Features.Site.LiveDataService>();
         services.AddScoped<Features.Employees.IOrgService, Features.Employees.OrgService>();
         services.AddScoped<Features.Account.IAccountService, Features.Account.AccountService>();
         services.AddScoped<Features.Account.OtpService>();

@@ -432,3 +432,92 @@ internal sealed class AccountRequestConfiguration : IEntityTypeConfiguration<Acc
             "(type = 'NewAccount' AND email IS NOT NULL) OR (type = 'Deactivation' AND target_user_id IS NOT NULL)"));
     }
 }
+
+// ---------- Kurumsal site: haber, reklam, kariyer, ayarlar, medya, dış veri ----------
+
+internal sealed class NewsArticleConfiguration : IEntityTypeConfiguration<NewsArticle>
+{
+    public void Configure(EntityTypeBuilder<NewsArticle> b)
+    {
+        b.Property(x => x.Slug).HasMaxLength(120).IsRequired();
+        b.HasIndex(x => x.Slug).IsUnique();
+        b.Property(x => x.Title).HasMaxLength(200).IsRequired();
+        b.Property(x => x.Summary).HasMaxLength(400).IsRequired();
+        b.Property(x => x.Body).HasMaxLength(20000).IsRequired();
+        b.Property(x => x.ImageKey).HasMaxLength(40);
+        b.HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => new { x.IsPublished, x.PublishedAt });
+    }
+}
+
+internal sealed class AdvertisementConfiguration : IEntityTypeConfiguration<Advertisement>
+{
+    public void Configure(EntityTypeBuilder<Advertisement> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Description).HasMaxLength(300);
+        b.Property(x => x.ImageKey).HasMaxLength(40).IsRequired();
+        b.Property(x => x.LinkUrl).HasMaxLength(500);
+        b.Property(x => x.Page).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.Placement).HasConversion<string>().HasMaxLength(20);
+        b.HasIndex(x => new { x.Page, x.Placement, x.IsActive });
+        b.ToTable(t => t.HasCheckConstraint("ck_advertisements_dates", "ends_at IS NULL OR ends_at > starts_at"));
+    }
+}
+
+internal sealed class AdStatDailyConfiguration : IEntityTypeConfiguration<AdStatDaily>
+{
+    public void Configure(EntityTypeBuilder<AdStatDaily> b)
+    {
+        b.ToTable("ad_stats_daily");
+        b.HasKey(x => new { x.AdvertisementId, x.Day });
+        b.HasOne(x => x.Advertisement).WithMany(a => a.Stats).HasForeignKey(x => x.AdvertisementId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class JobOpeningConfiguration : IEntityTypeConfiguration<JobOpening>
+{
+    public void Configure(EntityTypeBuilder<JobOpening> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Location).HasMaxLength(100).IsRequired();
+        b.Property(x => x.EmploymentType).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.Description).HasMaxLength(5000).IsRequired();
+        b.Property(x => x.Requirements).HasMaxLength(5000);
+        b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+        b.HasIndex(x => new { x.IsPublished, x.PublishedAt });
+    }
+}
+
+internal sealed class SiteSettingConfiguration : IEntityTypeConfiguration<SiteSetting>
+{
+    public void Configure(EntityTypeBuilder<SiteSetting> b)
+    {
+        b.HasKey(x => x.Key);
+        b.Property(x => x.Key).HasMaxLength(60);
+        b.Property(x => x.Value).HasMaxLength(10000);
+    }
+}
+
+internal sealed class MediaFileConfiguration : IEntityTypeConfiguration<MediaFile>
+{
+    public void Configure(EntityTypeBuilder<MediaFile> b)
+    {
+        b.HasKey(x => x.Key);
+        b.Property(x => x.Key).HasMaxLength(40);
+        b.Property(x => x.ContentType).HasMaxLength(50);
+        b.Property(x => x.FileName).HasMaxLength(200);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UploadedById).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ExternalSnapshotConfiguration : IEntityTypeConfiguration<ExternalSnapshot>
+{
+    public void Configure(EntityTypeBuilder<ExternalSnapshot> b)
+    {
+        b.HasKey(x => x.Key);
+        b.Property(x => x.Key).HasMaxLength(60);
+        b.Property(x => x.Source).HasMaxLength(100);
+        b.Property(x => x.Payload).HasMaxLength(20000);
+    }
+}
