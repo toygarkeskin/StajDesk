@@ -521,3 +521,50 @@ internal sealed class ExternalSnapshotConfiguration : IEntityTypeConfiguration<E
         b.Property(x => x.Payload).HasMaxLength(20000);
     }
 }
+
+internal sealed class DashboardWidgetConfigConfiguration : IEntityTypeConfiguration<DashboardWidgetConfig>
+{
+    public void Configure(EntityTypeBuilder<DashboardWidgetConfig> b)
+    {
+        b.ToTable("dashboard_widgets");
+        b.HasKey(x => x.Key);
+        b.Property(x => x.Key).HasMaxLength(60);
+        b.Property(x => x.Roles).HasColumnType("text[]");
+    }
+}
+
+internal sealed class UserDashboardPreferenceConfiguration : IEntityTypeConfiguration<UserDashboardPreference>
+{
+    public void Configure(EntityTypeBuilder<UserDashboardPreference> b)
+    {
+        b.ToTable("user_dashboard_preferences");
+        b.HasKey(x => new { x.UserId, x.WidgetKey });
+        b.Property(x => x.WidgetKey).HasMaxLength(60);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class CompanyEventConfiguration : IEntityTypeConfiguration<CompanyEvent>
+{
+    public void Configure(EntityTypeBuilder<CompanyEvent> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(150);
+        b.Property(x => x.Description).HasMaxLength(2000);
+        b.Property(x => x.Location).HasMaxLength(150);
+        b.HasIndex(x => x.StartsAt);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedById).OnDelete(DeleteBehavior.Restrict);
+        b.ToTable(t => t.HasCheckConstraint("ck_company_events_dates", "ends_at IS NULL OR ends_at >= starts_at"));
+    }
+}
+
+internal sealed class RecognitionConfiguration : IEntityTypeConfiguration<Recognition>
+{
+    public void Configure(EntityTypeBuilder<Recognition> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(150);
+        b.Property(x => x.Description).HasMaxLength(1000);
+        b.HasIndex(x => new { x.Type, x.Date });
+        b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedById).OnDelete(DeleteBehavior.Restrict);
+    }
+}

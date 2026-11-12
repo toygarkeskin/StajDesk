@@ -16,7 +16,7 @@ export type Permission =
   | 'users.read' | 'users.manage' | 'roles.manage' | 'reports.read.store' | 'reports.read.all'
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
   | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
-  | 'content.manage' | 'ads.manage'
+  | 'content.manage' | 'ads.manage' | 'widgets.manage'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -387,7 +387,7 @@ export interface Position { id: number; title: string; level: number; descriptio
 export interface OrgPerson { id: number; fullName: string; title?: string | null; level?: number | null; managerId?: number | null; departmentId?: number | null; hasPhoto: boolean; photoVersion?: string | null }
 export interface OrgChart { departments: Department[]; people: OrgPerson[] }
 
-export interface UserSettings { language: 'tr' | 'en'; theme: 'system' | 'light' | 'dark'; emailTicketUpdates: boolean; emailAnnouncements: boolean }
+export interface UserSettings { language: 'tr' | 'en'; theme: 'system' | 'light' | 'dark'; emailTicketUpdates: boolean; emailAnnouncements: boolean; showBirthday: boolean }
 export interface SecurityInfo { smsAvailable: boolean; smsProvider?: string | null; twoFactorEnabled: boolean; maskedPhone?: string | null; hasPhone: boolean }
 
 // ---------- Kurumsal hesap talepleri ----------

@@ -165,6 +165,22 @@ check "İK haber yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$A
 check "Yönetici reklam listesini görür" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/ads" -H "Authorization: Bearer $ADMIN")" 200
 check "Reklamda javascript: bağlantısı reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/content/ads" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"title":"x","imageKey":"00000000000000000000000000000000","linkUrl":"javascript:alert(1)","page":"Landing","placement":"Hero","sortOrder":1,"startsAt":"2026-01-01T00:00:00Z","isActive":true}')" 400
 
+echo "== Çalışan portalı: kutucuklar, genel arama, portal akışları"
+check "Panel düzeni (kullanıcı)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/dashboard/layout" -H "Authorization: Bearer $USER")" 200
+check "Çalışan izin gerektiren kutucuğu görmez (kişi arama)" "$(curl -s "$API/api/dashboard/layout" -H "Authorization: Bearer $USER" | grep -c '"key":"people-search"')" 0
+check "Destek personeli kişi arama kutucuğunu görür" "$(curl -s "$API/api/dashboard/layout" -H "Authorization: Bearer $AGENT" | grep -c '"key":"people-search"')" 1
+check "Kişisel düzen kaydedilir" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API/api/dashboard/preferences" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"order":["rates","welcome"],"hidden":["gold"]}')" 200
+check "Kişisel düzen varsayılana döner" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/dashboard/preferences" -H "Authorization: Bearer $USER")" 200
+check "Çalışan kutucuk yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/admin/widgets" -H "Authorization: Bearer $USER")" 403
+check "Yönetici kutucuk listesini görür" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/admin/widgets" -H "Authorization: Bearer $ADMIN")" 200
+check "Genel arama oturumsuz kapalı (401)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/search?q=ay")" 401
+check "Genel arama kişi bulur" "$(curl -s "$API/api/search?q=elif" -H "Authorization: Bearer $USER" | grep -c '"people":\[{')" 1
+for p in birthdays new-hires events recognitions; do
+  check "Portal akışı: $p" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/portal/$p" -H "Authorization: Bearer $USER")" 200
+done
+check "Çalışan etkinlik yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/portal/events" -H "Authorization: Bearer $USER")" 403
+check "İK takdirleri yönetebilir" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/portal/recognitions" -H "Authorization: Bearer $HR")" 200
+
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null
 sleep 4

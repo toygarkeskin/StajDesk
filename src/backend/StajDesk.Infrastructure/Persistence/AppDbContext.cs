@@ -42,6 +42,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
     public DbSet<ExternalSnapshot> ExternalSnapshots => Set<ExternalSnapshot>();
+    public DbSet<DashboardWidgetConfig> DashboardWidgets => Set<DashboardWidgetConfig>();
+    public DbSet<UserDashboardPreference> DashboardPreferences => Set<UserDashboardPreference>();
+    public DbSet<CompanyEvent> CompanyEvents => Set<CompanyEvent>();
+    public DbSet<Recognition> Recognitions => Set<Recognition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

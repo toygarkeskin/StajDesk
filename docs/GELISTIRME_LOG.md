@@ -90,3 +90,28 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Yapılan:** Bekleyen taleplerde seçim kutuları, "Tümünü Seç" (sayfa) ve "tüm sayfalardaki bekleyen yeni hesap taleplerini seç". Seçim yapılınca "Seçilenleri Onayla" görünür. Onay penceresi adları ve toplamı gösterir; 100'erli parçalarla gönderilir, ilerleme çubuğu, sonuç bildirimi ve onaylanamayanların sebebiyle listesi var. Her talep tek onaydaki kurallarla işlenir; başarısız olanın yarım değişikliği atılır. Yalnızca `users.manage`.
 
 **Doğrulama:** 2 yeni birim testi (yalnızca seçilenler onaylanır, görevler ayrılığı ve bulunamayan talep raporlanır; İK yapamaz; boş/101 seçim reddedilir), 3 smoke kontrolü. Tarayıcıda 1.146 talep seçilip pencere açıldı ve **onaylanmadan** kapatıldı.
+
+## 12.11.2026 — Test hesapları ve toplu giriş doğrulaması (yerel ortam)
+
+İstek: tüm kullanıcılarla giriş yapılması ve hepsinin doğrulanması. Kullanıcının seçimiyle, **yalnızca yerel geliştirme ortamında**:
+- 1.146 davetli (şifresiz) hesaba `.env`'deki demo şifresi verildi, e-postaları doğrulandı, bekleyen davet bağlantıları geçersiz kılındı.
+- Seed demo hesapları (ayse, mehmet, zeynep, emre, can.magaza, selin.magaza, elif.destek, burak.destek, deniz.ik, kaan.bt) aktif edildi.
+- İşlem tek veritabanı işleminde yapıldı ve `dev.test_accounts_prepared` denetim kaydı bırakıldı. İlk denemede denetim kaydının veri türü hatası işlemi geri aldı (ON_ERROR_STOP); düzeltilip tekrarlandı.
+- Bilerek dokunulmayanlar: uçtan uca testin test hesapları ("Duman Test", "Kayit Test"), kapatma talebi bekleyen 3 hesap ve kullanıcının pasife aldığı gerçek kişi hesapları (stajdesk.com.tr).
+- Sonra 1.157 aktif hesabın her biriyle gerçek giriş yapıldı (PKCE yetkilendirme + token + `/api/auth/me`), giriş hız sınırına uyularak.
+
+> Gerçek ortamda yapılmamalı: kapalı portalda çalışan şifresini davet bağlantısıyla kendisi belirler.
+
+## 12.11.2026 — Aşama 5: Çalışan portalı
+
+**Yapılan**
+- Kutucuk (widget) sistemi: kodda katalog (21 kutucuk) + şirket ayarı (`widgets.manage`: açık/kapalı, sıra, boyut, hedef roller) + kişisel düzen (sıra, gizle, varsayılana dön). Görünürlük sunucuda; kutucuğun izin şartı yönetici ayarıyla gevşetilemez.
+- Yeni kutucuklar: profil özeti (kıdem dahil), doğum günleri (açık rıza, yaş yok), aramıza katılanlar, takdirler (haftanın çalışanı), şirket etkinlikleri, açık pozisyonlar, bekleyen hesap talepleri.
+- Etkinlik ve takdir yönetimi (Kurumsal site ve içerik ekranında; takdirleri İK da yönetebilir).
+- Menü kaydı tek dosyada; kenar çubuğunda açılır/kapanır gruplar ve ikonlara daraltma.
+- Genel arama (Ctrl+K): sayfa, kişi, departman, duyuru, talep; her grup kullanıcının görebildikleriyle sınırlı.
+- Profilde "Doğum günüm portalda görünsün" gizlilik seçeneği.
+
+**Bilerek ertelenen:** dil seçimi (tüm ekran çevirisiyle Aşama 9), mesajlar/yardım (Aşama 6), izin bakiyesi ve sosyal akış kutucukları (Aşama 6), ciro/performans kutucukları (Aşama 7), yapay zekâ kartı (entegrasyon yok). Ayrıntı: docs/PORTAL.md §8.
+
+**Doğrulama:** 122 birim testi (11 yeni); tip kontrolü + derleme; smoke testine "Çalışan portalı" bölümü (16 kontrol).

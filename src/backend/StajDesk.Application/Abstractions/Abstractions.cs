@@ -43,6 +43,10 @@ public interface IAppDbContext
     DbSet<SiteSetting> SiteSettings { get; }
     DbSet<MediaFile> MediaFiles { get; }
     DbSet<ExternalSnapshot> ExternalSnapshots { get; }
+    DbSet<DashboardWidgetConfig> DashboardWidgets { get; }
+    DbSet<UserDashboardPreference> DashboardPreferences { get; }
+    DbSet<CompanyEvent> CompanyEvents { get; }
+    DbSet<Recognition> Recognitions { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Kaydedilmemiş değişiklikleri atar. Toplu işlemlerde başarısız olan bir öğenin yarım değişikliği sonrakilere taşınmasın diye.</summary>

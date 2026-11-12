@@ -144,6 +144,13 @@ export function PreferencesTab() {
           <span className="text-gray-500">Talebim alındığında, durumu değiştiğinde, yanıt yazıldığında veya bana talep atandığında e-posta gönder.</span></span>
       </label>
       <p className="mt-3 text-xs text-gray-500">Şifre sıfırlama ve hesap güvenliği e-postaları bu ayardan etkilenmez.</p>
+      <h2 className="mt-6 mb-1 text-sm font-semibold">Gizlilik</h2>
+      <label className="flex min-h-11 items-start gap-3 text-sm">
+        <input type="checkbox" className="mt-1 size-4 accent-violet-500" checked={s.showBirthday} disabled={save.isPending}
+          onChange={(e) => save.mutate({ ...s, showBirthday: e.target.checked })} />
+        <span><span className="font-medium text-gray-800 dark:text-gray-100">Doğum günüm portalda görünsün</span><br />
+          <span className="text-gray-500">Açarsanız doğum gününüz (yalnızca gün ve ay, yaşınız değil) çalışma arkadaşlarınızın panelindeki "Doğum günleri" kutucuğunda görünür. Kurumsal sitede hiçbir zaman gösterilmez.</span></span>
+      </label>
     </section>
   )
 }

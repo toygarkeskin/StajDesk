@@ -34,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<Features.Employees.IEmployeeService, Features.Employees.EmployeeService>();
         services.AddScoped<IAccountRequestService, AccountRequestService>();
         services.AddScoped<IAccountImportService, AccountImportService>();
+        services.AddScoped<Features.Portal.IDashboardService, Features.Portal.DashboardService>();
+        services.AddScoped<Features.Portal.IPortalService, Features.Portal.PortalService>();
         services.AddScoped<Features.Site.IPublicSiteService, Features.Site.PublicSiteService>();
         services.AddScoped<Features.Site.IContentAdminService, Features.Site.ContentAdminService>();
         services.AddScoped<Features.Site.ILiveDataService, Features.Site.LiveDataService>();

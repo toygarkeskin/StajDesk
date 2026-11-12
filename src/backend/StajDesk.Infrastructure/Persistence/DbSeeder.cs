@@ -47,6 +47,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             await SeedOrganizationDemoAsync(ct);
             await SeedItDemoAsync(ct);
             await SeedSiteDemoAsync(ct);
+            await SeedPortalDemoAsync(ct);
         }
     }
 
@@ -521,5 +522,36 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         if (maintenance is not null) maintenance.IsPublic = true;
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo kurumsal site içeriği eklendi (haberler, ilanlar, reklamlar)");
+    }
+
+    /// <summary>Demo portal içeriği: etkinlikler, takdirler; demo çalışanların doğum günü paylaşımı (bir kez).</summary>
+    private async Task SeedPortalDemoAsync(CancellationToken ct)
+    {
+        if (await db.CompanyEvents.AnyAsync(ct) || await db.Recognitions.AnyAsync(ct)) return;
+        var admin = await db.Users.Where(u => u.Roles.Any(r => r.Role.Name == RoleNames.SystemAdmin)).OrderBy(u => u.Id).FirstOrDefaultAsync(ct);
+        if (admin is null) return;
+        var now = DateTime.UtcNow;
+        db.CompanyEvents.AddRange(
+            new CompanyEvent { Title = "Yeni portal tanıtım eğitimi", Description = "Destek talepleri, hesap işlemleri ve panel kişiselleştirme. (Demo etkinlik)", Location = "Merkez ofis · Toplantı salonu", StartsAt = now.Date.AddDays(3).AddHours(7), EndsAt = now.Date.AddDays(3).AddHours(8), CreatedById = admin.Id },
+            new CompanyEvent { Title = "Yılsonu buluşması", Description = "Tüm ekiplerin katılımıyla yılsonu değerlendirmesi. (Demo etkinlik)", Location = "İstanbul", StartsAt = now.Date.AddDays(20).AddHours(15), CreatedById = admin.Id });
+
+        var elif = await db.Users.FirstOrDefaultAsync(u => u.Email == "elif.destek@stajdesk.local", ct);
+        var selin = await db.Users.FirstOrDefaultAsync(u => u.Email == "selin.magaza@stajdesk.local", ct);
+        var today = DateOnly.FromDateTime(now.AddHours(3));
+        if (elif is not null)
+            db.Recognitions.Add(new Recognition { UserId = elif.Id, Type = RecognitionType.EmployeeOfWeek, Title = "Haftanın çalışanı", Description = "Kızılay mağazasının POS geçişini mesai dışında tamamladı. (Demo)", Date = today.AddDays(-1), CreatedById = admin.Id });
+        if (selin is not null)
+            db.Recognitions.Add(new Recognition { UserId = selin.Id, Type = RecognitionType.Achievement, Title = "Ekim ayı satış hedefi aşıldı", Description = "Kadıköy mağazası hedefin %112'sine ulaştı. (Demo)", Date = today.AddDays(-6), CreatedById = admin.Id });
+
+        // Doğum günü paylaşımı açık rızaya bağlı; demo çalışanlar için örnek olarak açılır (gerçek kullanıcılar kendisi açar).
+        var demoIds = await db.Users.Where(u => u.Email.EndsWith("@stajdesk.local") && u.Profile != null && u.Profile.BirthDate != null).Select(u => u.Id).ToListAsync(ct);
+        var existing = await db.UserSettings.Where(x => demoIds.Contains(x.UserId)).ToListAsync(ct);
+        foreach (var id in demoIds)
+        {
+            var st = existing.FirstOrDefault(x => x.UserId == id) ?? db.UserSettings.Add(new UserSettings { UserId = id }).Entity;
+            st.ShowBirthday = true;
+        }
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Demo portal içeriği eklendi (etkinlikler, takdirler)");
     }
 }

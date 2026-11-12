@@ -73,6 +73,8 @@ public class UserSettings
     public string Theme { get; set; } = "system";
     public bool EmailTicketUpdates { get; set; } = true;
     public bool EmailAnnouncements { get; set; } = true;
+    /// <summary>Doğum gününün (yalnızca gün ve ay) portaldaki "Doğum günleri" kutucuğunda görünmesine izin (açık rıza, varsayılan kapalı).</summary>
+    public bool ShowBirthday { get; set; }
 }
 
 /// <summary>SMS ile tek kullanımlık kod (OTP). Kod yalnızca özet (hash) olarak saklanır; 5 hatalı denemede geçersiz olur.</summary>

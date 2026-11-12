@@ -159,7 +159,7 @@ form verisi JSONB + raporlanan alanlar için GIN index.
 | 2 Altyapı | ✔ Hazır. Eklenecek: dış servis istemcileri için Polly yeniden deneme/zaman aşımı, MinIO gerekirse | — |
 | 3 Kimlik & organizasyon ✔ | Departman, pozisyon, yönetici, profil, kullanıcı adı ile giriş, ilk parola, e-posta doğrulama, SMS sağlayıcı arayüzü, İK izinleri, org şeması | Unvan/rol ayrımı testli; İK yalnızca personel bilgisini yönetir |
 | 4 Karşılama sitesi ✔ | Açık tema site, banner/reklam yönetimi + istatistik, haber, kariyer, iletişim, hava/kur/altın servisleri | Süresi dolan reklam yayından kalkar; veri kaynağı ve zamanı görünür |
-| 5 Portal çekirdeği | Alt menülü kenar çubuğu, widget sistemi (rol + kişisel), global arama, profil sayfası, dil seçimi | Kullanıcı yetkisi olmayan widget/uygulamayı göremez (API testi) |
+| 5 Portal çekirdeği ✔ | Alt menülü kenar çubuğu, widget sistemi (rol + kişisel), global arama, profil sayfası, dil seçimi | Kullanıcı yetkisi olmayan widget/uygulamayı göremez (API testi) |
 | 6 Temel iş uygulamaları | Form & iş akışı motoru, izin sistemi, görevler, duyuru genişletme, sosyal akış, talep sistemi uyarlaması | Onay zinciri uçtan uca (talep → yönetici → müdür → departman) |
 | 7 Departman uygulamaları | Motor üzerinde ~50 form türü + özel modüller (ciro, masraf/avans, vardiya, fiş) | Her menü öğesi gerçek kayıt oluşturur ve onaylanır |
 | 8 Yönetim paneli | Ayrı yönetim alanı: departman, org şeması, banner, widget, uygulama kataloğu, ayarlar, entegrasyonlar | Yönetici olmayan admin API'lerine erişemez |

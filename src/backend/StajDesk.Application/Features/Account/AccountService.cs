@@ -13,7 +13,7 @@ namespace StajDesk.Application.Features.Account;
    Oturumdaki kullanıcının hesap ayarları: tercihler, şifre değiştirme, SMS ile iki adımlı doğrulama.
    ========================================================= */
 
-public sealed record SettingsDto(string Language, string Theme, bool EmailTicketUpdates, bool EmailAnnouncements);
+public sealed record SettingsDto(string Language, string Theme, bool EmailTicketUpdates, bool EmailAnnouncements, bool ShowBirthday = false);
 public sealed record SecurityDto(bool SmsAvailable, string? SmsProvider, bool TwoFactorEnabled, string? MaskedPhone, bool HasPhone);
 public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public sealed record ConfirmOtpRequest(Guid ChallengeId, string Code);
@@ -38,7 +38,7 @@ internal sealed class AccountService(IAppDbContext db, ICurrentUser currentUser,
     {
         var id = currentUser.RequireUserId();
         var s = await db.UserSettings.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == id, ct) ?? new UserSettings();
-        return new SettingsDto(s.Language, s.Theme, s.EmailTicketUpdates, s.EmailAnnouncements);
+        return new SettingsDto(s.Language, s.Theme, s.EmailTicketUpdates, s.EmailAnnouncements, s.ShowBirthday);
     }
 
     public async Task<SettingsDto> SaveSettingsAsync(SettingsDto r, CancellationToken ct = default)
@@ -50,6 +50,7 @@ internal sealed class AccountService(IAppDbContext db, ICurrentUser currentUser,
         s.Theme = r.Theme;
         s.EmailTicketUpdates = r.EmailTicketUpdates;
         s.EmailAnnouncements = r.EmailAnnouncements;
+        s.ShowBirthday = r.ShowBirthday;
         await db.SaveChangesAsync(ct);
         return r;
     }

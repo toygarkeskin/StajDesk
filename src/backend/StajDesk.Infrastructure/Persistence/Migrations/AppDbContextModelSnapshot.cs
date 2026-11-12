@@ -605,6 +605,104 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("categories", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.CompanyEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime?>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_published");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("location");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_company_events");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_company_events_created_by_id");
+
+                    b.HasIndex("StartsAt")
+                        .HasDatabaseName("ix_company_events_starts_at");
+
+                    b.ToTable("company_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_company_events_dates", "ends_at IS NULL OR ends_at >= starts_at");
+                        });
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.DashboardWidgetConfig", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("key");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_enabled");
+
+                    b.PrimitiveCollection<List<string>>("Roles")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("roles");
+
+                    b.Property<int>("Size")
+                        .HasColumnType("integer")
+                        .HasColumnName("size");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Key")
+                        .HasName("pk_dashboard_widgets");
+
+                    b.ToTable("dashboard_widgets", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
                 {
                     b.Property<int>("Id")
@@ -1361,6 +1459,65 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("processed_messages", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Recognition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_by_id");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("title");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_recognitions");
+
+                    b.HasIndex("CreatedById")
+                        .HasDatabaseName("ix_recognitions_created_by_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_recognitions_user_id");
+
+                    b.HasIndex("Type", "Date")
+                        .HasDatabaseName("ix_recognitions_type_date");
+
+                    b.ToTable("recognitions", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2015,6 +2172,31 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.UserDashboardPreference", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("WidgetKey")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("widget_key");
+
+                    b.Property<bool>("Hidden")
+                        .HasColumnType("boolean")
+                        .HasColumnName("hidden");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.HasKey("UserId", "WidgetKey")
+                        .HasName("pk_user_dashboard_preferences");
+
+                    b.ToTable("user_dashboard_preferences", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.UserRole", b =>
                 {
                     b.Property<int>("UserId")
@@ -2053,6 +2235,10 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("character varying(5)")
                         .HasColumnName("language");
+
+                    b.Property<bool>("ShowBirthday")
+                        .HasColumnType("boolean")
+                        .HasColumnName("show_birthday");
 
                     b.Property<string>("Theme")
                         .IsRequired()
@@ -2205,6 +2391,16 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_oauth_authorization_codes_users_user_id");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.CompanyEvent", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_company_events_users_created_by_id");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.User", "Manager")
@@ -2319,6 +2515,25 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_password_reset_tokens_users_user_id");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Recognition", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_recognitions_users_created_by_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_recognitions_users_user_id");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.RefreshToken", b =>
@@ -2501,6 +2716,16 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Position");
 
                     b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.UserDashboardPreference", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_dashboard_preferences_users_user_id");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.UserRole", b =>

@@ -25,6 +25,7 @@ import {
   PublicAnnouncementsPage, PublicNotFoundPage,
 } from './pages/site/PublicPages'
 import { ContentAdminPage } from './pages/ContentAdminPage'
+import { WidgetsAdminPage } from './pages/WidgetsAdminPage'
 
 
 
@@ -78,7 +79,8 @@ export const router = createBrowserRouter([
       { path: 'admin/audit', element: <RequireAuth perms={['audit.read']}><AuditPage /></RequireAuth> },
       { path: 'admin/emails', element: <RequireAuth perms={['mail.read']}><EmailsPage /></RequireAuth> },
       { path: 'admin/users', element: <RequireAuth perms={['users.read', 'users.manage']}><UsersPage /></RequireAuth> },
-      { path: 'admin/content', element: <RequireAuth perms={['content.manage', 'ads.manage']}><ContentAdminPage /></RequireAuth> },
+      { path: 'admin/content', element: <RequireAuth perms={['content.manage', 'ads.manage', 'employees.manage']}><ContentAdminPage /></RequireAuth> },
+      { path: 'admin/widgets', element: <RequireAuth perms={['widgets.manage']}><WidgetsAdminPage /></RequireAuth> },
       { path: 'portal/*', element: <NotFoundPage /> },
     ],
   },

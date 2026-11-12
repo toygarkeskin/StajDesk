@@ -10,6 +10,7 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import type { EmploymentType } from '@/lib/types'
 import { useCan } from '@/stores/auth'
 import { toast } from '@/stores/ui'
+import { EventsAdmin, RecognitionsAdmin } from './PortalContentTabs'
 import { Badge, BlockSkeleton, ConfirmDialog, EmptyState, ErrorState, Field, IconButton, PageHeader, SlideOver, Spinner } from '@/components/ui'
 
 /* =========================================================
@@ -17,7 +18,7 @@ import { Badge, BlockSkeleton, ConfirmDialog, EmptyState, ErrorState, Field, Ico
    Sekmeler izne göre görünür; asıl denetim API'dedir.
    ========================================================= */
 
-type Tab = 'ads' | 'news' | 'jobs' | 'settings'
+type Tab = 'ads' | 'news' | 'jobs' | 'events' | 'recognitions' | 'settings'
 
 /** API doğrulama hatası anahtarları "Title" veya "title" biçiminde gelebilir. */
 const err = (e: Record<string, string>, key: string) => e[key] ?? e[key[0].toUpperCase() + key.slice(1)]
@@ -37,13 +38,15 @@ export function ContentAdminPage() {
     can('ads.manage') && { id: 'ads', label: 'Reklam ve bannerlar' },
     can('content.manage') && { id: 'news', label: 'Haberler' },
     can('content.manage') && { id: 'jobs', label: 'Açık pozisyonlar' },
+    can('content.manage') && { id: 'events', label: 'Etkinlikler' },
+    can('content.manage', 'employees.manage') && { id: 'recognitions', label: 'Takdirler' },
     can('content.manage') && { id: 'settings', label: 'Site metinleri' },
   ].filter(Boolean)) as { id: Tab; label: string }[]
   const tab = (tabs.find((t) => t.id === params.get('tab'))?.id ?? tabs[0]?.id) as Tab
 
   return (
     <>
-      <PageHeader title="Kurumsal site" description="Giriş öncesi kurumsal sitenin içerikleri. Değişiklikler sitede en geç 2 dakika içinde görünür."
+      <PageHeader title="Kurumsal site ve içerik" description="Kurumsal sitenin içerikleri (en geç 2 dakika içinde yayına girer) ve portal içerikleri: etkinlikler, takdirler."
         actions={<a href="/" target="_blank" rel="noopener" className="btn-secondary">Siteyi görüntüle</a>} />
       <div role="tablist" className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700/60">
         {tabs.map((t) => (
@@ -56,6 +59,8 @@ export function ContentAdminPage() {
       {tab === 'ads' && <AdsAdmin />}
       {tab === 'news' && <NewsAdminTab />}
       {tab === 'jobs' && <JobsAdmin />}
+      {tab === 'events' && <EventsAdmin />}
+      {tab === 'recognitions' && <RecognitionsAdmin />}
       {tab === 'settings' && <SettingsAdmin />}
     </>
   )

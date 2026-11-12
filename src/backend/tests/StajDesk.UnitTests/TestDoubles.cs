@@ -44,6 +44,10 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<MediaFile> MediaFiles => Set<MediaFile>();
     public DbSet<ExternalSnapshot> ExternalSnapshots => Set<ExternalSnapshot>();
+    public DbSet<DashboardWidgetConfig> DashboardWidgets => Set<DashboardWidgetConfig>();
+    public DbSet<UserDashboardPreference> DashboardPreferences => Set<UserDashboardPreference>();
+    public DbSet<CompanyEvent> CompanyEvents => Set<CompanyEvent>();
+    public DbSet<Recognition> Recognitions => Set<Recognition>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -70,6 +74,9 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<SiteSetting>().HasKey(x => x.Key);
         b.Entity<MediaFile>().HasKey(x => x.Key);
         b.Entity<ExternalSnapshot>().HasKey(x => x.Key);
+        b.Entity<DashboardWidgetConfig>().HasKey(x => x.Key);
+        b.Entity<UserDashboardPreference>().HasKey(x => new { x.UserId, x.WidgetKey });
+        b.Entity<Recognition>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { CalendarClock, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react'
@@ -27,6 +28,9 @@ export function AnnouncementsPage() {
   const list = useQuery({ queryKey: ['announcements', canManage], queryFn: () => api.announcements.list(canManage) })
   const [editing, setEditing] = useState<Announcement | 'new' | null>(null)
   const [toDelete, setToDelete] = useState<Announcement | null>(null)
+  // Genel aramadan #duyuru-ID ile gelindiyse o duyuruya kaydır
+  const { hash } = useLocation()
+  useEffect(() => { if (hash && list.data) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [hash, list.data])
   const now = Date.now()
 
   const remove = useMutation({
@@ -61,7 +65,7 @@ export function AnnouncementsPage() {
           ) : list.data!.map((a) => {
             const st = stateOf(a)
             return (
-              <div key={a.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start">
+              <div key={a.id} id={`duyuru-${a.id}`} className="flex scroll-mt-20 flex-col gap-3 p-5 target:bg-violet-500/5 sm:flex-row sm:items-start">
                 <div className="min-w-0 flex-1"><AnnouncementItem a={a} clamp={false} /></div>
                 {canManage && (
                   <div className="flex shrink-0 items-center gap-1 sm:flex-col sm:items-end">

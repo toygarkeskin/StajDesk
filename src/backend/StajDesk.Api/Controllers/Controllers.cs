@@ -15,6 +15,7 @@ using StajDesk.Application.Features.Workspace;
 using StajDesk.Application.Features.Employees;
 using StajDesk.Application.Features.Account;
 using StajDesk.Application.Features.Site;
+using StajDesk.Application.Features.Portal;
 using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
 
@@ -721,5 +722,99 @@ public sealed class ContentController(IContentAdminService content) : ApiControl
         if (file is null) throw new StajDesk.Domain.Common.DomainException("Yüklenecek görseli seçin.");
         await using var stream = file.OpenReadStream();
         return StatusCode(201, ApiResponse<MediaUploadedDto>.Ok(await content.UploadMediaAsync(file.FileName, stream, ct), "Görsel yüklendi."));
+    }
+}
+
+/// <summary>Kişisel panel düzeni: görülebilir kutucuklar (izin + rol + yönetici ayarı) ve kullanıcının sırası / gizledikleri.</summary>
+[Route("api/dashboard")]
+public sealed class DashboardController(IDashboardService dashboard) : ApiControllerBase
+{
+    [HttpGet("layout")]
+    public async Task<ActionResult<ApiResponse<DashboardLayoutDto>>> Layout(CancellationToken ct) => Envelope(await dashboard.GetLayoutAsync(ct));
+
+    [HttpPut("preferences")]
+    public async Task<ActionResult<ApiResponse<DashboardLayoutDto>>> Save(SaveDashboardPreferencesRequest request, CancellationToken ct) =>
+        Envelope(await dashboard.SavePreferencesAsync(request, ct), "Panel düzeniniz kaydedildi.");
+
+    [HttpDelete("preferences")]
+    public async Task<ActionResult<ApiResponse<DashboardLayoutDto>>> Reset(CancellationToken ct) =>
+        Envelope(await dashboard.ResetPreferencesAsync(ct), "Panel varsayılan düzene döndü.");
+}
+
+/// <summary>Şirket genelinde kutucuk yönetimi (widgets.manage).</summary>
+[Route("api/admin/widgets")]
+public sealed class WidgetAdminController(IDashboardService dashboard) : ApiControllerBase
+{
+    [HttpGet, RequirePermission(Permissions.WidgetsManage)]
+    public async Task<ActionResult<ApiResponse<WidgetAdminListDto>>> List(CancellationToken ct) => Envelope(await dashboard.GetWidgetsAsync(ct));
+
+    [HttpPut("{key}"), RequirePermission(Permissions.WidgetsManage)]
+    public async Task<ActionResult<ApiResponse<WidgetAdminDto>>> Save(string key, SaveWidgetRequest request, CancellationToken ct) =>
+        Envelope(await dashboard.SaveWidgetAsync(key, request, ct), "Kutucuk ayarı kaydedildi.");
+}
+
+/// <summary>Giriş sonrası portal akışları: doğum günleri, aramıza katılanlar, etkinlikler, takdirler.</summary>
+[Route("api/portal")]
+public sealed class PortalController(IPortalService portal) : ApiControllerBase
+{
+    [HttpGet("birthdays")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<BirthdayDto>>>> Birthdays(CancellationToken ct) => Envelope(await portal.BirthdaysAsync(ct));
+
+    [HttpGet("new-hires")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<NewHireDto>>>> NewHires(CancellationToken ct) => Envelope(await portal.NewHiresAsync(ct));
+
+    [HttpGet("events")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CompanyEventDto>>>> Events(CancellationToken ct) => Envelope(await portal.UpcomingEventsAsync(ct));
+
+    [HttpGet("recognitions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RecognitionDto>>>> Recognitions(CancellationToken ct) => Envelope(await portal.RecentRecognitionsAsync(ct));
+}
+
+/// <summary>Genel arama: kişi, departman, duyuru, talep (her grup kullanıcının görebildiğiyle sınırlı).</summary>
+[Route("api/search")]
+public sealed class SearchController(IPortalService portal) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<SearchResultDto>>> Search([FromQuery] string? q, CancellationToken ct) => Envelope(await portal.SearchAsync(q ?? "", ct));
+}
+
+/// <summary>Portal içerik yönetimi: etkinlikler (content.manage), takdirler (content.manage veya İK).</summary>
+[Route("api/content/portal")]
+public sealed class PortalContentController(IPortalService portal) : ApiControllerBase
+{
+    [HttpGet("events"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CompanyEventDto>>>> Events(CancellationToken ct) => Envelope(await portal.AllEventsAsync(ct));
+
+    [HttpPost("events"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<CompanyEventDto>>> CreateEvent(UpsertCompanyEventRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<CompanyEventDto>.Ok(await portal.SaveEventAsync(null, request, ct), "Etkinlik kaydedildi."));
+
+    [HttpPut("events/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<ActionResult<ApiResponse<CompanyEventDto>>> UpdateEvent(int id, UpsertCompanyEventRequest request, CancellationToken ct) =>
+        Envelope(await portal.SaveEventAsync(id, request, ct), "Etkinlik güncellendi.");
+
+    [HttpDelete("events/{id:int}"), RequirePermission(Permissions.ContentManage)]
+    public async Task<IActionResult> DeleteEvent(int id, CancellationToken ct)
+    {
+        await portal.DeleteEventAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("recognitions"), RequirePermission(Permissions.ContentManage, Permissions.EmployeesManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RecognitionDto>>>> Recognitions(CancellationToken ct) => Envelope(await portal.AllRecognitionsAsync(ct));
+
+    [HttpPost("recognitions"), RequirePermission(Permissions.ContentManage, Permissions.EmployeesManage)]
+    public async Task<ActionResult<ApiResponse<RecognitionDto>>> CreateRecognition(UpsertRecognitionRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<RecognitionDto>.Ok(await portal.SaveRecognitionAsync(null, request, ct), "Takdir kaydedildi."));
+
+    [HttpPut("recognitions/{id:int}"), RequirePermission(Permissions.ContentManage, Permissions.EmployeesManage)]
+    public async Task<ActionResult<ApiResponse<RecognitionDto>>> UpdateRecognition(int id, UpsertRecognitionRequest request, CancellationToken ct) =>
+        Envelope(await portal.SaveRecognitionAsync(id, request, ct), "Takdir güncellendi.");
+
+    [HttpDelete("recognitions/{id:int}"), RequirePermission(Permissions.ContentManage, Permissions.EmployeesManage)]
+    public async Task<IActionResult> DeleteRecognition(int id, CancellationToken ct)
+    {
+        await portal.DeleteRecognitionAsync(id, ct);
+        return NoContent();
     }
 }

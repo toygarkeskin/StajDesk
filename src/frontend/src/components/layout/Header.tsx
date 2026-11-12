@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun, UserRound } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Menu, Moon, Sun, UserRound } from 'lucide-react'
 import { api } from '@/lib/api'
 import { usePopover } from '@/lib/hooks'
 import { timeAgo } from '@/lib/format'
@@ -13,6 +12,7 @@ import { useAuth } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
 import { IconButton, Tooltip } from '../ui'
 import { PersonAvatar } from '../AuthImage'
+import { GlobalSearch } from './GlobalSearch'
 
 function NotificationsMenu({ live }: { live: boolean }) {
   const pop = usePopover()
@@ -148,28 +148,7 @@ export function Header() {
   const setSidebarOpen = useUi((s) => s.setSidebarOpen)
   const theme = useUi((s) => s.theme)
   const toggleTheme = useUi((s) => s.toggleTheme)
-  const navigate = useNavigate()
-  const [q, setQ] = useState("")
-  const searchRef = useRef<HTMLInputElement>(null)
   const realtime = useRealtime()
-
-  // Ctrl+K / ⌘K: aramaya odaklan
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        if (searchRef.current?.offsetParent) searchRef.current.focus()
-        else navigate('/tickets')
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [navigate])
-
-  const onSearch = (e: FormEvent) => {
-    e.preventDefault()
-    navigate(`/tickets?search=${encodeURIComponent(q.trim())}`)
-  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-md dark:border-gray-700/60 dark:bg-gray-900/80">
@@ -178,17 +157,9 @@ export function Header() {
           <div className="md:hidden">
             <IconButton label="Menüyü aç" onClick={() => setSidebarOpen(true)}><Menu className="size-6" /></IconButton>
           </div>
-          <form role="search" onSubmit={onSearch} className="relative hidden w-full max-w-sm md:block">
-            <label htmlFor="header-search" className="sr-only">Talep ara</label>
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
-            <input ref={searchRef} id="header-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} className="form-field pr-16 pl-9" placeholder="Talep ara (başlık, açıklama veya #numara)…" />
-            <kbd className="pointer-events-none absolute top-1/2 right-3 hidden -translate-y-1/2 rounded border border-gray-200 px-1.5 text-[11px] font-medium text-gray-400 lg:block dark:border-gray-700">Ctrl K</kbd>
-          </form>
+          <GlobalSearch />
         </div>
         <div className="flex items-center gap-1">
-          <div className="md:hidden">
-            <IconButton label="Taleplerde ara" onClick={() => navigate('/tickets')}><Search className="size-[18px]" /></IconButton>
-          </div>
           <LiveDot status={realtime} />
           <NotificationsMenu live={realtime === 'live'} />
           <IconButton label={theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"} onClick={toggleTheme}>

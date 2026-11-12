@@ -1,4 +1,4 @@
-import { useDeferredValue, useState, type ReactNode } from 'react'
+import { Fragment, useDeferredValue, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArcElement, BarElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js'
@@ -6,7 +6,7 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2'
 import clsx from 'clsx'
 import {
   Activity as ActivityIcon, AlertOctagon, CalendarClock, CheckCheck, ClipboardList, Hourglass, Mail, Megaphone, Phone, Pin,
-  Plus, Search, ShieldAlert, Timer, UserRoundSearch, Users,
+  LayoutGrid, Plus, Search, Settings2, ShieldAlert, Timer, UserRoundSearch, Users,
 } from 'lucide-react'
 import { api, errorDetails, errorMessage } from '@/lib/api'
 import { colorOf, priorityLabels, statusLabels } from '@/lib/labels'
@@ -19,6 +19,10 @@ import { NumberTile, Widget, WidgetEmpty } from '@/components/widgets'
 import { GoldCard, RatesCard, WeatherCard } from '@/components/LiveCards'
 import { AdCard } from '@/components/Ads'
 import { siteApi } from '@/lib/site'
+import { portalApi, sizeClass } from '@/lib/portal'
+import {
+  BirthdaysWidget, DashboardEditor, EventsWidget, LayoutError, NewHiresWidget, OpenPositionsWidget, PendingAccountsWidget, ProfileWidget, RecognitionsWidget,
+} from '@/components/PortalWidgets'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend, Filler)
 
@@ -44,6 +48,8 @@ export function DashboardPage() {
   const { can } = useCan()
   const home = useQuery({ queryKey: ['home'], queryFn: api.home, refetchInterval: 120_000 })
   const stats = useQuery({ queryKey: ['stats'], queryFn: api.stats.dashboard, refetchInterval: 120_000 })
+  const layout = useQuery({ queryKey: ['dashboard', 'layout'], queryFn: portalApi.layout, staleTime: 5 * 60_000 })
+  const [editing, setEditing] = useState(false)
 
   if (home.isError) return <div className="card"><ErrorState message={errorMessage(home.error)} details={errorDetails(home.error)} onRetry={() => home.refetch()} /></div>
   if (home.isLoading || !home.data) {
@@ -59,63 +65,81 @@ export function DashboardPage() {
   const h = home.data
   const s = stats.data
   const isStaff = can('tickets.manage')
-  const canLookup = can('tickets.manage', 'users.manage', 'assets.manage')
+  const widgets = layout.data?.widgets ?? []
+
+  /** Kutucuk anahtarı → bileşen. Görünürlük (izin + rol + kişisel tercih) sunucuda hesaplanır; burada yalnızca çizilir. */
+  const render = (key: string, cls: string): ReactNode => {
+    switch (key) {
+      case 'welcome': return <WelcomeWidget h={h} className={cls} />
+      case 'profile': return <ProfileWidget className={cls} />
+      case 'announcements': return <AnnouncementsWidget items={h.announcements} canManage={can('announcements.manage')} className={cls} />
+      case 'oncall': return <OnCallWidget shifts={h.onCall} canManage={can('oncall.manage')} className={cls} />
+      case 'weather': return <WeatherCard className={cls} />
+      case 'rates': return <RatesCard className={cls} />
+      case 'gold': return <GoldCard className={cls} />
+      case 'portal-ads': return <PortalAds className={cls} />
+      case 'ticket-counters': return (
+        <div className={clsx(cls, 'space-y-4')}>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+            <TogetherTile since={h.welcome.memberSince} />
+            {s ? (
+              <>
+                <NumberTile label="Açık" value={s.open} accent="bg-sky-500" hint={`${s.scopeLabel} · toplam ${s.total}`} to="/tickets?status=Open" />
+                <NumberTile label="İşlemde" value={s.inProgress} accent="bg-amber-500" hint="Üzerinde çalışılıyor" to="/tickets?status=InProgress" />
+                <NumberTile label="Beklemede" value={s.pending} accent="bg-violet-500" hint="Kullanıcı / parça bekleniyor" to="/tickets?status=Pending" />
+                <NumberTile label="Çözüldü" value={s.resolved} accent="bg-emerald-500" hint={`Kapanan: ${s.closed}`} to="/tickets?status=Resolved" />
+                {isStaff
+                  ? <NumberTile label="Atanmamış" value={s.unassigned} accent="bg-rose-500" hint={`Kritik açık: ${s.criticalOpen}`} to="/tickets?unassigned=true&activeOnly=true" />
+                  : <NumberTile label="Cihazlarım" value={h.counters.myAssets} accent="bg-teal-500" hint="Size zimmetli" to={can('assets.read.all', 'assets.read.store') ? '/assets' : undefined} />}
+              </>
+            ) : Array.from({ length: 5 }).map((_, i) => <BlockSkeleton key={i} className="h-28" />)}
+          </div>
+          {isStaff && s && s.criticalOpen > 0 && (
+            <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl bg-rose-500/10 px-4 py-1 text-sm text-rose-700 dark:text-rose-400">
+              <AlertOctagon className="size-5 shrink-0" aria-hidden="true" />
+              <span className="flex-1">{s.criticalOpen} adet kritik öncelikli açık talep var.</span>
+              <Link to="/tickets?priority=Critical&activeOnly=true" className="inline-flex min-h-11 items-center font-medium underline">Kritik talepleri aç</Link>
+            </div>
+          )}
+        </div>
+      )
+      case 'approvals': return <ApprovalsWidget items={h.awaitingApproval} className={cls} />
+      case 'tasks': return isStaff
+        ? <TicketListWidget title="Görevlerim" icon={<ClipboardList className="size-4" />} items={h.myTasks} empty="Size atanmış açık talep yok. Atanmamış taleplerden birini üzerinize alabilirsiniz." action={{ label: 'Tümü', to: '/tickets?mine=1' }} className={cls} />
+        : <TicketListWidget title="Son taleplerim" icon={<ClipboardList className="size-4" />} items={s?.recent ?? []} empty="Henüz talep açmadınız." action={{ label: 'Tümü', to: '/tickets' }} className={cls} />
+      case 'activity': return <ActivityWidget items={h.activity} className={cls} />
+      case 'birthdays': return <BirthdaysWidget className={cls} />
+      case 'new-hires': return <NewHiresWidget className={cls} />
+      case 'recognitions': return <RecognitionsWidget className={cls} />
+      case 'events': return <EventsWidget className={cls} />
+      case 'open-positions': return <OpenPositionsWidget className={cls} />
+      case 'people-search': return <PeopleSearchWidget className={cls} />
+      case 'pending-accounts': return <PendingAccountsWidget className={cls} />
+      case 'ticket-trend': return s ? <TrendWidget s={s} className={cls} /> : <BlockSkeleton className={clsx(cls, 'h-64')} />
+      case 'ticket-charts': return s ? <ChartsRow s={s} isStaff={isStaff} /> : null
+      default: return null // bilinmeyen anahtar (ör. yeni sürümde eklenmiş) sessizce atlanır
+    }
+  }
 
   return (
     <>
-      <h1 className="sr-only">Ana sayfa</h1>
-      <div className="grid grid-cols-12 gap-4">
-        {/* ---------- 1. sıra ---------- */}
-        <WelcomeWidget h={h} className="col-span-12 md:col-span-6 xl:col-span-4" />
-        <AnnouncementsWidget items={h.announcements} canManage={can('announcements.manage')} className="col-span-12 md:col-span-6 xl:col-span-4" />
-        <OnCallWidget shifts={h.onCall} canManage={can('oncall.manage')} className="col-span-12 xl:col-span-4" />
-
-        {/* ---------- Bilgi kartları: canlı hava, kur, altın (sunucu üzerinden, kaynaklı) ---------- */}
-        <WeatherCard className="col-span-12 md:col-span-6 xl:col-span-4" />
-        <RatesCard className="col-span-12 md:col-span-6 xl:col-span-4" />
-        <div className="col-span-12 flex flex-col gap-4 xl:col-span-4">
-          <GoldCard />
-          <PortalAds />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold">Ana sayfa</h1>
+        <div className="flex gap-2">
+          {can('widgets.manage') && <Link to="/admin/widgets" className="btn-secondary"><Settings2 className="size-4" aria-hidden="true" /> Kutucukları yönet</Link>}
+          <button type="button" className="btn-secondary" disabled={!layout.data} onClick={() => setEditing(true)}><LayoutGrid className="size-4" aria-hidden="true" /> Panelimi düzenle</button>
         </div>
-
-        {/* ---------- 2. sıra: sayaçlar ---------- */}
-        <div className="col-span-12 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <TogetherTile since={h.welcome.memberSince} />
-          {s ? (
-            <>
-              <NumberTile label="Açık" value={s.open} accent="bg-sky-500" hint={`${s.scopeLabel} · toplam ${s.total}`} to="/tickets?status=Open" />
-              <NumberTile label="İşlemde" value={s.inProgress} accent="bg-amber-500" hint="Üzerinde çalışılıyor" to="/tickets?status=InProgress" />
-              <NumberTile label="Beklemede" value={s.pending} accent="bg-violet-500" hint="Kullanıcı / parça bekleniyor" to="/tickets?status=Pending" />
-              <NumberTile label="Çözüldü" value={s.resolved} accent="bg-emerald-500" hint={`Kapanan: ${s.closed}`} to="/tickets?status=Resolved" />
-              {isStaff
-                ? <NumberTile label="Atanmamış" value={s.unassigned} accent="bg-rose-500" hint={`Kritik açık: ${s.criticalOpen}`} to="/tickets?unassigned=true&activeOnly=true" />
-                : <NumberTile label="Cihazlarım" value={h.counters.myAssets} accent="bg-teal-500" hint="Size zimmetli" to={can('assets.read.all', 'assets.read.store') ? '/assets' : undefined} />}
-            </>
-          ) : Array.from({ length: 5 }).map((_, i) => <BlockSkeleton key={i} className="h-28" />)}
-        </div>
-
-        {isStaff && s && s.criticalOpen > 0 && (
-          <div role="status" className="col-span-12 flex flex-wrap items-center gap-3 rounded-xl bg-rose-500/10 px-4 py-1 text-sm text-rose-700 dark:text-rose-400">
-            <AlertOctagon className="size-5 shrink-0" aria-hidden="true" />
-            <span className="flex-1">{s.criticalOpen} adet kritik öncelikli açık talep var.</span>
-            <Link to="/tickets?priority=Critical&activeOnly=true" className="inline-flex min-h-11 items-center font-medium underline">Kritik talepleri aç</Link>
-          </div>
-        )}
-
-        {/* ---------- 3. sıra ---------- */}
-        <ApprovalsWidget items={h.awaitingApproval} className="col-span-12 md:col-span-6 xl:col-span-4" />
-        {isStaff
-          ? <TicketListWidget title="Görevlerim" icon={<ClipboardList className="size-4" />} items={h.myTasks} empty="Size atanmış açık talep yok. Atanmamış taleplerden birini üzerinize alabilirsiniz." action={{ label: 'Tümü', to: '/tickets?mine=1' }} className="col-span-12 md:col-span-6 xl:col-span-4" />
-          : <TicketListWidget title="Son taleplerim" icon={<ClipboardList className="size-4" />} items={s?.recent ?? []} empty="Henüz talep açmadınız." action={{ label: 'Tümü', to: '/tickets' }} className="col-span-12 md:col-span-6 xl:col-span-4" />}
-        <ActivityWidget items={h.activity} className="col-span-12 xl:col-span-4" />
-
-        {/* ---------- 4. sıra ---------- */}
-        {canLookup && <PeopleSearchWidget className="col-span-12 md:col-span-6 xl:col-span-4" />}
-        {s && <TrendWidget s={s} className={clsx('col-span-12', canLookup ? 'md:col-span-6 xl:col-span-8' : '')} />}
-
-        {/* ---------- 5. sıra ---------- */}
-        {s && <ChartsRow s={s} isStaff={isStaff} />}
       </div>
+      {layout.isError ? <LayoutError error={layout.error} onRetry={() => layout.refetch()} /> : widgets.length === 0 && layout.data ? (
+        <div className="card p-8 text-center text-sm text-gray-500">
+          Tüm kutucukları gizlediniz. <button type="button" className="font-medium text-violet-600 dark:text-violet-400" onClick={() => setEditing(true)}>Panelimi düzenle</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-12 gap-4">
+          {widgets.map((w) => <Fragment key={w.key}>{render(w.key, sizeClass[w.size])}</Fragment>)}
+        </div>
+      )}
+      {editing && layout.data && <DashboardEditor layout={layout.data} onClose={() => setEditing(false)} />}
     </>
   )
 }
@@ -527,8 +551,8 @@ function ChartsRow({ s, isStaff }: { s: Stats; isStaff: boolean }) {
    Portal reklam/duyuru bannerları (Kurumsal site → Reklam ve bannerlar, sayfa: Portal)
    ========================================================= */
 
-function PortalAds() {
+function PortalAds({ className }: { className?: string }) {
   const q = useQuery({ queryKey: ['site', 'ads', 'Portal'], queryFn: () => siteApi.ads('Portal'), staleTime: 5 * 60_000 })
-  if (!q.data?.length) return null
-  return <>{q.data.slice(0, 2).map((a) => <AdCard key={a.id} ad={a} tone="auto" />)}</>
+  if (!q.data?.length) return null // yayında banner yoksa yer kaplamaz
+  return <div className={clsx(className, 'flex flex-col gap-4')}>{q.data.slice(0, 2).map((a) => <AdCard key={a.id} ad={a} tone="auto" />)}</div>
 }
