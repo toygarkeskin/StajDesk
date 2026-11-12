@@ -30,7 +30,8 @@ docker compose up -d --build
 
 | Adres | Ne var? |
 |---|---|
-| http://localhost:8080 | StajDesk arayüzü |
+| http://localhost:8080 | Kurumsal site (herkese açık); "Portala Git" → giriş |
+| http://localhost:8080/portal | Çalışan portalı (giriş sonrası) |
 | http://localhost:5080/docs | API dokümantasyonu (Scalar / OpenAPI) |
 | http://localhost:8025 | Mailpit — uygulamanın gönderdiği tüm e-postalar |
 | http://localhost:5380 | Seq — tüm servislerin logları |
@@ -114,6 +115,7 @@ bash scripts/smoke-test.sh
 | [docs/SECURITY.md](docs/SECURITY.md) | XSS, CSP, hız sınırı, denetim kaydı, kontrol listesi |
 | [docs/DEMO.md](docs/DEMO.md) | Demo hesapları ve adım adım deneme senaryosu |
 | [docs/ORGANIZASYON.md](docs/ORGANIZASYON.md) | Departman, unvan, yönetici, personel kartı, İK rolü, e-posta doğrulama, davet, SMS doğrulaması |
+| [docs/KURUMSAL_SITE.md](docs/KURUMSAL_SITE.md) | Kurumsal karşılama sitesi, reklam/banner yönetimi, canlı hava/kur/altın verisi |
 | [docs/PORTAL_ANALIZ.md](docs/PORTAL_ANALIZ.md) | Kurumsal portal analizi, kararlar ve aşama planı |
 | [docs/GELISTIRME_LOG.md](docs/GELISTIRME_LOG.md) | Geliştirme günlüğü: tamamlananlar, hatalar ve çözümler |
 | [docs/PANEL.md](docs/PANEL.md) | Ana sayfa paneli, duyurular, nöbet çizelgesi, dosya ekleri, anlık bildirim, tam metin arama |

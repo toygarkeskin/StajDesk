@@ -47,6 +47,8 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `employees.manage` — personel kaydı ve iş bilgileri (İK) | ✔ | | | |
 | `org.manage` — departman ve unvan yönetimi | ✔ | | | |
 | `accounts.request` — hesap açma / kapatma talebi (İK) | ✔ | | | |
+| `content.manage` — kurumsal site: haber, açık pozisyon, site metinleri | ✔ | | | |
+| `ads.manage` — reklam / banner yönetimi ve istatistikleri | ✔ | | | |
 
 **İK Personeli (`hr`)**: `employees.read.private`, `employees.manage`, `accounts.request` — personel bilgisi ve hesap **talebi**; hesap açamaz, rol veremez.
 **BT Hesap Yöneticisi (`it_admin`)**: `users.read`, `users.manage`, `audit.read` — talepleri onaylar, hesap açar/kapatır/kilitler;

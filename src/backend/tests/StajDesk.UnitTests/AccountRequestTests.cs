@@ -153,6 +153,24 @@ public class AccountRequestTests
     }
 
     [Fact]
+    public async Task Closing_account_of_employee_who_never_started_does_not_break_date_rule()
+    {
+        // İşe başlama 1 Aralık, kapatma 12 Kasım: çalışan hiç başlamadı (işe başlamadan iptal).
+        _db.EmployeeProfiles.Add(new EmployeeProfile { UserId = _employee.Id, HireDate = new DateOnly(2026, 12, 1) });
+        _db.SaveChanges();
+        _current.As(_hr, RoleNames.Hr);
+        var id = await Requests().CreateDeactivationAsync(new CreateDeactivationRequest(_employee.Id, new DateOnly(2026, 11, 12), null));
+
+        _current.As(_it, RoleNames.ItAdmin);
+        await Requests().ApproveAsync(id, new ApproveAccountRequest(null, null, null));
+
+        Assert.False(_db.Users.Single(u => u.Id == _employee.Id).IsActive);
+        var profile = _db.EmployeeProfiles.Single(p => p.UserId == _employee.Id);
+        Assert.True(profile.TerminationDate >= profile.HireDate); // veritabanı kuralı (ck_employee_profiles_dates) korunur
+        Assert.Equal(new DateOnly(2026, 12, 1), profile.TerminationDate);
+    }
+
+    [Fact]
     public async Task It_locks_and_unlocks_account_with_audit()
     {
         _db.RefreshTokens.Add(new RefreshToken { TokenHash = "h2", UserId = _employee.Id, ClientId = "web", FamilyId = Guid.NewGuid(), ExpiresAt = DateTime.UtcNow.AddDays(1) });

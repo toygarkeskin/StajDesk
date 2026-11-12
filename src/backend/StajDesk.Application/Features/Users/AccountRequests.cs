@@ -251,10 +251,13 @@ internal sealed class AccountRequestService(
         user.IsActive = false;
         user.UpdatedAt = DateTime.UtcNow;
         user.Profile ??= new EmployeeProfile { UserId = user.Id };
-        user.Profile.TerminationDate = req.TerminationDate;
+        // İşe başlamadan iptal: ayrılış tarihi işe başlama tarihinden önceyse çalışan hiç başlamamıştır.
+        // Hesap yine kapatılır; ayrılış tarihi işe başlama tarihine eşitlenir (sıfır gün), istenen tarih denetim kaydında kalır.
+        var startCancelled = req.TerminationDate is { } td && user.Profile.HireDate is { } hd && td < hd;
+        user.Profile.TerminationDate = startCancelled ? user.Profile.HireDate : req.TerminationDate;
         foreach (var t in await db.RefreshTokens.Where(t => t.UserId == user.Id && t.RevokedAt == null).ToListAsync(ct)) t.RevokedAt = DateTime.UtcNow;
         await cache.RemoveAsync(CacheKeys.Permissions(user.Id), ct);
-        audit.Add("user.deactivated", "user", user.Id, new { fromRequest = req.Id, req.TerminationDate });
+        audit.Add("user.deactivated", "user", user.Id, new { fromRequest = req.Id, requestedTerminationDate = req.TerminationDate, user.Profile.TerminationDate, startCancelled });
     }
 
     public async Task<AccountRequestDto> RejectAsync(int id, RejectAccountRequest r, CancellationToken ct = default)

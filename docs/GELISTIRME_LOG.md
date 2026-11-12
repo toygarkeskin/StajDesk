@@ -58,3 +58,29 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 
 **Bekleyen:** departman / unvan CSV dosyası ulaşmadı.
 **Ara verilen:** Aşama 4 (karşılama sitesi) yarım işi `phase4-wip-landing-20261112` adlı stash'te; bu revizyondan sonra devam edilecek.
+
+## 12.11.2026 — CSV ile toplu çalışan ekleme
+
+**Yapılan:** Departmanlar ve unvanlar ekranına "CSV ile çalışan ekle". Kapalı portal kuralı korundu: CSV hesap açmaz; her geçerli satır BT onayına düşen bir hesap talebi olur. Önce önizleme (satır satır hata), sonra gönderim. Eksik departman ve unvan yalnızca `org.manage` ile oluşturulur. `;` ve `,` ayırıcı, UTF-8 ve Windows-1254 desteklenir.
+
+**Hata → çözüm:** Kullanıcı gerçek dosyasında "en fazla 500 satır" hatası aldı. Excel dosya sonuna tamamen boş satırlar (`;;;;`) ekliyor ve bunlar sayılıyordu. Boş satırlar ayrıştırmada atlanıyor; sınır 5.000 satır / 5 MB'a çıktı. Önizleme tüm hatalı satırları ve geçerlilerin ilk 200'ünü gösteriyor.
+
+**Doğrulama:** 10 birim testi (600 satır + 2.000 boş satır, sınır aşımı, kodlama, tekrarlar, yetki); smoke testine 3 kontrol.
+
+## 12.11.2026 — Aşama 4: Kurumsal karşılama sitesi
+
+**Yapılan**
+- Herkese açık site (`/`): lacivert üst menü, mobil çekmece, dönen banner, istatistikler, duyurular, haberler, departmanlar, açık pozisyonlar, kurumsal bağlantılar, footer. Alt sayfalar: Hakkımızda, Departmanlarımız, Uygulamalar, Duyurular, Haberler (+detay), Kariyer (+detay, arama), İletişim, 404.
+- Portal paneli `/` → `/portal` adresine taşındı; "Portala Git" oturum yoksa girişe yönlendirir.
+- İçerik yönetimi (`/admin/content`): reklam/banner (görsel yükleme, sayfa, konum, sıra, tarih aralığı, aktif/pasif, gösterim, tıklama, oran, son 30 gün), haber, açık pozisyon, site metinleri ve kurumsal bağlantılar. İzinler: `ads.manage`, `content.manage`.
+- Canlı veri: Open-Meteo hava durumu (şehir seçilebilir), TCMB USD/EUR/GBP. Sunucu üzerinden alınır, önbelleklenir, son başarılı veri saklanır, kaynak ve zaman gösterilir. Gram altın "yapılandırılmadı" (sahte veri yok). Kartlar portal panelinde de var; portal reklamları panelde gösteriliyor.
+
+**Hata → çözüm**
+- Hesap kapatma onayı 500 veriyordu: işe başlama tarihi ileride (1 Aralık) olan çalışan için bugünkü ayrılış tarihi `ck_employee_profiles_dates` kuralını ihlal ediyordu. "İşe başlamadan iptal" olarak ele alındı: hesap kapanır, ayrılış tarihi işe başlama tarihine eşitlenir, istenen tarih denetim kaydında kalır. Birim testi eklendi.
+- Banner görseli ilk ekranda geç görünüyordu (tembel yükleme): üst banner hemen yükleniyor.
+- Mobilde banner düğmeleri açıklama metninin üstüne biniyordu: metin yukarı hizalandı.
+- 5432 portu başka bir projenin PostgreSQL'i tarafından kullanılıyordu: bu ortamda `POSTGRES_PORT=5433` ile çalıştırıldı (`.env.example`'da belgelenmiş ayar).
+
+**Doğrulama:** 111 birim testi; tip kontrolü + derleme; tarayıcıda masaüstü ve mobil (375 px, yatay taşma yok), hamburger menü, haber/ilan detayı, taslak haber 404, içerik yönetimi formu ve doğrulaması, portal paneli. Smoke: kurumsal site kontrollerinin demo hesap gerektirmeyenleri geçti. Demo hesapları (ayse, deniz.ik, kaan…) ortamda pasife alındığı için giriş gerektiren kontroller bu çalıştırmada doğrulanamadı.
+
+**Bekleyen:** gram altın sağlayıcısı, Open-Meteo ticari planı, açık tema ekran görüntüsü, departman/unvan CSV'si.

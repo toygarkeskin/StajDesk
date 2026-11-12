@@ -16,6 +16,9 @@ import { useCan } from '@/stores/auth'
 import { toast, useUi } from '@/stores/ui'
 import { Avatar, BlockSkeleton, ErrorState, PriorityText, StatusBadge } from '@/components/ui'
 import { NumberTile, Widget, WidgetEmpty } from '@/components/widgets'
+import { GoldCard, RatesCard, WeatherCard } from '@/components/LiveCards'
+import { AdCard } from '@/components/Ads'
+import { siteApi } from '@/lib/site'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend, Filler)
 
@@ -66,6 +69,14 @@ export function DashboardPage() {
         <WelcomeWidget h={h} className="col-span-12 md:col-span-6 xl:col-span-4" />
         <AnnouncementsWidget items={h.announcements} canManage={can('announcements.manage')} className="col-span-12 md:col-span-6 xl:col-span-4" />
         <OnCallWidget shifts={h.onCall} canManage={can('oncall.manage')} className="col-span-12 xl:col-span-4" />
+
+        {/* ---------- Bilgi kartları: canlı hava, kur, altın (sunucu üzerinden, kaynaklı) ---------- */}
+        <WeatherCard className="col-span-12 md:col-span-6 xl:col-span-4" />
+        <RatesCard className="col-span-12 md:col-span-6 xl:col-span-4" />
+        <div className="col-span-12 flex flex-col gap-4 xl:col-span-4">
+          <GoldCard />
+          <PortalAds />
+        </div>
 
         {/* ---------- 2. sıra: sayaçlar ---------- */}
         <div className="col-span-12 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -510,4 +521,14 @@ function ChartsRow({ s, isStaff }: { s: Stats; isStaff: boolean }) {
       </Widget>
     </>
   )
+}
+
+/* =========================================================
+   Portal reklam/duyuru bannerları (Kurumsal site → Reklam ve bannerlar, sayfa: Portal)
+   ========================================================= */
+
+function PortalAds() {
+  const q = useQuery({ queryKey: ['site', 'ads', 'Portal'], queryFn: () => siteApi.ads('Portal'), staleTime: 5 * 60_000 })
+  if (!q.data?.length) return null
+  return <>{q.data.slice(0, 2).map((a) => <AdCard key={a.id} ad={a} tone="auto" />)}</>
 }

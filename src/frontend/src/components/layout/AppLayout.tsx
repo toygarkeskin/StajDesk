@@ -47,7 +47,7 @@ export function RequireAuth({ perms, children }: { perms?: Permission[]; childre
   const location = useLocation()
   if (restoring) return <div className="flex h-dvh items-center justify-center text-sm text-gray-500" aria-busy="true">Oturum yükleniyor…</div>
   if (!me) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
-  if (perms && !can(...perms)) return <Navigate to="/" replace />
+  if (perms && !can(...perms)) return <Navigate to="/portal" replace />
   return <>{children}</>
 }
 

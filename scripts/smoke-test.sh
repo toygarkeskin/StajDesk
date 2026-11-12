@@ -148,6 +148,20 @@ check "BT hesabı kilitler" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$
 # Test hesabını kapat (rehberde kalmasın)
 check "BT test hesabını pasife alır" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API/api/users/$NEW_ID" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d '{"fullName":"Duman Test","roles":["user"],"isActive":false}')" 200
 
+echo "== Kurumsal site (herkese açık) ve içerik yönetimi"
+check "Kurumsal ana sayfa verisi (oturumsuz)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/public/landing")" 200
+check "Herkese açık sitede kişisel veri yok (e-posta alanı dönmez)" "$(curl -s "$API/api/public/landing" | grep -c '"email"')" 0
+check "Taslak haber herkese açık değil (404)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/public/news/taslak-haber")" 404
+check "Hava durumu kaynaklı döner" "$(curl -s "$API/api/public/weather" | grep -oE '"status":"(live|stale|unavailable)"' | head -1 | grep -c status)" 1
+check "Döviz kuru kaynaklı döner" "$(curl -s "$API/api/public/rates" | grep -oE '"status":"(live|stale|unavailable)"' | head -1 | grep -c status)" 1
+check "Gram altın sahte veri üretmez (yapılandırılmadı)" "$(curl -s "$API/api/public/gold" | grep -c '"status":"not_configured"')" 1
+check "Reklam tıklaması güvenli yönlendirme (302)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/public/ads/1/click")" 302
+check "İçerik yönetimi oturumsuz kapalı (401)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/ads")" 401
+check "Çalışan reklam yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/ads" -H "Authorization: Bearer $USER")" 403
+check "İK haber yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/news" -H "Authorization: Bearer $HR")" 403
+check "Yönetici reklam listesini görür" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/ads" -H "Authorization: Bearer $ADMIN")" 200
+check "Reklamda javascript: bağlantısı reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/content/ads" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"title":"x","imageKey":"00000000000000000000000000000000","linkUrl":"javascript:alert(1)","page":"Landing","placement":"Hero","sortOrder":1,"startsAt":"2026-01-01T00:00:00Z","isActive":true}')" 400
+
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null
 sleep 4

@@ -18,7 +18,7 @@ function AuthCard({ title, description, children, footer }: { title: string; des
         <div className="md:w-1/2">
           <div className="flex min-h-dvh flex-col after:flex-1">
             <div className="flex-1">
-              <div className="flex h-16 items-center px-4 md:px-8"><Logo /></div>
+              <div className="flex h-16 items-center px-4 md:px-8"><Logo to="/" /></div>
             </div>
             <div className="mx-auto w-full max-w-sm px-4 py-8">
               <h1 className="mb-1 text-3xl font-bold">{title}</h1>
@@ -111,13 +111,13 @@ export function LoginPage() {
   const form = useForm({ email: '', password: '' }, { email: loginRule, password: (v) => (!v ? 'Şifrenizi girin.' : undefined) })
 
   if (restoring) return null
-  if (me) return <Navigate to="/" replace />
+  if (me) return <Navigate to="/portal" replace />
 
   const finish = async (token: TokenResponse) => {
     setToken(token.access_token, token.expires_in)
     setMe(await api.auth.me())
     const from = (location.state as { from?: string } | null)?.from
-    navigate(from && from !== '/login' ? from : '/', { replace: true })
+    navigate(from && from !== '/login' ? from : '/portal', { replace: true })
   }
 
   const submit = async (e: FormEvent) => {

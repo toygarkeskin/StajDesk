@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
 
-export function Logo({ withText = true }: { withText?: boolean }) {
+export function Logo({ withText = true, to = '/portal' }: { withText?: boolean; to?: string }) {
   return (
-    <Link to="/" className="inline-flex min-h-11 items-center gap-2" aria-label="StajDesk ana sayfa">
+    <Link to={to} className="inline-flex min-h-11 items-center gap-2" aria-label={to === '/' ? 'StajDesk kurumsal site' : 'StajDesk portal ana sayfası'}>
       <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
         <defs>
           <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">

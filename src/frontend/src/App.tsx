@@ -19,6 +19,12 @@ import { CategoriesPage } from './pages/CategoriesPage'
 import { UsersPage } from './pages/UsersPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PublicLayout } from './pages/site/PublicLayout'
+import {
+  AboutPage, AppsPage, CareersPage, ContactPage, DepartmentsPage, HomePage, JobDetailPage, NewsDetailPage, NewsListPage,
+  PublicAnnouncementsPage, PublicNotFoundPage,
+} from './pages/site/PublicPages'
+import { ContentAdminPage } from './pages/ContentAdminPage'
 
 
 
@@ -29,10 +35,27 @@ export const router = createBrowserRouter([
   { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/set-password', element: <SetPasswordPage /> },
   { path: '/oauth/authorize', element: <OAuthAuthorizePage /> },
+  // Kurumsal karşılama sitesi (giriş gerektirmez, Türkçe adresler)
+  {
+    element: <PublicLayout />,
+    children: [
+      { index: true, element: <HomePage /> },
+      { path: 'hakkimizda', element: <AboutPage /> },
+      { path: 'departmanlarimiz', element: <DepartmentsPage /> },
+      { path: 'uygulamalar', element: <AppsPage /> },
+      { path: 'duyurular', element: <PublicAnnouncementsPage /> },
+      { path: 'haberler', element: <NewsListPage /> },
+      { path: 'haberler/:slug', element: <NewsDetailPage /> },
+      { path: 'kariyer', element: <CareersPage /> },
+      { path: 'kariyer/:id', element: <JobDetailPage /> },
+      { path: 'iletisim', element: <ContactPage /> },
+      { path: '*', element: <PublicNotFoundPage /> },
+    ],
+  },
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: <DashboardPage /> },
+      { path: 'portal', element: <DashboardPage /> },
       { path: 'tickets', element: <TicketsPage /> },
       { path: 'tickets/new', element: <NewTicketPage /> },
       { path: 'tickets/:id', element: <TicketDetailPage /> },
@@ -55,7 +78,8 @@ export const router = createBrowserRouter([
       { path: 'admin/audit', element: <RequireAuth perms={['audit.read']}><AuditPage /></RequireAuth> },
       { path: 'admin/emails', element: <RequireAuth perms={['mail.read']}><EmailsPage /></RequireAuth> },
       { path: 'admin/users', element: <RequireAuth perms={['users.read', 'users.manage']}><UsersPage /></RequireAuth> },
-      { path: '*', element: <NotFoundPage /> },
+      { path: 'admin/content', element: <RequireAuth perms={['content.manage', 'ads.manage']}><ContentAdminPage /></RequireAuth> },
+      { path: 'portal/*', element: <NotFoundPage /> },
     ],
   },
 ])

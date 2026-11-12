@@ -16,6 +16,7 @@ export type Permission =
   | 'users.read' | 'users.manage' | 'roles.manage' | 'reports.read.store' | 'reports.read.all'
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
   | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
+  | 'content.manage' | 'ads.manage'
 
 export interface ApiResponse<T> {
   success: boolean
