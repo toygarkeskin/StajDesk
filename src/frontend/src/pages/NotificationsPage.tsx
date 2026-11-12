@@ -71,6 +71,7 @@ export function NotificationsPage() {
                     if (!n.isRead) await api.notifications.markRead(n.id)
                     qc.invalidateQueries({ queryKey: ['notifications'] })
                     if (n.ticketId) navigate(`/tickets/${n.ticketId}`)
+                    else if (n.link) navigate(n.link)
                   }}
                 >
                   <span className={clsx('mt-1 flex size-9 shrink-0 items-center justify-center rounded-full', n.isRead ? 'bg-gray-100 text-gray-400 dark:bg-gray-700' : 'bg-violet-500/15 text-violet-500')} aria-hidden="true"><Bell className="size-4" /></span>

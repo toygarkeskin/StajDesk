@@ -16,6 +16,8 @@ using StajDesk.Application.Features.Employees;
 using StajDesk.Application.Features.Account;
 using StajDesk.Application.Features.Site;
 using StajDesk.Application.Features.Portal;
+using StajDesk.Application.Features.Workflows;
+using StajDesk.Application.Features.Leave;
 using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
 
@@ -816,5 +818,97 @@ public sealed class PortalContentController(IPortalService portal) : ApiControll
     {
         await portal.DeleteRecognitionAsync(id, ct);
         return NoContent();
+    }
+}
+
+/// <summary>Onay zinciri tanımları (workflows.manage).</summary>
+[Route("api/workflows")]
+public sealed class WorkflowsController(IWorkflowService workflows) : ApiControllerBase
+{
+    [HttpGet, RequirePermission(Permissions.WorkflowsManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<WorkflowDefinitionDto>>>> List(CancellationToken ct) => Envelope(await workflows.DefinitionsAsync(ct));
+
+    [HttpGet("roles"), RequirePermission(Permissions.WorkflowsManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RoleOptionDto>>>> Roles(CancellationToken ct) => Envelope(await workflows.RoleOptionsAsync(ct));
+
+    [HttpPut("{id:int}"), RequirePermission(Permissions.WorkflowsManage)]
+    public async Task<ActionResult<ApiResponse<WorkflowDefinitionDto>>> Save(int id, SaveWorkflowRequest request, CancellationToken ct) =>
+        Envelope(await workflows.SaveDefinitionAsync(id, request, ct), "Onay zinciri kaydedildi. Yeni talepler bu zincirle ilerler.");
+}
+
+/// <summary>Onay kutusu: kararımı bekleyen adımlar. Karar yetkisi adım bazında serviste denetlenir.</summary>
+[Route("api/approvals")]
+public sealed class ApprovalsController(IWorkflowService workflows) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PagedResult<ApprovalInboxItemDto>>>> Inbox([FromQuery] SimplePagedQuery query, CancellationToken ct) => Envelope(await workflows.InboxAsync(query, ct));
+
+    [HttpGet("count")]
+    public async Task<ActionResult<ApiResponse<int>>> Count(CancellationToken ct) => Envelope(await workflows.InboxCountAsync(ct));
+
+    [HttpGet("instances/{id:int}")]
+    public async Task<ActionResult<ApiResponse<WorkflowInstanceDto>>> Instance(int id, CancellationToken ct) => Envelope(await workflows.GetAsync(id, ct));
+
+    [HttpPost("{approvalId:int}/approve")]
+    public async Task<ActionResult<ApiResponse<WorkflowInstanceDto>>> Approve(int approvalId, DecideRequest request, CancellationToken ct) =>
+        Envelope(await workflows.DecideAsync(approvalId, true, request.Comment, ct), "Onaylandı.");
+
+    [HttpPost("{approvalId:int}/reject")]
+    public async Task<ActionResult<ApiResponse<WorkflowInstanceDto>>> Reject(int approvalId, DecideRequest request, CancellationToken ct) =>
+        Envelope(await workflows.DecideAsync(approvalId, false, request.Comment, ct), "Reddedildi.");
+}
+
+/// <summary>İzin sistemi. Talep: leave.request; tür/hak yönetimi ve tüm talepler: leave.manage (İK rolünden ayrı).</summary>
+[Route("api/leave")]
+public sealed class LeaveController(ILeaveService leave, IWorkflowService workflows) : ApiControllerBase
+{
+    [HttpGet("types")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaveTypeDto>>>> Types([FromQuery] bool includeInactive, CancellationToken ct) => Envelope(await leave.TypesAsync(includeInactive, ct));
+
+    [HttpPost("types"), RequirePermission(Permissions.LeaveManage)]
+    public async Task<ActionResult<ApiResponse<LeaveTypeDto>>> CreateType(SaveLeaveTypeRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<LeaveTypeDto>.Ok(await leave.SaveTypeAsync(null, request, ct), "İzin türü eklendi."));
+
+    [HttpPut("types/{id:int}"), RequirePermission(Permissions.LeaveManage)]
+    public async Task<ActionResult<ApiResponse<LeaveTypeDto>>> UpdateType(int id, SaveLeaveTypeRequest request, CancellationToken ct) =>
+        Envelope(await leave.SaveTypeAsync(id, request, ct), "İzin türü güncellendi.");
+
+    [HttpGet("balances")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaveBalanceDto>>>> Balances([FromQuery] int? userId, [FromQuery] int? year, CancellationToken ct) =>
+        Envelope(await leave.BalancesAsync(userId, year, ct));
+
+    [HttpPut("entitlements"), RequirePermission(Permissions.LeaveManage)]
+    public async Task<ActionResult<ApiResponse<object>>> SetEntitlement(SetEntitlementRequest request, CancellationToken ct)
+    {
+        await leave.SetEntitlementAsync(request, ct);
+        return Envelope<object>(new { request.UserId }, "İzin hakkı kaydedildi.");
+    }
+
+    [HttpGet("days")]
+    public async Task<ActionResult<ApiResponse<LeaveDaysDto>>> Days([FromQuery] DateOnly start, [FromQuery] DateOnly end, CancellationToken ct) => Envelope(await leave.CountDaysAsync(start, end, ct));
+
+    [HttpGet("requests")]
+    public async Task<ActionResult<ApiResponse<PagedResult<LeaveRequestDto>>>> Requests([FromQuery] LeaveRequestQuery query, CancellationToken ct) => Envelope(await leave.ListAsync(query, ct));
+
+    [HttpPost("requests"), RequirePermission(Permissions.LeaveRequest)]
+    public async Task<ActionResult<ApiResponse<LeaveRequestDto>>> Create(CreateLeaveRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<LeaveRequestDto>.Ok(await leave.CreateAsync(request, ct), "İzin talebiniz onaya gönderildi."));
+
+    [HttpGet("requests/{id:int}")]
+    public async Task<ActionResult<ApiResponse<LeaveRequestDto>>> Get(int id, CancellationToken ct) => Envelope(await leave.GetAsync(id, ct));
+
+    /// <summary>Talebin onay geçmişi (talebi görebilen herkes).</summary>
+    [HttpGet("requests/{id:int}/workflow")]
+    public async Task<ActionResult<ApiResponse<WorkflowInstanceDto?>>> Workflow(int id, CancellationToken ct)
+    {
+        await leave.GetAsync(id, ct); // erişim denetimi
+        return Envelope(await workflows.FindBySubjectAsync(LeaveSubjects.Request, id, ct));
+    }
+
+    [HttpPost("requests/{id:int}/cancel")]
+    public async Task<ActionResult<ApiResponse<object>>> Cancel(int id, CancellationToken ct)
+    {
+        await leave.CancelAsync(id, ct);
+        return Envelope<object>(new { id }, "İzin talebi geri çekildi.");
     }
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import {
-  Bell, Building2, CalendarClock, FolderKanban, Globe, LayoutDashboard, LayoutGrid, Mail, Megaphone, MonitorSmartphone, Network, PlusCircle, ScrollText,
+  Bell, Building2, CalendarClock, CalendarDays, CheckSquare, GitBranch, FolderKanban, Globe, LayoutDashboard, LayoutGrid, Mail, Megaphone, MonitorSmartphone, Network, PlusCircle, ScrollText,
   ShieldCheck, Store as StoreIcon, Tags, Ticket, UserCheck, Users, UsersRound,
 } from 'lucide-react'
 import { useCan } from '@/stores/auth'
@@ -33,6 +33,7 @@ export function useNavGroups(): NavGroup[] {
         { to: '/portal', label: 'Ana sayfa', keywords: 'özet panel dashboard widget', icon: <LayoutDashboard className={i} />, isActive: (p) => p === '/portal' },
         { to: '/announcements', label: 'Duyurular', keywords: 'haber bilgilendirme', icon: <Megaphone className={i} />, isActive: (p) => p === '/announcements' },
         { to: '/notifications', label: 'Bildirimler', icon: <Bell className={i} />, isActive: (p) => p === '/notifications' },
+        { to: '/approvals', label: 'Onay kutum', keywords: 'onay bekleyen iş akışı', icon: <CheckSquare className={i} />, isActive: (p) => p === '/approvals' },
         { to: '/oncall', label: 'Nöbetçi personel', keywords: 'nöbet çizelgesi bt', icon: <CalendarClock className={i} />, isActive: (p) => p === '/oncall' },
       ]),
     },
@@ -53,6 +54,11 @@ export function useNavGroups(): NavGroup[] {
       ]),
     },
     {
+      id: 'hr-apps', title: 'İK ve İdari İşler', items: keep([
+        can('leave.request', 'leave.manage') && { to: '/leave', label: 'İzin talepleri', keywords: 'izin yıllık mazeret bakiye', icon: <CalendarDays className={i} />, isActive: (p) => p === '/leave' },
+      ]),
+    },
+    {
       id: 'operations', title: 'Mağaza ve operasyon', items: keep([
         can('stores.read', 'stores.manage') && { to: '/stores', label: can('stores.manage') ? 'Mağazalar' : 'Mağazam', icon: <StoreIcon className={i} />, isActive: (p) => p === '/stores' },
         can('assets.read.all', 'assets.read.store') && { to: '/assets', label: 'Envanter', keywords: 'cihaz zimmet donanım', icon: <MonitorSmartphone className={i} />, isActive: (p) => p.startsWith('/assets') },
@@ -64,6 +70,7 @@ export function useNavGroups(): NavGroup[] {
         can('users.manage') && { to: '/admin/users', label: 'Kullanıcı hesapları', keywords: 'kilit aktif pasif davet', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
         can('roles.manage') && { to: '/admin/roles', label: 'Roller ve izinler', keywords: 'yetki rbac', icon: <ShieldCheck className={i} />, isActive: (p) => p === '/admin/roles' },
         can('content.manage', 'ads.manage', 'employees.manage') && { to: '/admin/content', label: 'Kurumsal site ve içerik', keywords: 'reklam banner haber ilan etkinlik takdir', icon: <Globe className={i} />, isActive: (p) => p === '/admin/content' },
+        can('workflows.manage') && { to: '/admin/workflows', label: 'Onay zincirleri', keywords: 'iş akışı workflow onaylayıcı', icon: <GitBranch className={i} />, isActive: (p) => p === '/admin/workflows' },
         can('widgets.manage') && { to: '/admin/widgets', label: 'Kutucuk yönetimi', keywords: 'widget panel', icon: <LayoutGrid className={i} />, isActive: (p) => p === '/admin/widgets' },
         can('mail.read') && { to: '/admin/emails', label: 'Gönderilen e-postalar', icon: <Mail className={i} />, isActive: (p) => p === '/admin/emails' },
         can('audit.read') && { to: '/admin/audit', label: 'Denetim kayıtları', keywords: 'audit log', icon: <ScrollText className={i} />, isActive: (p) => p === '/admin/audit' },

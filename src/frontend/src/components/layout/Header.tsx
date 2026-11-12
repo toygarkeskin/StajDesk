@@ -66,6 +66,7 @@ function NotificationsMenu({ live }: { live: boolean }) {
                     if (!n.isRead) await api.notifications.markRead(n.id)
                     qc.invalidateQueries({ queryKey: ['notifications'] })
                     if (n.ticketId) navigate(`/tickets/${n.ticketId}`)
+                    else if (n.link) navigate(n.link)
                   }}
                 >
                   <span className="min-w-0 flex-1">

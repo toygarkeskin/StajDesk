@@ -69,15 +69,16 @@ echo "== XSS koruması"
 check "HTML içeren başlık reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/tickets" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"title":"<script>alert(1)</script> test","description":"Açıklama metni yeterince uzun","categoryId":1}')" 400
 
 echo "== Talep → outbox → RabbitMQ → Worker → bildirim + e-posta (Mailpit)"
-BEFORE=$(curl -s "$MAILPIT/api/v1/messages" | sed -n 's/.*"total":\([0-9]*\).*/\1/p'); BEFORE=${BEFORE:-0}
 ID=$(curl -s -X POST "$API/api/tickets" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' \
   -d '{"title":"Duman testi talebi","description":"Uctan uca test icin acildi.","categoryId":1,"priority":"High"}' | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
 [ -n "$ID" ] && ok "Talep oluşturuldu (#$ID)" || bad "Talep oluşturulamadı"
+# Mailpit yalnızca son ~500 e-postayı saklar; toplam sayı yerine bu talebin numarasını içeren e-posta aranır.
+FOUND=0
 for _ in $(seq 1 20); do
-  AFTER=$(curl -s "$MAILPIT/api/v1/messages" | sed -n 's/.*"total":\([0-9]*\).*/\1/p'); AFTER=${AFTER:-0}
-  [ "$AFTER" -gt "$BEFORE" ] && break; sleep 1
+  FOUND=$(curl -s "$MAILPIT/api/v1/search?query=subject:%22%23$ID%3A%22" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); FOUND=${FOUND:-0}
+  [ "$FOUND" -gt 0 ] && break; sleep 1
 done
-[ "$AFTER" -gt "$BEFORE" ] && ok "E-posta Mailpit'e ulaştı ($BEFORE → $AFTER)" || bad "E-posta gelmedi"
+[ "$FOUND" -gt 0 ] && ok "E-posta Mailpit'e ulaştı (konu: #$ID)" || bad "E-posta gelmedi"
 check "Talep sahibine bildirim oluştu" "$(curl -s "$API/api/notifications/unread-count" -H "Authorization: Bearer $USER" | grep -c '"data":[1-9]')" 1
 
 echo "== Ana sayfa paneli, duyurular, nöbet"
@@ -180,6 +181,29 @@ for p in birthdays new-hires events recognitions; do
 done
 check "Çalışan etkinlik yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/portal/events" -H "Authorization: Bearer $USER")" 403
 check "İK takdirleri yönetebilir" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/content/portal/recognitions" -H "Authorization: Bearer $HR")" 200
+
+echo "== İzin ve onay zinciri (yönetici → izin yöneticisi)"
+UNPAID=$(curl -s "$API/api/leave/types" -H "Authorization: Bearer $USER" | grep -o '"id":[0-9]*,"code":"UCRETSIZ"' | grep -o '[0-9]\+' | head -1)
+OFFSET=$(( 40 + STAMP % 500 )); LDAY=$(date -d "+$OFFSET days" +%F)
+while [ "$(date -d "$LDAY" +%u)" -ge 6 ]; do LDAY=$(date -d "$LDAY +1 day" +%F); done
+LEAVE=$(curl -s -X POST "$API/api/leave/requests" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' \
+  -d "{\"leaveTypeId\":$UNPAID,\"startDate\":\"$LDAY\",\"endDate\":\"$LDAY\",\"reason\":\"Smoke testi\"}" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$LEAVE" ] && ok "Çalışan izin talebi açar (#$LEAVE, $LDAY)" || bad "İzin talebi açılamadı"
+# ayse → yöneticisi selin.magaza (demo organizasyonu)
+MANAGER=$(login "selin.magaza@stajdesk.local" "$DEMO_PASSWORD")
+STEP1=$(curl -s "$API/api/leave/requests/$LEAVE/workflow" -H "Authorization: Bearer $MANAGER" | sed -n 's/.*"myApprovalId":\([0-9]*\).*/\1/p')
+[ -n "$STEP1" ] && ok "Talep yöneticinin onay kutusunda" || bad "Yönetici onay adımı bulunamadı"
+check "İK yönetici adımını onaylayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/approvals/$STEP1/approve" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d '{}')" 403
+check "Talep sahibi kendi talebini onaylayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/approvals/$STEP1/approve" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{}')" 403
+check "Yönetici onaylar" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/approvals/$STEP1/approve" -H "Authorization: Bearer $MANAGER" -H 'Content-Type: application/json' -d '{"comment":"Uygun"}')" 200
+STEP2=$(curl -s "$API/api/leave/requests/$LEAVE/workflow" -H "Authorization: Bearer $HR" | sed -n 's/.*"myApprovalId":\([0-9]*\).*/\1/p')
+[ -n "$STEP2" ] && ok "İzin yöneticisi adımı sırada (İK'da ayrıca İzin Yöneticisi rolü var)" || bad "İzin yöneticisi adımı bulunamadı"
+check "İzin yöneticisi onaylar" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/approvals/$STEP2/approve" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d '{}')" 200
+check "İzin onaylandı" "$(curl -s "$API/api/leave/requests/$LEAVE" -H "Authorization: Bearer $USER" | grep -c '"status":"Approved"')" 1
+check "Başka çalışan izni göremez (404)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/leave/requests/$LEAVE" -H "Authorization: Bearer $OTHER")" 404
+check "Çalışan izin türü ekleyemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/leave/types" -H "Authorization: Bearer $OTHER" -H 'Content-Type: application/json' -d '{"code":"X1","name":"x","tracksBalance":false,"defaultDaysPerYear":0,"isPaid":true,"isActive":true,"sortOrder":1}')" 403
+check "Çalışan onay zinciri yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/workflows" -H "Authorization: Bearer $USER")" 403
+check "Onaylı gelecek izin geri çekilir (test verisi temizlenir)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/leave/requests/$LEAVE/cancel" -H "Authorization: Bearer $USER")" 200
 
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null

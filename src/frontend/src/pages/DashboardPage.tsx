@@ -21,7 +21,7 @@ import { AdCard } from '@/components/Ads'
 import { siteApi } from '@/lib/site'
 import { portalApi, sizeClass } from '@/lib/portal'
 import {
-  BirthdaysWidget, DashboardEditor, EventsWidget, LayoutError, NewHiresWidget, OpenPositionsWidget, PendingAccountsWidget, ProfileWidget, RecognitionsWidget,
+  ApprovalInboxWidget, BirthdaysWidget, DashboardEditor, LeaveBalanceWidget, EventsWidget, LayoutError, NewHiresWidget, OpenPositionsWidget, PendingAccountsWidget, ProfileWidget, RecognitionsWidget,
 } from '@/components/PortalWidgets'
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, LineElement, PointElement, Tooltip, Legend, Filler)
@@ -72,6 +72,8 @@ export function DashboardPage() {
     switch (key) {
       case 'welcome': return <WelcomeWidget h={h} className={cls} />
       case 'profile': return <ProfileWidget className={cls} />
+      case 'leave-balance': return <LeaveBalanceWidget className={cls} />
+      case 'approval-inbox': return <ApprovalInboxWidget className={cls} />
       case 'announcements': return <AnnouncementsWidget items={h.announcements} canManage={can('announcements.manage')} className={cls} />
       case 'oncall': return <OnCallWidget shifts={h.onCall} canManage={can('oncall.manage')} className={cls} />
       case 'weather': return <WeatherCard className={cls} />

@@ -13,6 +13,8 @@ import { toast } from '@/stores/ui'
 import { BlockSkeleton, EmptyState, ErrorState, Field, IconButton, PageHeader, Pagination, SlideOver, Spinner } from '@/components/ui'
 import { PersonAvatar, useEmployeeImage } from '@/components/AuthImage'
 import { AccountTab, PreferencesTab } from './AccountTabs'
+import { BalanceCards } from './LeavePage'
+import { workApi, workflowStatusClasses, workflowStatusLabels } from '@/lib/work'
 
 const PAGE_SIZE = 24
 
@@ -110,7 +112,7 @@ function useOrgLookups() {
    Profil (Detail kalıbı: kapak + kimlik + sekmeler)
    ========================================================= */
 
-type Tab = 'overview' | 'personal' | 'work' | 'account' | 'preferences'
+type Tab = 'overview' | 'personal' | 'work' | 'leave' | 'account' | 'preferences'
 
 export function MyProfilePage() {
   const me = useAuth((s) => s.me)
@@ -124,6 +126,7 @@ export function ProfilePage() {
 function ProfileView({ id }: { id: number }) {
   const [params, setParams] = useSearchParams()
   const profile = useQuery({ queryKey: ['employee', id], queryFn: () => api.employees.get(id), enabled: Number.isFinite(id) })
+  const canManageLeave = useCan().can('leave.manage')
   if (profile.isLoading) return <div className="space-y-4"><BlockSkeleton className="h-56" /><BlockSkeleton className="h-64" /></div>
   if (profile.isError) return <div className="card"><ErrorState message={errorMessage(profile.error)} details={errorDetails(profile.error)} onRetry={() => profile.refetch()} /></div>
   const p = profile.data!
@@ -131,8 +134,9 @@ function ProfileView({ id }: { id: number }) {
     { key: 'overview', label: 'Genel bakış', show: true },
     { key: 'personal', label: 'Kişisel bilgiler', show: p.access.canSeePrivate },
     { key: 'work', label: 'İş bilgileri', show: true },
+    { key: 'leave', label: 'İzinler', show: p.access.isSelf || canManageLeave },
     { key: 'account', label: 'Hesap ve güvenlik', show: p.access.isSelf },
-    { key: 'preferences', label: 'Bildirim tercihleri', show: p.access.isSelf },
+    { key: 'preferences', label: 'Bildirim ve gizlilik', show: p.access.isSelf },
   ]
   const visible = tabs.filter((t) => t.show)
   const tab = (visible.find((t) => t.key === params.get('tab'))?.key ?? 'overview') as Tab
@@ -151,6 +155,7 @@ function ProfileView({ id }: { id: number }) {
       {tab === 'overview' && <OverviewTab p={p} />}
       {tab === 'personal' && <PersonalTab p={p} />}
       {tab === 'work' && <WorkTab p={p} />}
+      {tab === 'leave' && <LeaveTab userId={p.id} isSelf={p.access.isSelf} />}
       {tab === 'account' && <AccountTab p={p} />}
       {tab === 'preferences' && <PreferencesTab />}
     </>
@@ -440,5 +445,37 @@ function DeactivationRequestPanel({ p, onClose }: { p: EmployeeDetail; onClose: 
         <Field label="Not" htmlFor="f-term-note" optional><textarea id="f-term-note" className="form-field min-h-20" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
       </form>
     </SlideOver>
+  )
+}
+
+/** Profil → İzinler: bu yılki bakiye ve son izinler (kendisi veya izin yöneticisi). */
+function LeaveTab({ userId, isSelf }: { userId: number; isSelf: boolean }) {
+  const balances = useQuery({ queryKey: ['leave', 'balances', isSelf ? 'me' : userId], queryFn: () => workApi.balances(isSelf ? undefined : userId) })
+  const list = useQuery({ queryKey: ['leave', 'profile', userId], queryFn: () => workApi.leaveRequests(isSelf ? { pageSize: 10 } : { all: true, userId, pageSize: 10 }) })
+  return (
+    <div className="space-y-6">
+      {balances.isLoading ? <BlockSkeleton className="h-32" /> : balances.isError ? <ErrorState message={errorMessage(balances.error)} /> : <BalanceCards balances={balances.data!} />}
+      <section className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-700/60">
+          <h2 className="text-sm font-semibold">Son izinler</h2>
+          <Link to={isSelf ? '/leave' : '/leave?tab=all'} className="inline-flex min-h-11 items-center text-xs font-medium text-violet-600 dark:text-violet-400">İzin talepleri →</Link>
+        </div>
+        {list.isLoading ? <div className="p-4"><BlockSkeleton className="h-24" /></div> : list.isError ? <ErrorState message={errorMessage(list.error)} /> : list.data!.items.length === 0
+          ? <EmptyState title="İzin kaydı yok" description="Onaylanan ve bekleyen izinler burada görünür." />
+          : (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
+              {list.data!.items.map((r) => (
+                <li key={r.id}>
+                  <Link to={`/leave?request=${r.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/20">
+                    <span className="flex-1 font-medium text-gray-800 dark:text-gray-100">{r.leaveType}</span>
+                    <span className="text-gray-500">{formatDate(r.startDate)} – {formatDate(r.endDate)} · {r.days.toLocaleString('tr-TR')} gün</span>
+                    <span className={clsx('rounded-full px-2 py-0.5 text-xs font-medium', workflowStatusClasses[r.status])}>{workflowStatusLabels[r.status]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+      </section>
+    </div>
   )
 }

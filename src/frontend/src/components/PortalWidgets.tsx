@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Award, Briefcase, Cake, CalendarDays, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
+import { Award, Briefcase, Cake, CalendarDays, CheckSquare, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
 import { api, errorMessage } from '@/lib/api'
 import { portalApi, type DashboardLayout, type DashboardWidget, type PersonRef } from '@/lib/portal'
 import { siteApi } from '@/lib/site'
+import { workApi } from '@/lib/work'
 import { employmentLabels } from '@/lib/labels'
 import { formatDate } from '@/lib/format'
 import { useAuth } from '@/stores/auth'
@@ -261,4 +262,50 @@ export function DashboardEditor({ layout, onClose }: { layout: DashboardLayout; 
 
 export function LayoutError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   return <div className="card"><ErrorState message={errorMessage(error)} onRetry={onRetry} /></div>
+}
+
+export function LeaveBalanceWidget({ className }: { className?: string }) {
+  const q = useQuery({ queryKey: ['leave', 'balances', 'me'], queryFn: () => workApi.balances(), staleTime: 5 * 60_000 })
+  return (
+    <Widget title="İzin bakiyem" icon={<CalendarDays className="size-4" />} action={{ label: 'İzin talebi', to: '/leave' }} className={className}>
+      {q.isLoading ? <Loading /> : q.isError ? <WidgetEmpty text={errorMessage(q.error)} /> : q.data!.length === 0 ? <WidgetEmpty text="Bakiye takibi yapılan izin türü yok." /> : (
+        <ul className="space-y-3">
+          {q.data!.map((b) => (
+            <li key={b.leaveTypeId}>
+              <div className="flex items-baseline justify-between text-sm">
+                <span className="font-medium text-gray-800 dark:text-gray-100">{b.leaveType}</span>
+                <span className="tabular-nums"><strong className="text-gray-900 dark:text-gray-50">{b.remaining.toLocaleString('tr-TR')}</strong><span className="text-gray-500"> / {b.entitled.toLocaleString('tr-TR')} gün</span></span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700/60" aria-hidden="true">
+                <div className="h-full rounded-full bg-violet-500" style={{ width: `${b.entitled ? Math.min(100, ((b.used + b.pending) / b.entitled) * 100) : 0}%` }} />
+              </div>
+              {b.pending > 0 && <div className="mt-0.5 text-xs text-gray-500">{b.pending.toLocaleString('tr-TR')} gün onay bekliyor</div>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Widget>
+  )
+}
+
+export function ApprovalInboxWidget({ className }: { className?: string }) {
+  const q = useQuery({ queryKey: ['approvals', 1], queryFn: () => workApi.inbox(1), refetchInterval: 120_000 })
+  const items = q.data?.items ?? []
+  return (
+    <Widget title="Onay kutum" icon={<CheckSquare className="size-4" />} action={{ label: 'Tümü', to: '/approvals' }} className={className}>
+      {q.isLoading ? <Loading /> : q.isError ? <WidgetEmpty text={errorMessage(q.error)} /> : items.length === 0 ? <WidgetEmpty icon={<CheckSquare className="size-8" />} text="Kararınızı bekleyen onay yok." /> : (
+        <ul className="space-y-2">
+          {items.slice(0, 5).map((a) => (
+            <li key={a.approvalId}>
+              <Link to="/approvals" className="-mx-2 block rounded-lg px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                <span className="block truncate text-sm font-medium text-gray-800 dark:text-gray-100">{a.workflowName} · {a.requesterName}</span>
+                <span className="block truncate text-xs text-gray-500">{a.summary ?? a.title}</span>
+              </Link>
+            </li>
+          ))}
+          {q.data!.totalCount > 5 && <li className="text-xs text-gray-500">ve {q.data!.totalCount - 5} talep daha</li>}
+        </ul>
+      )}
+    </Widget>
+  )
 }

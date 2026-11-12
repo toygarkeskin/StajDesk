@@ -568,3 +568,94 @@ internal sealed class RecognitionConfiguration : IEntityTypeConfiguration<Recogn
         b.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedById).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+internal sealed class WorkflowDefinitionConfiguration : IEntityTypeConfiguration<WorkflowDefinition>
+{
+    public void Configure(EntityTypeBuilder<WorkflowDefinition> b)
+    {
+        b.Property(x => x.Key).HasMaxLength(40);
+        b.HasIndex(x => x.Key).IsUnique();
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.Description).HasMaxLength(500);
+        b.HasMany(x => x.Steps).WithOne().HasForeignKey(x => x.WorkflowDefinitionId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class WorkflowStepDefinitionConfiguration : IEntityTypeConfiguration<WorkflowStepDefinition>
+{
+    public void Configure(EntityTypeBuilder<WorkflowStepDefinition> b)
+    {
+        b.ToTable("workflow_steps");
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.RoleName).HasMaxLength(50);
+        b.HasIndex(x => new { x.WorkflowDefinitionId, x.Order });
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Department>().WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class WorkflowInstanceConfiguration : IEntityTypeConfiguration<WorkflowInstance>
+{
+    public void Configure(EntityTypeBuilder<WorkflowInstance> b)
+    {
+        b.Property(x => x.SubjectType).HasMaxLength(40);
+        b.Property(x => x.Title).HasMaxLength(300);
+        b.HasIndex(x => new { x.SubjectType, x.SubjectId });
+        b.HasIndex(x => new { x.Status, x.RequesterId });
+        b.HasOne(x => x.Definition).WithMany().HasForeignKey(x => x.WorkflowDefinitionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Requester).WithMany().HasForeignKey(x => x.RequesterId).OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(x => x.Approvals).WithOne(x => x.Instance).HasForeignKey(x => x.WorkflowInstanceId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class WorkflowApprovalConfiguration : IEntityTypeConfiguration<WorkflowApproval>
+{
+    public void Configure(EntityTypeBuilder<WorkflowApproval> b)
+    {
+        b.Property(x => x.StepName).HasMaxLength(100);
+        b.Property(x => x.ApproverRole).HasMaxLength(50);
+        b.Property(x => x.Comment).HasMaxLength(1000);
+        b.HasIndex(x => new { x.ApproverUserId, x.Decision });
+        b.HasIndex(x => new { x.ApproverRole, x.Decision });
+        b.HasOne(x => x.ApproverUser).WithMany().HasForeignKey(x => x.ApproverUserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.DecidedBy).WithMany().HasForeignKey(x => x.DecidedById).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class LeaveTypeConfiguration : IEntityTypeConfiguration<LeaveType>
+{
+    public void Configure(EntityTypeBuilder<LeaveType> b)
+    {
+        b.Property(x => x.Code).HasMaxLength(20);
+        b.HasIndex(x => x.Code).IsUnique();
+        b.Property(x => x.Name).HasMaxLength(100);
+        b.Property(x => x.Description).HasMaxLength(500);
+        b.Property(x => x.DefaultDaysPerYear).HasPrecision(5, 1);
+    }
+}
+
+internal sealed class LeaveEntitlementConfiguration : IEntityTypeConfiguration<LeaveEntitlement>
+{
+    public void Configure(EntityTypeBuilder<LeaveEntitlement> b)
+    {
+        b.HasKey(x => new { x.UserId, x.LeaveTypeId, x.Year });
+        b.Property(x => x.Days).HasPrecision(5, 1);
+        b.Property(x => x.Note).HasMaxLength(300);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<LeaveType>().WithMany().HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class LeaveRequestConfiguration : IEntityTypeConfiguration<LeaveRequest>
+{
+    public void Configure(EntityTypeBuilder<LeaveRequest> b)
+    {
+        b.Property(x => x.Days).HasPrecision(5, 1);
+        b.Property(x => x.Reason).HasMaxLength(500);
+        b.HasIndex(x => new { x.UserId, x.Status, x.StartDate });
+        b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.LeaveType).WithMany().HasForeignKey(x => x.LeaveTypeId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<WorkflowInstance>().WithMany().HasForeignKey(x => x.WorkflowInstanceId).OnDelete(DeleteBehavior.SetNull);
+        b.ToTable(t => t.HasCheckConstraint("ck_leave_requests_dates", "end_date >= start_date AND days > 0"));
+    }
+}

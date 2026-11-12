@@ -957,6 +957,177 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("job_openings", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.LeaveEntitlement", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("LeaveTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("leave_type_id");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer")
+                        .HasColumnName("year");
+
+                    b.Property<decimal>("Days")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("days");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId", "LeaveTypeId", "Year")
+                        .HasName("pk_leave_entitlements");
+
+                    b.HasIndex("LeaveTypeId")
+                        .HasDatabaseName("ix_leave_entitlements_leave_type_id");
+
+                    b.ToTable("leave_entitlements", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.LeaveRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("Days")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("days");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("end_date");
+
+                    b.Property<int>("LeaveTypeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("leave_type_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("start_date");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<int?>("WorkflowInstanceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_instance_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_leave_requests");
+
+                    b.HasIndex("LeaveTypeId")
+                        .HasDatabaseName("ix_leave_requests_leave_type_id");
+
+                    b.HasIndex("WorkflowInstanceId")
+                        .HasDatabaseName("ix_leave_requests_workflow_instance_id");
+
+                    b.HasIndex("UserId", "Status", "StartDate")
+                        .HasDatabaseName("ix_leave_requests_user_id_status_start_date");
+
+                    b.ToTable("leave_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_leave_requests_dates", "end_date >= start_date AND days > 0");
+                        });
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.LeaveType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("DefaultDaysPerYear")
+                        .HasPrecision(5, 1)
+                        .HasColumnType("numeric(5,1)")
+                        .HasColumnName("default_days_per_year");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_paid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<bool>("TracksBalance")
+                        .HasColumnType("boolean")
+                        .HasColumnName("tracks_balance");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_leave_types");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_leave_types_code");
+
+                    b.ToTable("leave_types", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.MediaFile", b =>
                 {
                     b.Property<string>("Key")
@@ -1087,6 +1258,10 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("boolean")
                         .HasColumnName("is_read");
+
+                    b.Property<string>("Link")
+                        .HasColumnType("text")
+                        .HasColumnName("link");
 
                     b.Property<string>("Message")
                         .IsRequired()
@@ -2252,6 +2427,247 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("user_settings", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowApproval", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApproverRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("approver_role");
+
+                    b.Property<int?>("ApproverUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("approver_user_id");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("comment");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at");
+
+                    b.Property<int?>("DecidedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("decided_by_id");
+
+                    b.Property<int>("Decision")
+                        .HasColumnType("integer")
+                        .HasColumnName("decision");
+
+                    b.Property<string>("StepName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("step_name");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("step_order");
+
+                    b.Property<int>("WorkflowInstanceId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_instance_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_approvals");
+
+                    b.HasIndex("DecidedById")
+                        .HasDatabaseName("ix_workflow_approvals_decided_by_id");
+
+                    b.HasIndex("WorkflowInstanceId")
+                        .HasDatabaseName("ix_workflow_approvals_workflow_instance_id");
+
+                    b.HasIndex("ApproverRole", "Decision")
+                        .HasDatabaseName("ix_workflow_approvals_approver_role_decision");
+
+                    b.HasIndex("ApproverUserId", "Decision")
+                        .HasDatabaseName("ix_workflow_approvals_approver_user_id_decision");
+
+                    b.ToTable("workflow_approvals", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowDefinition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_definitions");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_workflow_definitions_key");
+
+                    b.ToTable("workflow_definitions", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowInstance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("CurrentStep")
+                        .HasColumnType("integer")
+                        .HasColumnName("current_step");
+
+                    b.Property<int>("RequesterId")
+                        .HasColumnType("integer")
+                        .HasColumnName("requester_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("integer")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("subject_type");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("WorkflowDefinitionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_definition_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_instances");
+
+                    b.HasIndex("RequesterId")
+                        .HasDatabaseName("ix_workflow_instances_requester_id");
+
+                    b.HasIndex("WorkflowDefinitionId")
+                        .HasDatabaseName("ix_workflow_instances_workflow_definition_id");
+
+                    b.HasIndex("Status", "RequesterId")
+                        .HasDatabaseName("ix_workflow_instances_status_requester_id");
+
+                    b.HasIndex("SubjectType", "SubjectId")
+                        .HasDatabaseName("ix_workflow_instances_subject_type_subject_id");
+
+                    b.ToTable("workflow_instances", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowStepDefinition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApproverType")
+                        .HasColumnType("integer")
+                        .HasColumnName("approver_type");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("department_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<string>("RoleName")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("role_name");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("WorkflowDefinitionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("workflow_definition_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_workflow_steps");
+
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_workflow_steps_department_id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_workflow_steps_user_id");
+
+                    b.HasIndex("WorkflowDefinitionId", "Order")
+                        .HasDatabaseName("ix_workflow_steps_workflow_definition_id_order");
+
+                    b.ToTable("workflow_steps", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.AccountRequest", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.Department", "Department")
@@ -2441,6 +2857,50 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_job_openings_departments_department_id");
 
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.LeaveEntitlement", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.LeaveType", null)
+                        .WithMany()
+                        .HasForeignKey("LeaveTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_entitlements_leave_types_leave_type_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_entitlements_users_user_id");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.LeaveRequest", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.LeaveType", "LeaveType")
+                        .WithMany()
+                        .HasForeignKey("LeaveTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_leave_types_leave_type_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_leave_requests_users_user_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.WorkflowInstance", null)
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_leave_requests_workflow_instances_workflow_instance_id");
+
+                    b.Navigation("LeaveType");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.MediaFile", b =>
@@ -2761,6 +3221,77 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowApproval", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "ApproverUser")
+                        .WithMany()
+                        .HasForeignKey("ApproverUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_workflow_approvals_users_approver_user_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_workflow_approvals_users_decided_by_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.WorkflowInstance", "Instance")
+                        .WithMany("Approvals")
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_approvals_workflow_instances_workflow_instance_id");
+
+                    b.Navigation("ApproverUser");
+
+                    b.Navigation("DecidedBy");
+
+                    b.Navigation("Instance");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowInstance", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Requester")
+                        .WithMany()
+                        .HasForeignKey("RequesterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_instances_users_requester_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.WorkflowDefinition", "Definition")
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_instances_workflow_definitions_workflow_definition");
+
+                    b.Navigation("Definition");
+
+                    b.Navigation("Requester");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowStepDefinition", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_workflow_steps_departments_department_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_workflow_steps_users_user_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.WorkflowDefinition", null)
+                        .WithMany("Steps")
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_workflow_steps_workflow_definitions_workflow_definition_id");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Advertisement", b =>
                 {
                     b.Navigation("Stats");
@@ -2819,6 +3350,16 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("Roles");
 
                     b.Navigation("Settings");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowDefinition", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.WorkflowInstance", b =>
+                {
+                    b.Navigation("Approvals");
                 });
 #pragma warning restore 612, 618
         }

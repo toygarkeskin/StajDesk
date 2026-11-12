@@ -42,6 +42,9 @@ public static class Permissions
     public const string ContentManage = "content.manage";
     public const string AdsManage = "ads.manage";
     public const string WidgetsManage = "widgets.manage";
+    public const string LeaveRequest = "leave.request";
+    public const string LeaveManage = "leave.manage";
+    public const string WorkflowsManage = "workflows.manage";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -79,6 +82,9 @@ public static class Permissions
         new(AccountsRequest, "Personel", "Yeni çalışan hesabı / hesap kapatma talebi açma (İK)"),
         new(ContentManage, "Kurumsal site", "Haber, açık pozisyon ve site metinlerini yönetme"),
         new(AdsManage, "Kurumsal site", "Reklam ve banner yönetimi, gösterim/tıklama istatistikleri"),
+        new(LeaveRequest, "İzin", "İzin talebi açma, kendi bakiyesini ve taleplerini görme"),
+        new(LeaveManage, "İzin", "İzin türleri, hak/bakiye tanımlama, tüm izin taleplerini görme (İK rolünden ayrı)"),
+        new(WorkflowsManage, "İş akışları", "Onay zincirlerini tanımlama: adımlar, onaylayıcılar, departman yönlendirmesi"),
         new(WidgetsManage, "Portal", "Panel kutucuklarını yönetme: açık/kapalı, sıra, boyut, hangi rolün göreceği"),
     ];
 
@@ -93,6 +99,7 @@ public static class RoleNames
     public const string User = "user";
     public const string Hr = "hr";
     public const string ItAdmin = "it_admin";
+    public const string LeaveAdmin = "leave_admin";
 
     public sealed record Definition(string Name, string DisplayName, string Description, string[] Permissions);
 
@@ -101,7 +108,7 @@ public static class RoleNames
         new(SystemAdmin, "Sistem Yöneticisi", "Sistemin tamamını yönetir.", Security.Permissions.All.Select(p => p.Key).ToArray()),
         new(Agent, "Destek Personeli", "Talepleri karşılar, çözer ve envanteri yönetir.",
         [
-            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsReadAll, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.LeaveRequest, Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsReadAll, Security.Permissions.TicketsUpdateOwn,
             Security.Permissions.TicketsManage, Security.Permissions.CommentsCreate, Security.Permissions.CommentsInternal,
             Security.Permissions.CategoriesRead, Security.Permissions.StoresRead, Security.Permissions.AssetsReadOwn,
             Security.Permissions.AssetsReadAll, Security.Permissions.AssetsManage, Security.Permissions.UsersRead,
@@ -109,27 +116,31 @@ public static class RoleNames
         ]),
         new(StoreOwner, "Mağaza Sahibi", "Kendi mağazasının taleplerini, cihazlarını ve raporunu görür.",
         [
-            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsReadStore,
+            Security.Permissions.LeaveRequest, Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsReadStore,
             Security.Permissions.TicketsUpdateOwn, Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead,
             Security.Permissions.StoresRead, Security.Permissions.AssetsReadOwn, Security.Permissions.AssetsReadStore,
             Security.Permissions.UsersRead, Security.Permissions.ReportsReadStore,
         ]),
         new(Hr, "İK Personeli", "Personel kayıtlarını ve çalışan bilgilerini yönetir. Diğer modüllere otomatik erişimi yoktur.",
         [
-            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.LeaveRequest, Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
             Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
             Security.Permissions.StoresRead,
             Security.Permissions.EmployeesReadPrivate, Security.Permissions.EmployeesManage, Security.Permissions.AccountsRequest,
         ]),
         new(ItAdmin, "BT Hesap Yöneticisi", "Hesap taleplerini inceler, hesap açar/kapatır/kilitler ve sahip olduğu yetkiler kadar rol atar.",
         [
-            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.LeaveRequest, Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
             Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
             Security.Permissions.StoresRead, Security.Permissions.UsersRead, Security.Permissions.UsersManage, Security.Permissions.AuditRead,
         ]),
+        new(LeaveAdmin, "İzin Yöneticisi", "İzin türlerini ve hakları yönetir, izin taleplerinin İK onay adımını verir. İK rolünden ayrıdır; ayrıca atanır.",
+        [
+            Security.Permissions.LeaveRequest, Security.Permissions.LeaveManage,
+        ]),
         new(User, "Kullanıcı", "Talep açar ve kendi taleplerini takip eder.",
         [
-            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.LeaveRequest, Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
             Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
         ]),
     ];

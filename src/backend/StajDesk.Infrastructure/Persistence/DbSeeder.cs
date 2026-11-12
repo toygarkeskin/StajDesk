@@ -40,6 +40,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         await SeedSystemAdminAsync(ct);
         await SeedPositionsAsync(ct);
         await SeedSiteSettingsAsync(ct);
+        await SeedWorkflowsAndLeaveAsync(ct);
         if (config.GetValue("Seed:DemoData", false))
         {
             await SeedDemoAsync(ct);
@@ -48,6 +49,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             await SeedItDemoAsync(ct);
             await SeedSiteDemoAsync(ct);
             await SeedPortalDemoAsync(ct);
+            await SeedLeaveDemoAsync(ct);
         }
     }
 
@@ -553,5 +555,40 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         }
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo portal içeriği eklendi (etkinlikler, takdirler)");
+    }
+
+    /// <summary>Onay zincirleri ve izin türleri (her ortamda; yalnızca eksikse eklenir, yöneticinin değişikliklerine dokunulmaz).</summary>
+    private async Task SeedWorkflowsAndLeaveAsync(CancellationToken ct)
+    {
+        if (!await db.WorkflowDefinitions.AnyAsync(d => d.Key == Application.Features.Workflows.WorkflowKeys.Leave, ct))
+        {
+            var def = new WorkflowDefinition { Key = Application.Features.Workflows.WorkflowKeys.Leave, Name = "İzin talebi", Description = "Çalışanın izin talebi: önce yöneticisi, sonra izin yöneticisi onaylar." };
+            def.Steps.Add(new WorkflowStepDefinition { Order = 1, Name = "Yönetici onayı", ApproverType = ApproverType.Manager });
+            def.Steps.Add(new WorkflowStepDefinition { Order = 2, Name = "İzin yöneticisi onayı", ApproverType = ApproverType.Role, RoleName = RoleNames.LeaveAdmin });
+            db.WorkflowDefinitions.Add(def);
+        }
+        if (!await db.LeaveTypes.AnyAsync(ct))
+            db.LeaveTypes.AddRange(
+                new LeaveType { Code = "YILLIK", Name = "Yıllık izin", TracksBalance = true, DefaultDaysPerYear = 14, SortOrder = 1, Description = "Yıllık ücretli izin. Kıdeme göre kişiye özel hak tanımlanabilir." },
+                new LeaveType { Code = "MAZERET", Name = "Mazeret izni", TracksBalance = true, DefaultDaysPerYear = 5, SortOrder = 2, Description = "Evlilik, vefat gibi mazeretler." },
+                new LeaveType { Code = "UCRETSIZ", Name = "Ücretsiz izin", IsPaid = false, SortOrder = 3 },
+                new LeaveType { Code = "DOGUM", Name = "Doğum izni", SortOrder = 4, Description = "Yasal süre; belge İK'ya iletilir." },
+                new LeaveType { Code = "SUT", Name = "Süt izni", SortOrder = 5 },
+                new LeaveType { Code = "GOREV", Name = "Görev izni", SortOrder = 6, Description = "Şirket adına dış görev (eğitim, fuar vb.)." },
+                new LeaveType { Code = "UZAKTAN", Name = "Uzaktan çalışma", SortOrder = 7 },
+                new LeaveType { Code = "DENK", Name = "Denkleştirme izni", TracksBalance = true, DefaultDaysPerYear = 0, SortOrder = 8, Description = "Fazla çalışma karşılığı; hak izin yöneticisince tanımlanır." });
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Demo: İK'daki deniz.ik'e ayrıca "İzin Yöneticisi" rolü (İK rolü izin yönetimini kendiliğinden vermez).</summary>
+    private async Task SeedLeaveDemoAsync(CancellationToken ct)
+    {
+        var deniz = await db.Users.Include(u => u.Roles).FirstOrDefaultAsync(u => u.Email == "deniz.ik@stajdesk.local", ct);
+        var role = await db.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.LeaveAdmin, ct);
+        if (deniz is null || role is null || deniz.Roles.Any(r => r.RoleId == role.Id)) return;
+        if (await db.LeaveRequests.AnyAsync(ct)) return; // yalnızca ilk kurulumda
+        deniz.Roles.Add(new UserRole { RoleId = role.Id });
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Demo: deniz.ik kullanıcısına İzin Yöneticisi rolü verildi");
     }
 }

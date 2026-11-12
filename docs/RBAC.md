@@ -50,6 +50,11 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `content.manage` — kurumsal site: haber, açık pozisyon, site metinleri | ✔ | | | |
 | `ads.manage` — reklam / banner yönetimi ve istatistikleri | ✔ | | | |
 | `widgets.manage` — portal kutucuklarını yönetme (açık/kapalı, sıra, boyut, hedef roller) | ✔ | | | |
+| `leave.request` — izin talebi açma, kendi bakiyesi | ✔ | ✔ | ✔ | ✔ |
+| `leave.manage` — izin türleri, haklar, tüm talepler (rol: **İzin Yöneticisi**; İK rolünden ayrı) | ✔ | | | |
+| `workflows.manage` — onay zincirlerini tanımlama | ✔ | | | |
+
+**İzin Yöneticisi (`leave_admin`)**: `leave.request`, `leave.manage` — izin yönetimi İK rolüne bağlı değildir; ayrıca atanır.
 
 **İK Personeli (`hr`)**: `employees.read.private`, `employees.manage`, `accounts.request` — personel bilgisi ve hesap **talebi**; hesap açamaz, rol veremez.
 **BT Hesap Yöneticisi (`it_admin`)**: `users.read`, `users.manage`, `audit.read` — talepleri onaylar, hesap açar/kapatır/kilitler;

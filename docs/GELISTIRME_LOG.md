@@ -115,3 +115,20 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Bilerek ertelenen:** dil seçimi (tüm ekran çevirisiyle Aşama 9), mesajlar/yardım (Aşama 6), izin bakiyesi ve sosyal akış kutucukları (Aşama 6), ciro/performans kutucukları (Aşama 7), yapay zekâ kartı (entegrasyon yok). Ayrıntı: docs/PORTAL.md §8.
 
 **Doğrulama:** 122 birim testi (11 yeni); tip kontrolü + derleme; smoke testine "Çalışan portalı" bölümü (16 kontrol).
+
+## 12.11.2026 — Aşama 6.1: Onay motoru ve izin sistemi
+
+**Yapılan**
+- Genel onay (iş akışı) motoru: talep türü başına sıralı adımlar; onaylayıcı yönetici, müdür, departman yöneticisi (sabit departmana yönlendirme dahil), belirli kişi veya rol olabilir. Onaylayıcılar başlangıçta kopyalanır. Onaylayıcısız, pasif veya talep sahibine düşen adım atlanır; ardışık aynı kişi bir kez onaylar. Ret gerekçesi zorunlu. Bildirim ve denetim kaydı var.
+- Onay kutum ekranı ve kutucuğu; Onay zincirleri yönetim ekranı (`workflows.manage`).
+- İzin sistemi: yönetilebilir izin türleri (8 varsayılan), kişiye özel yıllık hak, bakiye (hak − onaylanan − bekleyen), iş günü hesabı (hafta sonu ve sabit resmî tatiller), çakışma ve bakiye kontrolü, geri çekme. İzin talepleri ekranı, profilde İzinler sekmesi, panelde İzin bakiyem kutucuğu.
+- İzin yönetimi İK rolünden ayrı: yeni `leave.manage` izni ve "İzin Yöneticisi" rolü.
+- Bildirimlere bağlantı alanı eklendi (talep dışı bildirimler ilgili ekrana götürür).
+
+**Hata → çözüm**
+- Smoke testinde elif.destek'in yönetici adımı "atlandı": veritabanında yöneticisi ekrandan pasif bir hesaba değiştirilmişti. Motorun davranışı doğruydu (pasif hesap onaylayamaz); test, yöneticisi aktif olan ayse → selin.magaza zincirine çevrildi.
+- "E-posta gelmedi" hatası: Mailpit yalnızca son ~500 e-postayı sakladığı için toplam sayı artmıyordu. Test, talep numarasını içeren e-postayı arayacak şekilde değiştirildi.
+
+**Doğrulama:** 132 birim testi (10 yeni); smoke 95/95 (12 yeni: yönetici onayı, İK'nın ve talep sahibinin onaylayamaması, izin yöneticisi onayı, gizlilik, yetkiler, temizlik).
+
+**Sıradaki (Aşama 6 devamı):** görev yönetimi, duyurularda hedef departman, okundu bilgisi ve ek dosya, destek talebi durumlarının uyarlanması (Yeni / Reddedildi, ilgili departman), sosyal akış, mesajlaşma, SSS.

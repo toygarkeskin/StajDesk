@@ -47,6 +47,13 @@ public interface IAppDbContext
     DbSet<UserDashboardPreference> DashboardPreferences { get; }
     DbSet<CompanyEvent> CompanyEvents { get; }
     DbSet<Recognition> Recognitions { get; }
+    DbSet<WorkflowDefinition> WorkflowDefinitions { get; }
+    DbSet<WorkflowStepDefinition> WorkflowStepDefinitions { get; }
+    DbSet<WorkflowInstance> WorkflowInstances { get; }
+    DbSet<WorkflowApproval> WorkflowApprovals { get; }
+    DbSet<LeaveType> LeaveTypes { get; }
+    DbSet<LeaveEntitlement> LeaveEntitlements { get; }
+    DbSet<LeaveRequest> LeaveRequests { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Kaydedilmemiş değişiklikleri atar. Toplu işlemlerde başarısız olan bir öğenin yarım değişikliği sonrakilere taşınmasın diye.</summary>

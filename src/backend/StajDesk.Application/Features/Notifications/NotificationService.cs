@@ -4,7 +4,7 @@ using StajDesk.Application.Common;
 
 namespace StajDesk.Application.Features.Notifications;
 
-public sealed record NotificationDto(int Id, string Title, string Message, int? TicketId, bool IsRead, DateTime CreatedAt);
+public sealed record NotificationDto(int Id, string Title, string Message, int? TicketId, bool IsRead, DateTime CreatedAt, string? Link = null);
 
 public sealed record NotificationQuery : PagedQuery
 {
@@ -27,7 +27,7 @@ internal sealed class NotificationService(IAppDbContext db, ICurrentUser current
         var q = db.Notifications.AsNoTracking().Where(n => n.UserId == userId);
         if (query.UnreadOnly == true) q = q.Where(n => !n.IsRead);
         return await q.OrderByDescending(n => n.CreatedAt)
-            .Select(n => new NotificationDto(n.Id, n.Title, n.Message, n.TicketId, n.IsRead, n.CreatedAt))
+            .Select(n => new NotificationDto(n.Id, n.Title, n.Message, n.TicketId, n.IsRead, n.CreatedAt, n.Link))
             .ToPagedResultAsync(query, ct);
     }
 

@@ -17,6 +17,7 @@ export type Permission =
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
   | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
   | 'content.manage' | 'ads.manage' | 'widgets.manage'
+  | 'leave.request' | 'leave.manage' | 'workflows.manage'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -226,6 +227,8 @@ export interface NotificationItem {
   title: string
   message: string
   ticketId?: number | null
+  /** Talep dışı bildirimlerde gidilecek portal adresi (ör. /approvals) */
+  link?: string | null
   isRead: boolean
   createdAt: string
 }

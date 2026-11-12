@@ -48,6 +48,13 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<UserDashboardPreference> DashboardPreferences => Set<UserDashboardPreference>();
     public DbSet<CompanyEvent> CompanyEvents => Set<CompanyEvent>();
     public DbSet<Recognition> Recognitions => Set<Recognition>();
+    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+    public DbSet<WorkflowStepDefinition> WorkflowStepDefinitions => Set<WorkflowStepDefinition>();
+    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
+    public DbSet<WorkflowApproval> WorkflowApprovals => Set<WorkflowApproval>();
+    public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<LeaveEntitlement> LeaveEntitlements => Set<LeaveEntitlement>();
+    public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -77,6 +84,13 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<DashboardWidgetConfig>().HasKey(x => x.Key);
         b.Entity<UserDashboardPreference>().HasKey(x => new { x.UserId, x.WidgetKey });
         b.Entity<Recognition>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+        b.Entity<LeaveEntitlement>().HasKey(x => new { x.UserId, x.LeaveTypeId, x.Year });
+        b.Entity<WorkflowStepDefinition>().HasOne<WorkflowDefinition>().WithMany(d => d.Steps).HasForeignKey(x => x.WorkflowDefinitionId);
+        b.Entity<WorkflowInstance>().HasOne(x => x.Requester).WithMany().HasForeignKey(x => x.RequesterId);
+        b.Entity<WorkflowApproval>().HasOne(x => x.Instance).WithMany(i => i.Approvals).HasForeignKey(x => x.WorkflowInstanceId);
+        b.Entity<WorkflowApproval>().HasOne(x => x.ApproverUser).WithMany().HasForeignKey(x => x.ApproverUserId);
+        b.Entity<WorkflowApproval>().HasOne(x => x.DecidedBy).WithMany().HasForeignKey(x => x.DecidedById);
+        b.Entity<LeaveRequest>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);
