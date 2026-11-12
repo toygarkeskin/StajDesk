@@ -71,6 +71,10 @@ export function CsvImportPanel({ open, onClose }: { open: boolean; onClose: () =
 
   const result = done ?? preview
   const invalid = result ? result.rows.filter((r) => !r.valid).length : 0
+  // Binlerce satırda sayfa ağırlaşmasın: hatalı satırların hepsi, geçerlilerin ilk 200'ü gösterilir.
+  const shownValid = 200
+  const rows = result ? [...result.rows.filter((r) => !r.valid), ...result.rows.filter((r) => r.valid).slice(0, shownValid)] : []
+  const hidden = result ? result.rows.length - rows.length : 0
 
   return (
     <SlideOver
@@ -104,7 +108,7 @@ export function CsvImportPanel({ open, onClose }: { open: boolean; onClose: () =
         </ol>
         <p className="text-xs text-gray-500">
           Zorunlu sütunlar: Ad Soyad, E-posta, Personel Kodu, Departman, Unvan. İsteğe bağlı: Personel Türü, İşe Başlama (gg.aa.yyyy), Telefon, Not.
-          Ayırıcı noktalı virgül veya virgül olabilir; en fazla 500 satır.
+          Ayırıcı noktalı virgül veya virgül olabilir; en fazla 5.000 satır (boş satırlar sayılmaz).
         </p>
         <div className="flex flex-wrap gap-2">
           <button className="btn-secondary" onClick={downloadTemplate}><Download className="size-4" aria-hidden="true" /> Şablonu indir</button>
@@ -131,7 +135,7 @@ export function CsvImportPanel({ open, onClose }: { open: boolean; onClose: () =
                   <tr><th className="px-3 py-2">Satır</th><th className="px-3 py-2">Çalışan</th><th className="px-3 py-2">Departman / unvan</th><th className="px-3 py-2">Durum</th></tr>
                 </thead>
                 <tbody>
-                  {result.rows.map((r) => (
+                  {rows.map((r) => (
                     <tr key={r.line} className="border-t border-gray-100 align-top dark:border-gray-700/60">
                       <td className="px-3 py-2 text-gray-500 tabular-nums">{r.line}</td>
                       <td className="px-3 py-2">
@@ -157,6 +161,7 @@ export function CsvImportPanel({ open, onClose }: { open: boolean; onClose: () =
                 </tbody>
               </table>
             </div>
+            {hidden > 0 && <p className="text-xs text-gray-500">Hatalı satırların hepsi listelendi; {hidden} geçerli satır daha var (listede gösterilmiyor, gönderime dahil).</p>}
           </div>
         )}
       </div>

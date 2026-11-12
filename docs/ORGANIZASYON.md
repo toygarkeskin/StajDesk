@@ -169,7 +169,7 @@ Kapalı portal kuralı korunur: **CSV hesap açmaz.** Her geçerli satır, BT/Ad
 - Departman, kod veya adla eşleşir. Sistemde olmayan departman ve unvan yalnızca `org.manage` yetkisi olan kişi için otomatik oluşturulur (kod addan üretilir: "Satış Operasyonları" → `SO`). Diğer kişiler için bu satır hatalı sayılır.
 - Mevcut hesap, bekleyen talep veya dosya içinde tekrar eden e-posta ya da personel kodu reddedilir.
 - Satırlar tek formdaki kurallarla doğrulanır; HTML içeren alanlar reddedilir.
-- Sınırlar: en fazla 500 satır ve 1 MB. Dosya UTF-8 değilse Windows-1254 olarak okunur.
+- Sınırlar: en fazla 5.000 satır ve 5 MB. Excel'in dosya sonuna eklediği boş satırlar (`;;;;`) sayılmaz. Dosya UTF-8 değilse Windows-1254 olarak okunur.
 
 ## 11. Bekleyen
 

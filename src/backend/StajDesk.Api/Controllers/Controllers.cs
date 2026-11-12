@@ -501,7 +501,7 @@ public sealed class AccountRequestsController(IAccountRequestService requests, I
     /// CSV ile toplu hesap talebi. dryRun=true önizlemedir (hiçbir şey kaydedilmez). Hesap AÇILMAZ; her geçerli satır
     /// BT/Admin onayına düşen bir "yeni hesap talebi" olur. Eksik departman/unvan yalnızca org.manage ile oluşturulur.
     /// </summary>
-    [HttpPost("import"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage), RequestSizeLimit(2 * 1024 * 1024), Consumes("multipart/form-data")]
+    [HttpPost("import"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage), RequestSizeLimit(6 * 1024 * 1024), Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<AccountImportResultDto>>> Import(IFormFile? file, [FromQuery] bool dryRun, CancellationToken ct)
     {
         if (file is null || file.Length == 0) throw new StajDesk.Domain.Common.DomainException("İçe aktarılacak CSV dosyasını seçin.");

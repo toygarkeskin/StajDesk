@@ -130,6 +130,28 @@ public class AccountImportTests
     }
 
     [Fact]
+    public async Task Large_files_and_trailing_empty_excel_rows_are_accepted()
+    {
+        _current.As(_admin, RoleNames.SystemAdmin);
+        var sb = new StringBuilder();
+        for (var i = 1; i <= 600; i++) sb.Append($"Kişi {i};kisi{i}@test;K{i};MG;Uzman;;01.12.2026;;\r\n");
+        for (var i = 0; i < 2000; i++) sb.Append(";;;;;;;;\r\n"); // Excel'in eklediği boş satırlar
+        var result = await Service().ImportAsync(Csv(sb.ToString()), dryRun: true);
+        Assert.Equal(600, result.Total);
+        Assert.Equal(600, result.ValidCount);
+    }
+
+    [Fact]
+    public async Task More_than_max_rows_is_rejected_with_clear_message()
+    {
+        _current.As(_admin, RoleNames.SystemAdmin);
+        var sb = new StringBuilder();
+        for (var i = 0; i <= AccountImportService.MaxRows; i++) sb.Append($"K;k{i}@test;P{i};MG;Uzman;;01.12.2026;;\r\n");
+        var ex = await Assert.ThrowsAsync<DomainException>(() => Service().ImportAsync(Csv(sb.ToString()), dryRun: true));
+        Assert.Contains("5000", ex.Message);
+    }
+
+    [Fact]
     public void Parser_handles_quotes_commas_and_newlines()
     {
         var rows = AccountImportService.Parse("a,\"b, c\",\"d \"\"x\"\"\"\r\n\"çok\nsatır\",e,f\n", ',');

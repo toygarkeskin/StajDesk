@@ -31,8 +31,8 @@ public interface IAccountImportService
 
 internal sealed class AccountImportService(IAppDbContext db, ICurrentUser currentUser, IAuditLogger audit) : IAccountImportService
 {
-    public const int MaxRows = 500;
-    public const long MaxBytes = 1024 * 1024;
+    public const int MaxRows = 5000;
+    public const long MaxBytes = 5 * 1024 * 1024;
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
     /// <summary>Başlık eşleştirme: Türkçe karakter/boşluk/büyük-küçük harf farkı önemsizdir ("İşe Başlama" = "ise_baslama").</summary>
@@ -196,7 +196,7 @@ internal sealed class AccountImportService(IAppDbContext db, ICurrentUser curren
         int read;
         while ((read = await csv.ReadAsync(buffer, ct)) > 0)
         {
-            if (limited.Length + read > MaxBytes) throw new DomainException("CSV dosyası en fazla 1 MB olabilir.");
+            if (limited.Length + read > MaxBytes) throw new DomainException("CSV dosyası en fazla 5 MB olabilir.");
             limited.Write(buffer, 0, read);
         }
         var bytes = limited.ToArray();
@@ -242,7 +242,8 @@ internal sealed class AccountImportService(IAppDbContext db, ICurrentUser curren
             else cell.Append(c);
         }
         if (cell.Length > 0 || row.Count > 0) { row.Add(cell.ToString()); rows.Add([.. row]); }
-        return rows.Where(r => !(r.Length == 1 && string.IsNullOrWhiteSpace(r[0]))).ToList();
+        // Excel dosya sonuna ";;;;" gibi tamamen boş satırlar ekleyebilir: bunlar satır sayısına girmez.
+        return rows.Where(r => r.Any(c => !string.IsNullOrWhiteSpace(c))).ToList();
     }
 
     private static string? Cell(string[] row, List<string?> header, string column)
