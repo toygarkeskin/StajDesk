@@ -34,6 +34,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
+    public DbSet<AccountRequest> AccountRequests => Set<AccountRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

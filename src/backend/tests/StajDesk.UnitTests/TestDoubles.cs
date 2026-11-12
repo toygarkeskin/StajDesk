@@ -36,6 +36,7 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
+    public DbSet<AccountRequest> AccountRequests => Set<AccountRequest>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -54,6 +55,10 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<AuthorizationCode>().HasKey(x => x.CodeHash);
         b.Entity<PasswordResetToken>().HasKey(x => x.TokenHash);
         b.Entity<AuditLog>().HasOne(x => x.Actor).WithMany().HasForeignKey(x => x.ActorId);
+        b.Entity<AccountRequest>().HasOne(x => x.RequestedBy).WithMany().HasForeignKey(x => x.RequestedById);
+        b.Entity<AccountRequest>().HasOne(x => x.ReviewedBy).WithMany().HasForeignKey(x => x.ReviewedById);
+        b.Entity<AccountRequest>().HasOne(x => x.TargetUser).WithMany().HasForeignKey(x => x.TargetUserId);
+        b.Entity<AccountRequest>().HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);

@@ -35,6 +35,7 @@ public interface IAppDbContext
     DbSet<EmployeeProfile> EmployeeProfiles { get; }
     DbSet<UserSettings> UserSettings { get; }
     DbSet<OtpChallenge> OtpChallenges { get; }
+    DbSet<AccountRequest> AccountRequests { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 

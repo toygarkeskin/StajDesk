@@ -42,3 +42,19 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Testler:** 66 birim (15 yeni: kullanıcı adı, doğrulama, davet, OTP, 5 deneme kilidi, sağlayıcısız durum, gizlilik, İK sınırları, döngüler), 45 uçtan uca, 9 yeni sayfa × 375 px taşma kontrolü.
 
 **Eksik / sonraki:** Aşama 4 — kurumsal karşılama sitesi (açık tema referans görüntüsü bekleniyor), reklam/banner yönetimi, hava/kur servisleri.
+
+## 12.11.2026 — Aşama 3 revizyonu: kapalı portal ve kurumsal hesap süreci
+
+İstek: çalışanlar kendi hesabını açamasın; İK talep açsın, BT/yönetici onaylayıp hesabı açsın, rol versin, kilitlesin.
+
+**Yapılan**
+- Kendi kendine kayıt (ekran + API + e-posta doğrulama akışı) kaldırıldı.
+- Hesap talepleri: yeni hesap ve hesap kapatma; İK açar, BT onaylar / gerekçeyle reddeder; her iki tarafa bildirim.
+- BT Hesap Yöneticisi rolü; hesap kilitleme/kilit açma, davet yenileme.
+- Yetki yükseltme koruması (yalnızca sahip olunan yetkiler kadar rol), görevler ayrılığı (kendi talebini onaylayamama).
+- İK'dan doğrudan hesap açma ve aktif/pasif yetkisi alındı; ayrılış tarihi girilince BT'ye otomatik kapatma talebi.
+
+**Doğrulama:** 74 birim testi (9 yeni), 50 uçtan uca kontrol; arayüzde İK talebi → BT onayı → davet e-postası → çalışanın ilk şifresi ve girişi denendi.
+
+**Bekleyen:** departman / unvan CSV dosyası ulaşmadı.
+**Ara verilen:** Aşama 4 (karşılama sitesi) yarım işi `phase4-wip-landing-20261112` adlı stash'te; bu revizyondan sonra devam edilecek.

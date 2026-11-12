@@ -26,6 +26,8 @@ export const roleLabels: Record<string, string> = {
   agent: 'Destek Personeli',
   store_owner: 'Mağaza Sahibi',
   user: 'Kullanıcı',
+  hr: 'İK Personeli',
+  it_admin: 'BT Hesap Yöneticisi',
 }
 
 export const assetTypeLabels: Record<AssetType, string> = {

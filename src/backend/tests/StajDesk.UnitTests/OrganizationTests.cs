@@ -1,3 +1,4 @@
+using StajDesk.Application.Features.Users;
 using Microsoft.Extensions.Options;
 using StajDesk.Application.Common;
 using StajDesk.Application.Features.Auth;
@@ -49,11 +50,12 @@ public class OrganizationTests
         _db.SaveChanges();
     }
 
-    private EmployeeService Employees() => new(_db, _current, new NoCache(), _audit, _events, new MemoryStorage(), Options.Create(new AuthOptions()));
+    private AccountRequestService Requests() => new(_db, _current, _audit, _events, new NoCache(), Options.Create(new AuthOptions()));
+    private EmployeeService Employees() => new(_db, _current, new NoCache(), _audit, new MemoryStorage(), Requests());
     private OrgService Org() => new(_db, _current, _audit);
 
-    private UpdateWorkRequest Work(User u, int? managerId = null, bool active = true) =>
-        new(u.FullName, null, null, u.DepartmentId, u.PositionId, managerId, null, null, null, EmploymentType.FullTime, active);
+    private UpdateWorkRequest Work(User u, int? managerId = null, DateOnly? terminationDate = null) =>
+        new(u.FullName, null, u.DepartmentId, u.PositionId, managerId, null, null, terminationDate, EmploymentType.FullTime);
 
     [Fact]
     public async Task Colleague_sees_public_profile_but_not_private_fields()
@@ -102,20 +104,6 @@ public class OrganizationTests
     }
 
     [Fact]
-    public async Task Hr_creates_employee_with_invitation_and_user_role()
-    {
-        _current.As(_hr, RoleNames.Hr);
-        var id = await Employees().CreateAsync(new CreateEmployeeRequest("Yeni Çalışan", "Yeni@Test", "yeni.calisan", null, "P9001", _sales.Id, _uzman.Id, _manager.Id, null, new DateOnly(2026, 11, 1)));
-        var u = _db.Users.Single(x => x.Id == id);
-        Assert.Equal(string.Empty, u.PasswordHash);                // şifre davetle belirlenir
-        Assert.Equal("yeni.calisan", u.Username);
-        Assert.Single(_events.Published.Select(p => p.Event).OfType<UserInvitedEvent>());
-        Assert.Equal(RoleNames.User, _db.UserRoles.Where(r => r.UserId == id).Select(r => r.Role.Name).Single());
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            Employees().CreateAsync(new CreateEmployeeRequest("Başka", "baska@test", null, null, "P9001", null, null, null, null, null)));
-    }
-
-    [Fact]
     public async Task Manager_chain_cannot_form_a_cycle()
     {
         _current.As(_hr, RoleNames.Hr);
@@ -125,14 +113,21 @@ public class OrganizationTests
     }
 
     [Fact]
-    public async Task Deactivating_employee_revokes_sessions_and_hides_from_directory()
+    public async Task Hr_termination_date_opens_deactivation_request_but_does_not_disable_account()
     {
-        _db.RefreshTokens.Add(new RefreshToken { TokenHash = "h", UserId = _colleague.Id, ClientId = "web", FamilyId = Guid.NewGuid(), ExpiresAt = DateTime.UtcNow.AddDays(1) });
-        _db.SaveChanges();
         _current.As(_hr, RoleNames.Hr);
-        await Employees().UpdateWorkAsync(_colleague.Id, Work(_colleague, active: false));
-        Assert.NotNull(_db.RefreshTokens.Single(t => t.UserId == _colleague.Id).RevokedAt);
+        await Employees().UpdateWorkAsync(_colleague.Id, Work(_colleague, terminationDate: new DateOnly(2026, 12, 31)));
+        Assert.True(_db.Users.Single(u => u.Id == _colleague.Id).IsActive); // İK hesabı kapatmaz
+        var req = _db.AccountRequests.Single();
+        Assert.Equal(AccountRequestType.Deactivation, req.Type);
+        Assert.Equal(_colleague.Id, req.TargetUserId);
+    }
 
+    [Fact]
+    public async Task Inactive_employee_is_hidden_from_directory()
+    {
+        _colleague.IsActive = false;
+        _db.SaveChanges();
         _current.As(_employee, RoleNames.User);
         var list = await Employees().ListAsync(new EmployeeQuery { IncludeInactive = true }); // İK değil: yok sayılır
         Assert.DoesNotContain(list.Items, e => e.Id == _colleague.Id);

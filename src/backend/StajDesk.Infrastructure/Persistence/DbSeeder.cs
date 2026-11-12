@@ -44,6 +44,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             await SeedDemoAsync(ct);
             await SeedWorkspaceDemoAsync(ct);
             await SeedOrganizationDemoAsync(ct);
+            await SeedItDemoAsync(ct);
         }
     }
 
@@ -411,5 +412,26 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         db.Departments.RemoveRange(legacy);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Demo organizasyonu eklendi: 5 departman, unvanlar, yönetici ilişkileri ve personel kartları");
+    }
+
+    /// <summary>Demo: hesap taleplerini onaylayan BT hesap yöneticisi (bir kez eklenir).</summary>
+    private async Task SeedItDemoAsync(CancellationToken ct)
+    {
+        const string email = "kaan.bt@stajdesk.local";
+        var password = config["Seed:DemoPassword"];
+        if (string.IsNullOrWhiteSpace(password) || await db.Users.AnyAsync(u => u.Email == email, ct)) return;
+        var bt = await db.Departments.FirstOrDefaultAsync(d => d.Code == "BT", ct);
+        var title = await db.Positions.FirstOrDefaultAsync(p => p.Title == "BT Destek Uzmanı", ct);
+        var manager = await db.Users.FirstOrDefaultAsync(u => u.Email == "burak.destek@stajdesk.local", ct);
+        var it = new User
+        {
+            FullName = "Kaan Arslan", Email = email, Username = "kaan", PasswordHash = hasher.Hash(password), EmailVerifiedAt = DateTime.UtcNow,
+            DepartmentId = bt?.Id, PositionId = title?.Id, ManagerId = manager?.Id, Phone = "0555 010 10 03",
+            Profile = new EmployeeProfile { EmployeeNumber = "P1010", HireDate = new DateOnly(2022, 4, 4) },
+        };
+        it.Roles.Add(new UserRole { Role = await db.Roles.FirstAsync(r => r.Name == RoleNames.ItAdmin, ct) });
+        db.Users.Add(it);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Demo BT hesap yöneticisi eklendi: {Email}", email);
     }
 }

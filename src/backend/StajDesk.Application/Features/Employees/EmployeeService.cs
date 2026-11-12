@@ -17,8 +17,9 @@ namespace StajDesk.Application.Features.Employees;
    Çalışanlar (personel). Üç farklı yetki katmanı:
    - Herkes (giriş yapmış): rehber + kamuya açık profil (ad, unvan, departman, iş telefonu, yönetici, işe başlama).
    - Kişinin kendisi + employees.read.private: kişisel bilgiler (doğum tarihi, adres, acil durum kişisi).
-   - employees.manage (İK): personel kaydı oluşturur, iş bilgilerini düzenler, hesabı aktif/pasif yapar.
-   Sistem rolleri (yetki) İK'nın değil users.manage'in işidir: İK rolü tüm modüllere erişim demek değildir.
+   - employees.manage (İK): personel (iş) bilgilerini düzenler.
+   Hesap açma / kapatma / kilitleme ve sistem rolleri İK'nın değil BT'nin (users.manage) işidir:
+   İK yeni çalışan veya ayrılan çalışan için "hesap talebi" açar (bkz. AccountRequests).
    ========================================================= */
 
 public sealed record RefDto(int Id, string Name);
@@ -56,11 +57,9 @@ public sealed record EmployeeQuery : PagedQuery
 public sealed record UpdatePersonalRequest(string? Phone, string? PersonalEmail, string? Address, DateOnly? BirthDate,
     string? EmergencyContactName, string? EmergencyContactPhone, string? EmergencyContactRelation);
 
-public sealed record UpdateWorkRequest(string FullName, string? Username, string? EmployeeNumber, int? DepartmentId, int? PositionId, int? ManagerId,
-    int? StoreId, DateOnly? HireDate, DateOnly? TerminationDate, EmploymentType EmploymentType, bool IsActive);
-
-public sealed record CreateEmployeeRequest(string FullName, string Email, string? Username, string? Phone, string? EmployeeNumber,
-    int? DepartmentId, int? PositionId, int? ManagerId, int? StoreId, DateOnly? HireDate, EmploymentType EmploymentType = EmploymentType.FullTime);
+/// <summary>İK'nın düzenlediği personel bilgileri. Hesap durumu (aktif/pasif/kilit) ve kullanıcı adı burada YOK: onlar BT'nin işi.</summary>
+public sealed record UpdateWorkRequest(string FullName, string? EmployeeNumber, int? DepartmentId, int? PositionId, int? ManagerId,
+    int? StoreId, DateOnly? HireDate, DateOnly? TerminationDate, EmploymentType EmploymentType);
 
 public sealed record PhotoFile(Stream Content, string ContentType);
 
@@ -68,18 +67,15 @@ public interface IEmployeeService
 {
     Task<PagedResult<EmployeeCardDto>> ListAsync(EmployeeQuery query, CancellationToken ct = default);
     Task<EmployeeDetailDto> GetAsync(int id, CancellationToken ct = default);
-    Task<int> CreateAsync(CreateEmployeeRequest request, CancellationToken ct = default);
     Task UpdatePersonalAsync(int id, UpdatePersonalRequest request, CancellationToken ct = default);
     Task UpdateWorkAsync(int id, UpdateWorkRequest request, CancellationToken ct = default);
-    Task ResendInvitationAsync(int id, CancellationToken ct = default);
     Task SetImageAsync(int id, string kind, string fileName, Stream content, CancellationToken ct = default);
     Task RemoveImageAsync(int id, string kind, CancellationToken ct = default);
     Task<PhotoFile?> GetImageAsync(int id, string kind, CancellationToken ct = default);
 }
 
 internal sealed class EmployeeService(
-    IAppDbContext db, ICurrentUser currentUser, ICacheService cache, IAuditLogger audit, IEventPublisher events, IFileStorage storage,
-    Microsoft.Extensions.Options.IOptions<AuthOptions> authOptions) : IEmployeeService
+    IAppDbContext db, ICurrentUser currentUser, ICacheService cache, IAuditLogger audit, IFileStorage storage, IAccountRequestService accountRequests) : IEmployeeService
 {
     public const long MaxImageBytes = 2 * 1024 * 1024;
     private static readonly Dictionary<string, string> ImageTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -148,36 +144,6 @@ internal sealed class EmployeeService(
             new EmployeeAccessDto(isSelf, isSelf || IsHr, IsHr, seesPrivate));
     }
 
-    public async Task<int> CreateAsync(CreateEmployeeRequest r, CancellationToken ct = default)
-    {
-        currentUser.Require(Permissions.EmployeesManage);
-        var email = r.Email.Trim().ToLowerInvariant();
-        var username = NormalizeUsername(r.Username);
-        if (await db.Users.AnyAsync(u => u.Email == email, ct)) throw new ConflictException("Bu e-posta adresiyle kayıtlı bir çalışan var.");
-        if (username is not null && await db.Users.AnyAsync(u => u.Username == username, ct)) throw new ConflictException("Bu kullanıcı adı kullanılıyor.");
-        await EnsureNumberFreeAsync(r.EmployeeNumber, null, ct);
-        await EnsureRefsAsync(r.DepartmentId, r.PositionId, r.StoreId, ct);
-        if (r.ManagerId is { } mid && !await db.Users.AnyAsync(u => u.Id == mid && u.IsActive, ct)) throw NotFoundException.For("Yönetici", mid);
-
-        // Yeni çalışan varsayılan olarak "Kullanıcı" rolüyle başlar; ek yetkileri sistem yöneticisi verir.
-        var role = await db.Roles.FirstAsync(x => x.Name == RoleNames.User, ct);
-        var user = new User
-        {
-            FullName = Text.Clean(r.FullName), Email = email, Username = username, Phone = Text.CleanOrNull(r.Phone),
-            DepartmentId = r.DepartmentId, PositionId = r.PositionId, ManagerId = r.ManagerId, StoreId = r.StoreId,
-            PasswordHash = string.Empty, // davet bağlantısıyla belirlenir; boş hash ile giriş yapılamaz
-            Profile = new EmployeeProfile { EmployeeNumber = Text.CleanOrNull(r.EmployeeNumber), HireDate = r.HireDate, EmploymentType = r.EmploymentType },
-        };
-        user.Roles.Add(new UserRole { Role = role });
-        db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
-
-        AccountLinks.Invite(db, events, authOptions.Value.WebUrl, user, currentUser.FullName ?? "İnsan Kaynakları");
-        audit.Add("employee.created", "user", user.Id, new { r.DepartmentId, r.PositionId });
-        await db.SaveChangesAsync(ct);
-        return user.Id;
-    }
-
     public async Task UpdatePersonalAsync(int id, UpdatePersonalRequest r, CancellationToken ct = default)
     {
         currentUser.RequireUserId();
@@ -201,22 +167,16 @@ internal sealed class EmployeeService(
     {
         currentUser.Require(Permissions.EmployeesManage);
         var u = await db.Users.Include(x => x.Profile).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw NotFoundException.For("Çalışan", id);
-        if (id == currentUser.UserId && !r.IsActive) throw new ForbiddenException("Kendi hesabınızı pasifleştiremezsiniz.");
-
-        var username = NormalizeUsername(r.Username);
-        if (username is not null && await db.Users.AnyAsync(x => x.Username == username && x.Id != id, ct)) throw new ConflictException("Bu kullanıcı adı kullanılıyor.");
         await EnsureNumberFreeAsync(r.EmployeeNumber, id, ct);
         await EnsureRefsAsync(r.DepartmentId, r.PositionId, r.StoreId, ct);
         if (r.ManagerId is { } managerId) await EnsureNoCycleAsync(id, managerId, ct);
 
-        var deactivated = u.IsActive && !r.IsActive;
+        var newTermination = r.TerminationDate is not null && u.Profile?.TerminationDate != r.TerminationDate;
         u.FullName = Text.Clean(r.FullName);
-        u.Username = username;
         u.DepartmentId = r.DepartmentId;
         u.PositionId = r.PositionId;
         u.ManagerId = r.ManagerId;
         u.StoreId = r.StoreId;
-        u.IsActive = r.IsActive;
         u.UpdatedAt = DateTime.UtcNow;
         u.Profile ??= new EmployeeProfile { UserId = u.Id };
         u.Profile.EmployeeNumber = Text.CleanOrNull(r.EmployeeNumber);
@@ -224,22 +184,14 @@ internal sealed class EmployeeService(
         u.Profile.TerminationDate = r.TerminationDate;
         u.Profile.EmploymentType = r.EmploymentType;
         u.Profile.UpdatedAt = DateTime.UtcNow;
-        audit.Add("employee.work_updated", "user", id, new { r.DepartmentId, r.PositionId, r.ManagerId, r.IsActive });
-
-        if (deactivated)
-            foreach (var t in await db.RefreshTokens.Where(t => t.UserId == id && t.RevokedAt == null).ToListAsync(ct)) t.RevokedAt = DateTime.UtcNow;
+        audit.Add("employee.work_updated", "user", id, new { r.DepartmentId, r.PositionId, r.ManagerId, r.TerminationDate });
         await db.SaveChangesAsync(ct);
-        await cache.RemoveAsync(CacheKeys.Permissions(id), ct); // mağaza ve aktiflik bir sonraki istekte geçerli olsun
-    }
+        await cache.RemoveAsync(CacheKeys.Permissions(id), ct); // mağaza bir sonraki istekte geçerli olsun
 
-    public async Task ResendInvitationAsync(int id, CancellationToken ct = default)
-    {
-        currentUser.Require(Permissions.EmployeesManage, Permissions.UsersManage);
-        var u = await db.Users.FirstOrDefaultAsync(x => x.Id == id && x.IsActive, ct) ?? throw NotFoundException.For("Çalışan", id);
-        if (!string.IsNullOrEmpty(u.PasswordHash)) throw new DomainException("Bu çalışan şifresini zaten belirlemiş. Şifresini unuttuysa giriş ekranından sıfırlayabilir.");
-        AccountLinks.Invite(db, events, authOptions.Value.WebUrl, u, currentUser.FullName ?? "İnsan Kaynakları");
-        audit.Add("employee.invitation_resent", "user", id);
-        await db.SaveChangesAsync(ct);
+        // Ayrılış tarihi girildiyse hesap İK tarafından KAPATILMAZ; BT'ye hesap kapatma talebi açılır.
+        if (newTermination && u.IsActive && id != currentUser.UserId
+            && !await db.AccountRequests.AnyAsync(x => x.TargetUserId == id && x.Status == AccountRequestStatus.Pending, ct))
+            await accountRequests.CreateDeactivationAsync(new CreateDeactivationRequest(id, r.TerminationDate!.Value, "Personel bilgilerine ayrılış tarihi girildi."), ct);
     }
 
     // ---------- Profil ve kapak fotoğrafı ----------
@@ -362,24 +314,8 @@ public sealed class UpdateWorkRequestValidator : AbstractValidator<UpdateWorkReq
     public UpdateWorkRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().WithMessage("Ad soyad zorunludur.").MaximumLength(100).NoMarkup();
-        RuleFor(x => x.Username).Matches("^[a-zA-Z0-9._-]{3,50}$").WithMessage("Kullanıcı adı 3–50 karakter olmalı; harf, rakam, nokta, tire ve alt çizgi içerebilir.")
-            .When(x => !string.IsNullOrWhiteSpace(x.Username));
         RuleFor(x => x.EmployeeNumber).MaximumLength(20).NoMarkup();
         RuleFor(x => x.EmploymentType).IsInEnum();
         RuleFor(x => x.TerminationDate).Must((r, t) => t is null || r.HireDate is null || t >= r.HireDate).WithMessage("Çıkış tarihi işe giriş tarihinden önce olamaz.");
-    }
-}
-
-public sealed class CreateEmployeeRequestValidator : AbstractValidator<CreateEmployeeRequest>
-{
-    public CreateEmployeeRequestValidator()
-    {
-        RuleFor(x => x.FullName).NotEmpty().WithMessage("Ad soyad zorunludur.").MaximumLength(100).NoMarkup();
-        RuleFor(x => x.Email).NotEmpty().WithMessage("İş e-postasını girin.").EmailAddress().WithMessage("ad@sirket.com biçiminde bir e-posta girin.").MaximumLength(150);
-        RuleFor(x => x.Username).Matches("^[a-zA-Z0-9._-]{3,50}$").WithMessage("Kullanıcı adı 3–50 karakter olmalı; harf, rakam, nokta, tire ve alt çizgi içerebilir.")
-            .When(x => !string.IsNullOrWhiteSpace(x.Username));
-        RuleFor(x => x.Phone).MaximumLength(30).NoMarkup();
-        RuleFor(x => x.EmployeeNumber).MaximumLength(20).NoMarkup();
-        RuleFor(x => x.EmploymentType).IsInEnum();
     }
 }

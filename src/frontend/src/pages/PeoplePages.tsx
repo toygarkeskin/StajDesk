@@ -1,8 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Briefcase, Building2, Camera, Cake, Mail, Pencil, Phone, Plus, Send, ShieldCheck, UserRound, Users } from 'lucide-react'
+import { Briefcase, Building2, Camera, Cake, Mail, Pencil, Phone, Plus, ShieldCheck, UserMinus, UserRound, Users } from 'lucide-react'
 import { api, errorDetails, errorMessage, fieldErrors } from '@/lib/api'
 import { useForm } from '@/lib/hooks'
 import { employmentLabels, seniority } from '@/lib/labels'
@@ -23,12 +23,12 @@ const PAGE_SIZE = 24
 export function EmployeesPage() {
   const { can } = useCan()
   const isHr = can('employees.manage')
+  const canRequest = can('accounts.request', 'users.manage')
   const [params, setParams] = useSearchParams()
   const search = params.get('search') ?? ''
   const departmentId = params.get('departmentId') ?? ''
   const inactive = params.get('inactive') === '1'
   const page = Number(params.get('page') ?? 1)
-  const [creating, setCreating] = useState(false)
   const set = (k: string, v: string | null) => {
     const next = new URLSearchParams(params)
     if (v) next.set(k, v); else next.delete(k)
@@ -48,7 +48,7 @@ export function EmployeesPage() {
       <PageHeader
         title="Çalışanlar"
         description="Şirket rehberi: unvan, departman ve iletişim bilgileri."
-        actions={isHr && <button className="btn-violet" onClick={() => setCreating(true)}><Plus className="size-4" aria-hidden="true" /> Personel ekle</button>}
+        actions={canRequest && <Link to="/account-requests?new=1" className="btn-violet"><Plus className="size-4" aria-hidden="true" /> Yeni çalışan hesabı talebi</Link>}
       />
       <div className="mb-4 flex flex-col gap-2 sm:flex-row">
         <label htmlFor="emp-search" className="sr-only">Ad, unvan, departman veya personel no</label>
@@ -93,7 +93,6 @@ export function EmployeesPage() {
           <div className="card mt-4"><Pagination page={list.data!.page} totalPages={list.data!.totalPages} totalCount={list.data!.totalCount} pageSize={PAGE_SIZE} onChange={(p) => set('page', String(p))} /></div>
         </>
       )}
-      {creating && <CreateEmployeePanel onClose={() => setCreating(false)} />}
     </>
   )
 }
@@ -105,70 +104,6 @@ function useOrgLookups() {
   // Yönetici seçimi için tüm aktif çalışanlar (rehber 100'lük sayfalarla gelir; şema hepsini tek seferde verir).
   const chart = useQuery({ queryKey: ['org-chart'], queryFn: api.org.chart })
   return { departments, positions, stores, people: chart.data?.people ?? [] }
-}
-
-/** İK: yeni personel kaydı. Şifre girilmez; çalışana "ilk şifreni belirle" e-postası gider. */
-function CreateEmployeePanel({ onClose }: { onClose: () => void }) {
-  const qc = useQueryClient()
-  const navigate = useNavigate()
-  const { departments, positions, stores, people } = useOrgLookups()
-  const form = useForm(
-    { fullName: '', email: '', username: '', phone: '', employeeNumber: '', departmentId: '', positionId: '', managerId: '', storeId: '', hireDate: new Date().toISOString().slice(0, 10), employmentType: 'FullTime' },
-    {
-      fullName: (v) => (!v.trim() ? 'Ad soyad girin.' : undefined),
-      email: (v) => (!/^\S+@\S+\.\S+$/.test(v) ? 'ad@sirket.com biçiminde bir iş e-postası girin.' : undefined),
-      username: (v) => (v && !/^[a-zA-Z0-9._-]{3,50}$/.test(v) ? '3–50 karakter: harf, rakam, nokta, tire, alt çizgi.' : undefined),
-    },
-  )
-  const save = useMutation({
-    mutationFn: () => {
-      const v = form.values
-      const n = (x: string) => (x ? Number(x) : null)
-      return api.employees.create({ ...v, username: v.username || null, phone: v.phone || null, employeeNumber: v.employeeNumber || null,
-        departmentId: n(v.departmentId), positionId: n(v.positionId), managerId: n(v.managerId), storeId: n(v.storeId), hireDate: v.hireDate || null })
-    },
-    onSuccess: (r) => {
-      toast('Personel kaydı oluşturuldu; ilk şifre bağlantısı e-postayla gönderildi.')
-      qc.invalidateQueries({ queryKey: ['employees'] })
-      onClose()
-      navigate(`/employees/${r.id}`)
-    },
-    onError: (err) => {
-      form.setServerErrors(fieldErrors(err))
-      toast(errorMessage(err), 'error')
-    },
-  })
-  const submit = () => !save.isPending && form.validateAll() && save.mutate()
-  return (
-    <SlideOver open onClose={onClose} title="Personel ekle" description="Çalışan, iş e-postasına gelen bağlantıyla kendi şifresini belirler. Sistem rolü varsayılan olarak Kullanıcı'dır."
-      footer={<><button className="btn-secondary" onClick={onClose}>Vazgeç</button><button className="btn-violet" onClick={submit} aria-busy={save.isPending}>{save.isPending && <Spinner />} Kaydet ve davet gönder</button></>}>
-      <form onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="space-y-4">
-        <Field label="Ad soyad" htmlFor="f-fullName" error={form.errors.fullName} required><input {...form.field('fullName')} className="form-field" maxLength={100} /></Field>
-        <Field label="İş e-postası" htmlFor="f-email" error={form.errors.email} required><input {...form.field('email')} type="email" className="form-field" /></Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Kullanıcı adı" htmlFor="f-username" error={form.errors.username} optional><input {...form.field('username')} className="form-field" autoCapitalize="none" /></Field>
-          <Field label="Personel no" htmlFor="f-employeeNumber" optional><input {...form.field('employeeNumber')} className="form-field" maxLength={20} /></Field>
-          <Field label="Departman" htmlFor="f-departmentId" optional>
-            <select {...form.field('departmentId')} className="form-field"><option value="">Seçin</option>{departments.data?.filter((d) => d.isActive).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-          </Field>
-          <Field label="Unvan" htmlFor="f-positionId" optional>
-            <select {...form.field('positionId')} className="form-field"><option value="">Seçin</option>{positions.data?.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}</select>
-          </Field>
-          <Field label="Yönetici" htmlFor="f-managerId" optional>
-            <select {...form.field('managerId')} className="form-field"><option value="">Yok</option>{people.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}</select>
-          </Field>
-          <Field label="Mağaza / şube" htmlFor="f-storeId" optional>
-            <select {...form.field('storeId')} className="form-field"><option value="">Merkez</option>{stores.data?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-          </Field>
-          <Field label="İşe giriş tarihi" htmlFor="f-hireDate" optional><input type="date" {...form.field('hireDate')} className="form-field" /></Field>
-          <Field label="Çalışma türü" htmlFor="f-employmentType">
-            <select {...form.field('employmentType')} className="form-field">{Object.entries(employmentLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-          </Field>
-          <Field label="İş telefonu" htmlFor="f-phone" optional><input {...form.field('phone')} type="tel" className="form-field" /></Field>
-        </div>
-      </form>
-    </SlideOver>
-  )
 }
 
 /* =========================================================
@@ -376,11 +311,9 @@ function PersonalTab({ p }: { p: EmployeeDetail }) {
 function WorkTab({ p }: { p: EmployeeDetail }) {
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
-  const invite = useMutation({
-    mutationFn: () => api.employees.resendInvite(p.id),
-    onSuccess: () => toast('Davet e-postası yeniden gönderildi.'),
-    onError: (err) => toast(errorMessage(err), 'error'),
-  })
+  const { can } = useCan()
+  const canRequest = can('accounts.request', 'users.manage') && p.isActive && !p.access.isSelf
+  const [closing, setClosing] = useState(false)
   const rows: [string, ReactNode][] = [
     ['Personel no', p.employeeNumber ?? (p.access.canSeePrivate ? '—' : 'Gizli')],
     ['Departman', p.department?.name ?? '—'],
@@ -400,12 +333,10 @@ function WorkTab({ p }: { p: EmployeeDetail }) {
     <section className="card p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-gray-500">Unvan bir yetki değildir: sistemde ne yapabileceğini sistem rolleri belirler.</p>
-        {p.access.canEditWork && (
-          <div className="flex gap-2">
-            {!p.emailVerified && p.isActive && <button className="btn-secondary" onClick={() => invite.mutate()} aria-busy={invite.isPending}><Send className="size-4" aria-hidden="true" /> Daveti yeniden gönder</button>}
-            <button className="btn-secondary" onClick={() => setEditing(true)}><Pencil className="size-4" aria-hidden="true" /> İş bilgilerini düzenle</button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canRequest && <button className="btn-secondary text-rose-600" onClick={() => setClosing(true)}><UserMinus className="size-4" aria-hidden="true" /> Hesap kapatma talebi</button>}
+          {p.access.canEditWork && <button className="btn-secondary" onClick={() => setEditing(true)}><Pencil className="size-4" aria-hidden="true" /> İş bilgilerini düzenle</button>}
+        </div>
       </div>
       <dl className="divide-y divide-gray-100 dark:divide-gray-700/60">
         {rows.map(([k, v]) => (
@@ -416,6 +347,7 @@ function WorkTab({ p }: { p: EmployeeDetail }) {
         ))}
       </dl>
       {editing && <EditWorkPanel p={p} onClose={() => setEditing(false)} onSaved={(d) => qc.setQueryData(['employee', p.id], d)} />}
+      {closing && <DeactivationRequestPanel p={p} onClose={() => setClosing(false)} />}
     </section>
   )
 }
@@ -424,12 +356,11 @@ function EditWorkPanel({ p, onClose, onSaved }: { p: EmployeeDetail; onClose: ()
   const qc = useQueryClient()
   const { departments, positions, stores, people } = useOrgLookups()
   const form = useForm(
-    { fullName: p.fullName, username: p.username ?? '', employeeNumber: p.employeeNumber ?? '', departmentId: String(p.department?.id ?? ''), positionId: String(p.position?.id ?? ''),
+    { fullName: p.fullName, employeeNumber: p.employeeNumber ?? '', departmentId: String(p.department?.id ?? ''), positionId: String(p.position?.id ?? ''),
       managerId: String(p.manager?.id ?? ''), storeId: String(p.store?.id ?? ''), hireDate: p.hireDate ?? '', terminationDate: p.terminationDate ?? '',
-      employmentType: p.employmentType as string, isActive: p.isActive ? 'true' : 'false' },
+      employmentType: p.employmentType as string },
     {
       fullName: (v) => (!v.trim() ? 'Ad soyad girin.' : undefined),
-      username: (v) => (v && !/^[a-zA-Z0-9._-]{3,50}$/.test(v) ? '3–50 karakter: harf, rakam, nokta, tire, alt çizgi.' : undefined),
       terminationDate: (v, all) => (v && all.hireDate && v < all.hireDate ? 'Çıkış tarihi işe girişten önce olamaz.' : undefined),
     },
   )
@@ -437,15 +368,17 @@ function EditWorkPanel({ p, onClose, onSaved }: { p: EmployeeDetail; onClose: ()
     mutationFn: () => {
       const v = form.values
       const n = (x: string) => (x ? Number(x) : null)
-      return api.employees.updateWork(p.id, { fullName: v.fullName, username: v.username || null, employeeNumber: v.employeeNumber || null,
+      return api.employees.updateWork(p.id, { fullName: v.fullName, employeeNumber: v.employeeNumber || null,
         departmentId: n(v.departmentId), positionId: n(v.positionId), managerId: n(v.managerId), storeId: n(v.storeId),
-        hireDate: v.hireDate || null, terminationDate: v.terminationDate || null, employmentType: v.employmentType as EmploymentType, isActive: v.isActive === 'true' })
+        hireDate: v.hireDate || null, terminationDate: v.terminationDate || null, employmentType: v.employmentType as EmploymentType })
     },
     onSuccess: (d) => {
       onSaved(d)
       qc.invalidateQueries({ queryKey: ['employees'] })
       qc.invalidateQueries({ queryKey: ['org-chart'] })
-      toast('İş bilgileri güncellendi.')
+      qc.invalidateQueries({ queryKey: ['account-requests'] })
+      toast(form.values.terminationDate && form.values.terminationDate !== (p.terminationDate ?? '') && p.isActive
+        ? 'İş bilgileri güncellendi. Ayrılış tarihi girildiği için BT\'ye hesap kapatma talebi açıldı.' : 'İş bilgileri güncellendi.')
       onClose()
     },
     onError: (err) => {
@@ -455,12 +388,11 @@ function EditWorkPanel({ p, onClose, onSaved }: { p: EmployeeDetail; onClose: ()
   })
   const submit = () => !save.isPending && form.validateAll() && save.mutate()
   return (
-    <SlideOver open onClose={onClose} title="İş bilgilerini düzenle" description="Pasif yapılan çalışanın açık oturumları hemen kapatılır."
+    <SlideOver open onClose={onClose} title="İş bilgilerini düzenle" description="Hesap açma, kapatma ve kilitleme Bilgi Teknolojileri'nin işidir. Ayrılış tarihi girerseniz BT'ye otomatik hesap kapatma talebi açılır."
       footer={<><button className="btn-secondary" onClick={onClose}>Vazgeç</button><button className="btn-violet" onClick={submit} aria-busy={save.isPending}>{save.isPending && <Spinner />} Değişiklikleri kaydet</button></>}>
       <form onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="space-y-4">
         <Field label="Ad soyad" htmlFor="f-fullName" error={form.errors.fullName} required><input {...form.field('fullName')} className="form-field" /></Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Kullanıcı adı" htmlFor="f-username" error={form.errors.username} optional><input {...form.field('username')} className="form-field" autoCapitalize="none" /></Field>
           <Field label="Personel no" htmlFor="f-employeeNumber" optional><input {...form.field('employeeNumber')} className="form-field" /></Field>
           <Field label="Departman" htmlFor="f-departmentId" optional>
             <select {...form.field('departmentId')} className="form-field"><option value="">Yok</option>{departments.data?.filter((d) => d.isActive || d.id === p.department?.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
@@ -479,12 +411,34 @@ function EditWorkPanel({ p, onClose, onSaved }: { p: EmployeeDetail; onClose: ()
           <Field label="Çalışma türü" htmlFor="f-employmentType">
             <select {...form.field('employmentType')} className="form-field">{Object.entries(employmentLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </Field>
-          <Field label="Hesap durumu" htmlFor="f-isActive">
-            <select {...form.field('isActive')} className="form-field"><option value="true">Aktif</option><option value="false">Pasif (ayrıldı)</option></select>
-          </Field>
         </div>
       </form>
     </SlideOver>
   )
 }
 
+
+/** İK: ayrılan çalışanın hesabının kapatılması için BT'ye talep. Hesap BT onayına kadar açık kalır. */
+function DeactivationRequestPanel({ p, onClose }: { p: EmployeeDetail; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [date, setDate] = useState(p.terminationDate ?? new Date().toISOString().slice(0, 10))
+  const [note, setNote] = useState('')
+  const save = useMutation({
+    mutationFn: () => api.accountRequests.createDeactivation({ userId: p.id, terminationDate: date, note: note || null }),
+    onSuccess: () => {
+      toast('Hesap kapatma talebi Bilgi Teknolojileri\'ne iletildi.')
+      qc.invalidateQueries({ queryKey: ['account-requests'] })
+      onClose()
+    },
+    onError: (err) => toast(errorMessage(err), 'error'),
+  })
+  return (
+    <SlideOver open onClose={onClose} title={`${p.fullName} — hesap kapatma talebi`} description="BT onayladığında hesap pasife alınır ve açık oturumları kapatılır. Talep ve sonucu kayıt altına alınır."
+      footer={<><button className="btn-secondary" onClick={onClose}>Vazgeç</button><button className="btn-danger" onClick={() => date && !save.isPending && save.mutate()} aria-busy={save.isPending}>{save.isPending && <Spinner />} Talebi gönder</button></>}>
+      <form onSubmit={(e) => { e.preventDefault(); if (date) save.mutate() }} noValidate className="space-y-4">
+        <Field label="Ayrılış tarihi" htmlFor="f-term" required><input id="f-term" type="date" className="form-field" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label="Not" htmlFor="f-term-note" optional><textarea id="f-term-note" className="form-field min-h-20" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+      </form>
+    </SlideOver>
+  )
+}

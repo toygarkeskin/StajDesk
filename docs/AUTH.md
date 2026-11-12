@@ -74,8 +74,8 @@ Dönen token'ın izinleri yalnızca istenen ve istemciye tanımlı scope'lardır
 
 ## Kullanıcı adı, e-posta doğrulama, davet ve SMS doğrulaması
 
-Girişte e-posta yerine kullanıcı adı yazılabilir. Kendi kaydolan kullanıcı e-postasını doğrulamadan giriş yapamaz
-(`error: email_not_verified`, şifre doğru olduktan **sonra** söylenir). İK'nın açtığı hesap şifre belirleme davetiyle gelir.
+Girişte e-posta yerine kullanıcı adı yazılabilir. Kendi kendine kayıt **yoktur**; hesapları BT / yönetici İK talebi üzerine açar ve
+çalışan şifresini davet bağlantısıyla belirler. Kilitli hesapta şifre doğruysa `error: account_locked` döner (yanlış şifrede söylenmez).
 Kullanıcıda SMS doğrulaması açık ve SMS sağlayıcısı bağlıysa `/connect/authorize` kod yerine
 `{ "otpRequired": true, "challengeId": "…", "maskedPhone": "0555 *** ** 12" }` döner; ikinci adım `POST /connect/authorize/otp`.
 Ayrıntı: [ORGANIZASYON.md](ORGANIZASYON.md#4-hesap-akışları).

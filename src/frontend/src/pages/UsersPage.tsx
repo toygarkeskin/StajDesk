@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus } from 'lucide-react'
+import { KeyRound, Lock, LockOpen, Pencil, Plus, Send } from 'lucide-react'
 import { api, errorDetails, errorMessage, fieldErrors } from '@/lib/api'
 import { useForm } from '@/lib/hooks'
 import { roleLabels } from '@/lib/labels'
@@ -12,7 +12,8 @@ import { toast } from '@/stores/ui'
 import { Avatar, Badge, EmptyState, ErrorState, Field, IconButton, PageHeader, Pagination, SlideOver, Spinner, TableSkeleton } from '@/components/ui'
 import { DataFrame, FilterSelect, ListToolbar, Th, type FilterChip } from '@/components/list'
 
-/* Kullanıcılar: yönetici herkesi yönetir; mağaza sahibi kendi mağazasındaki kullanıcıları görür. */
+/* Kullanıcı hesapları: BT / yönetici hesap açar, rol verir, pasife alır ve kilitler (users.manage).
+   Mağaza sahibi kendi mağazasındaki kullanıcıları yalnızca görür. Şifreyi hiçbir zaman başkası belirlemez. */
 
 const PAGE_SIZE = 10
 const roleBadge: Record<string, string> = {
@@ -20,6 +21,8 @@ const roleBadge: Record<string, string> = {
   agent: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
   store_owner: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
   user: 'bg-gray-400/15 text-gray-600 dark:text-gray-400',
+  hr: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
+  it_admin: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-400',
 }
 
 export function UsersPage() {
@@ -98,7 +101,12 @@ export function UsersPage() {
                     </td>
                     <td className="px-4 py-3"><div className="flex flex-wrap gap-1">{u.roles.map((r) => <Badge key={r} className={roleBadge[r] ?? roleBadge.user!}>{roleLabels[r] ?? r}</Badge>)}</div></td>
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{u.store?.name ?? '—'}</td>
-                    <td className="px-4 py-3">{u.isActive ? 'Aktif' : <span className="text-rose-500">Pasif</span>}</td>
+                    <td className="px-4 py-3">
+                      {!u.isActive ? <span className="text-rose-500">Pasif</span>
+                        : u.lockedAt ? <span className="inline-flex items-center gap-1 text-amber-600" title={u.lockReason ?? undefined}><Lock className="size-3.5" aria-hidden="true" /> Kilitli</span>
+                        : u.passwordSet === false ? <span className="inline-flex items-center gap-1 text-sky-600"><KeyRound className="size-3.5" aria-hidden="true" /> Şifre bekleniyor</span>
+                        : 'Aktif'}
+                    </td>
                     <td className="px-4 py-3 text-right">{u.openTicketCount}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-gray-500" title={`Kayıt: ${formatDate(u.createdAt)}`}>{u.lastLoginAt ? timeAgo(u.lastLoginAt) : 'Hiç giriş yapmadı'}</td>
                     <td className="px-2 py-1 text-right">{canManage && <IconButton label={`${u.fullName} hesabını düzenle`} onClick={() => setEditing(u)}><Pencil className="size-4" /></IconButton>}</td>
@@ -120,15 +128,20 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
   const isSelf = user?.id === meId
   const stores = useQuery({ queryKey: ['stores'], queryFn: api.stores.list })
   const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
+  const roleList = useQuery({ queryKey: ['roles'], queryFn: api.roles.list })
+  const myPermissions = useAuth((s) => s.me?.permissions ?? [])
+  // Bir rolü verebilmek için rolün tüm yetkilerine sahip olmak gerekir (yetki yükseltme koruması; API de aynı kuralı uygular).
+  const canAssign = (name: string) => {
+    const role = roleList.data?.roles.find((r) => r.name === name)
+    return !role || role.permissions.every((p) => myPermissions.includes(p))
+  }
   const [roles, setRoles] = useState<string[]>(user?.roles ?? ['user'])
   const [rolesError, setRolesError] = useState<string>()
   const form = useForm(
-    { fullName: user?.fullName ?? '', email: user?.email ?? '', username: user?.username ?? '', password: '', storeId: user?.store ? String(user.store.id) : '', departmentId: user?.departmentId ? String(user.departmentId) : '', isActive: user?.isActive ?? true },
+    { fullName: user?.fullName ?? '', email: user?.email ?? '', username: user?.username ?? '', storeId: user?.store ? String(user.store.id) : '', departmentId: user?.departmentId ? String(user.departmentId) : '', isActive: user?.isActive ?? true },
     {
       fullName: (v) => (!v.trim() ? 'Ad ve soyadı girin.' : undefined),
       email: (v) => (user ? undefined : !/^\S+@\S+\.\S+$/.test(v) ? 'ad@sirket.com biçiminde bir e-posta girin.' : undefined),
-      // Boş bırakılırsa davet e-postası gider (önerilen). Doldurulursa güçlü şifre kuralı uygulanır.
-      password: (v) => (user || !v ? undefined : v.length < 10 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) ? 'En az 10 karakter; büyük/küçük harf ve rakam içersin — veya boş bırakıp davet gönderin.' : undefined),
       username: (v) => (v && !/^[a-zA-Z0-9._-]{3,50}$/.test(v) ? '3–50 karakter: harf, rakam, nokta, tire, alt çizgi.' : undefined),
     },
   )
@@ -136,13 +149,13 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
     mutationFn: () => {
       const v = form.values
       const common = { fullName: v.fullName, roles, storeId: v.storeId ? Number(v.storeId) : null, departmentId: v.departmentId ? Number(v.departmentId) : null, phone: null, username: v.username || null }
-      return user ? api.users.update(user.id, { ...common, isActive: v.isActive }) : api.users.create({ ...common, email: v.email, password: v.password || null })
+      return user ? api.users.update(user.id, { ...common, isActive: v.isActive }) : api.users.create({ ...common, email: v.email })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] })
       qc.invalidateQueries({ queryKey: ['agents'] })
       qc.invalidateQueries({ queryKey: ['stores'] })
-      toast(user ? `${form.values.fullName} güncellendi.` : form.values.password ? `${form.values.fullName} hesabı oluşturuldu.` : `${form.values.fullName} hesabı oluşturuldu; ilk şifre bağlantısı e-postayla gönderildi.`)
+      toast(user ? `${form.values.fullName} güncellendi.` : `${form.values.fullName} hesabı oluşturuldu; ilk şifre bağlantısı e-postayla gönderildi.`)
       onClose()
     },
     onError: (err) => {
@@ -159,14 +172,13 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
   const needsStore = roles.includes('store_owner') && !form.values.storeId
 
   return (
-    <SlideOver open onClose={onClose} title={user ? `${user.fullName} hesabını düzenle` : 'Kullanıcı ekle'} description={user ? user.email : 'Şifreyi boş bırakın: kullanıcıya kendi şifresini belirleyeceği bir davet e-postası gider.'}
+    <SlideOver open onClose={onClose} title={user ? `${user.fullName} hesabını düzenle` : 'Kullanıcı ekle'} description={user ? user.email : 'Yeni çalışanlar için önerilen yol Hesap talepleri ekranıdır. Burada açılan hesaba da şifre girilmez; çalışana kendi şifresini belirleyeceği davet e-postası gider.'}
       footer={<><button className="btn-secondary" onClick={onClose}>Vazgeç</button><button className="btn-violet" onClick={submit} aria-busy={save.isPending}>{save.isPending && <Spinner />} {user ? 'Değişiklikleri kaydet' : 'Kullanıcıyı oluştur'}</button></>}>
       <form onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="space-y-5">
         <Field label="Ad soyad" htmlFor="f-fullName" error={form.errors.fullName}><input {...form.field('fullName')} className="form-field" autoComplete="off" /></Field>
         {!user && (
           <>
             <Field label="E-posta" htmlFor="f-email" error={form.errors.email}><input {...form.field('email')} type="email" className="form-field" placeholder="ad@sirket.com" autoComplete="off" /></Field>
-            <Field label="Geçici şifre" htmlFor="f-password" error={form.errors.password} optional hint="Önerilmez: boş bırakırsanız davet e-postası gider."><input {...form.field('password')} type="password" className="form-field" autoComplete="new-password" /></Field>
           </>
         )}
         <Field label="Kullanıcı adı" htmlFor="f-username" error={form.errors.username} optional hint="E-posta yerine girişte kullanılabilir."><input {...form.field('username')} className="form-field" autoCapitalize="none" autoComplete="off" /></Field>
@@ -175,9 +187,9 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
           <div className="space-y-1">
             {Object.entries(roleLabels).map(([name, label]) => (
               <label key={name} className="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" className="size-4 accent-violet-500" disabled={isSelf && name === 'system_admin'} checked={roles.includes(name)}
+                <input type="checkbox" className="size-4 accent-violet-500" disabled={(isSelf && name === 'system_admin') || (!canAssign(name) && !roles.includes(name))} checked={roles.includes(name)}
                   onChange={(e) => { setRoles(e.target.checked ? [...roles, name] : roles.filter((r) => r !== name)); setRolesError(undefined) }} />
-                {label}
+                {label}{!canAssign(name) && <span className="text-xs text-gray-400">(yalnızca sistem yöneticisi verebilir)</span>}
               </label>
             ))}
           </div>
@@ -196,6 +208,7 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
             {departments.data?.filter((d) => d.isActive || String(d.id) === form.values.departmentId).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </Field>
+        {user && !isSelf && <AccountActions user={user} onDone={onClose} />}
         {user && (
           <label className="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" className="size-4 accent-violet-500" disabled={isSelf} checked={form.values.isActive} onChange={(e) => form.setValue('isActive', e.target.checked)} />
@@ -204,5 +217,44 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
         )}
       </form>
     </SlideOver>
+  )
+}
+
+/** Hesap işlemleri (BT / yönetici): kilitle, kilidi aç, ilk şifre davetini yeniden gönder. Hepsi denetim kaydına yazılır. */
+function AccountActions({ user, onDone }: { user: UserListItem; onDone: () => void }) {
+  const qc = useQueryClient()
+  const [reason, setReason] = useState('')
+  const [locking, setLocking] = useState(false)
+  const finish = (msg: string) => { toast(msg); qc.invalidateQueries({ queryKey: ['users'] }); onDone() }
+  const onError = (err: unknown) => toast(errorMessage(err), 'error')
+  const lock = useMutation({ mutationFn: () => api.users.lock(user.id, reason), onSuccess: () => finish(`${user.fullName} hesabı kilitlendi; açık oturumları kapatıldı.`), onError })
+  const unlock = useMutation({ mutationFn: () => api.users.unlock(user.id), onSuccess: () => finish(`${user.fullName} hesabının kilidi açıldı.`), onError })
+  const invite = useMutation({ mutationFn: () => api.users.resendInvite(user.id), onSuccess: () => finish('İlk şifre bağlantısı yeniden gönderildi.'), onError })
+  return (
+    <section className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-700/60" aria-labelledby="acc-actions">
+      <h3 id="acc-actions" className="text-sm font-semibold">Hesap işlemleri</h3>
+      {user.lockedAt ? (
+        <div className="space-y-2">
+          <p className="text-sm text-amber-700 dark:text-amber-300">Kilitli{user.lockReason && ` — ${user.lockReason}`}</p>
+          <button type="button" className="btn-secondary" aria-busy={unlock.isPending} onClick={() => unlock.mutate()}><LockOpen className="size-4" aria-hidden="true" /> Kilidi aç</button>
+        </div>
+      ) : locking ? (
+        <div className="space-y-2">
+          <Field label="Kilitleme gerekçesi" htmlFor="f-lock-reason" required><input id="f-lock-reason" className="form-field" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="Ör. şüpheli giriş denemesi" /></Field>
+          <div className="flex gap-2">
+            <button type="button" className="btn-secondary" onClick={() => setLocking(false)}>Vazgeç</button>
+            <button type="button" className="btn-danger" disabled={!reason.trim()} aria-busy={lock.isPending} onClick={() => lock.mutate()}><Lock className="size-4" aria-hidden="true" /> Hesabı kilitle</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn-secondary" onClick={() => setLocking(true)}><Lock className="size-4" aria-hidden="true" /> Kilitle</button>
+          {user.passwordSet === false && user.isActive && (
+            <button type="button" className="btn-secondary" aria-busy={invite.isPending} onClick={() => invite.mutate()}><Send className="size-4" aria-hidden="true" /> Şifre davetini yeniden gönder</button>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-gray-500">Kilit, şifre doğru olsa bile girişi engeller ve açık oturumları hemen kapatır. Ayrılan çalışan için hesabı pasif yapın veya İK'nın kapatma talebini onaylayın.</p>
+    </section>
   )
 }

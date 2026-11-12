@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StajDesk.Application.Abstractions;
 using StajDesk.Application.Common;
+using StajDesk.Domain.Common;
 using StajDesk.Domain.Entities;
 using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
@@ -19,7 +20,7 @@ public sealed record MeDto(int Id, string FullName, string Email, string? Depart
 
 public sealed record UserListItemDto(int Id, string FullName, string Email, string? Department, string? Phone, bool IsActive,
     StoreRefDto? Store, IReadOnlyList<string> Roles, DateTime CreatedAt, DateTime? LastLoginAt, int OpenTicketCount,
-    int? DepartmentId = null, string? Username = null, bool PasswordSet = true);
+    int? DepartmentId = null, string? Username = null, bool PasswordSet = true, DateTime? LockedAt = null, string? LockReason = null);
 
 public sealed record UserQuery : PagedQuery
 {
@@ -28,8 +29,9 @@ public sealed record UserQuery : PagedQuery
     public bool? IsActive { get; init; }
 }
 
-/// <summary>Şifre boş bırakılırsa kullanıcıya "ilk şifreni belirle" daveti e-postayla gider (önerilen yol).</summary>
-public sealed record CreateUserRequest(string FullName, string Email, string? Password, IReadOnlyList<string> Roles, int? StoreId, int? DepartmentId, string? Phone, string? Username = null);
+/// <summary>BT / yöneticinin doğrudan açtığı hesap. Şifre hiçbir zaman başkası tarafından belirlenmez: çalışana "ilk şifreni belirle" daveti gider.</summary>
+public sealed record CreateUserRequest(string FullName, string Email, IReadOnlyList<string> Roles, int? StoreId, int? DepartmentId, string? Phone, string? Username = null);
+public sealed record LockUserRequest(string Reason);
 public sealed record UpdateUserRequest(string FullName, IReadOnlyList<string> Roles, int? StoreId, int? DepartmentId, string? Phone, bool IsActive, string? Username = null);
 
 public interface IUserService
@@ -40,6 +42,9 @@ public interface IUserService
     Task<IReadOnlyList<UserSummaryDto>> LookupAsync(string? search, CancellationToken ct = default);
     Task<int> CreateAsync(CreateUserRequest request, CancellationToken ct = default);
     Task UpdateAsync(int id, UpdateUserRequest request, CancellationToken ct = default);
+    Task LockAsync(int id, LockUserRequest request, CancellationToken ct = default);
+    Task UnlockAsync(int id, CancellationToken ct = default);
+    Task ResendInvitationAsync(int id, CancellationToken ct = default);
 }
 
 internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICurrentUser currentUser, ICacheService cache, IAuditLogger audit, ILogger<UserService> logger,
@@ -83,7 +88,7 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
             .Select(u => new UserListItemDto(u.Id, u.FullName, u.Email, u.Department == null ? null : u.Department.Name, u.Phone, u.IsActive,
                 u.Store == null ? null : new StoreRefDto(u.Store.Id, u.Store.Code, u.Store.Name),
                 u.Roles.Select(r => r.Role.Name).ToList(), u.CreatedAt, u.LastLoginAt,
-                u.RequestedTickets.Count(t => t.Status != TicketStatus.Closed), u.DepartmentId, u.Username, u.PasswordHash != ""))
+                u.RequestedTickets.Count(t => t.Status != TicketStatus.Closed), u.DepartmentId, u.Username, u.PasswordHash != "", u.LockedAt, u.LockReason))
             .ToPagedResultAsync(query, ct);
     }
 
@@ -120,21 +125,19 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
         await EnsureStoreAsync(request.StoreId, ct);
         await EnsureDepartmentAsync(request.DepartmentId, ct);
 
-        var invite = string.IsNullOrEmpty(request.Password);
+        var roles = await RoleGuard.ResolveAssignableAsync(db, currentUser, request.Roles, ct);
         var user = new User
         {
             FullName = Text.Clean(request.FullName), Email = email, Username = username,
-            PasswordHash = invite ? string.Empty : hasher.Hash(request.Password!),
-            // Şifresini yöneticinin belirlediği hesabı kurum açtı: doğrulanmış sayılır. Davetli hesap, şifre belirlenince doğrulanır.
-            EmailVerifiedAt = invite ? null : DateTime.UtcNow,
+            PasswordHash = string.Empty, // çalışan davet bağlantısıyla kendisi belirler
             StoreId = request.StoreId, DepartmentId = request.DepartmentId, Phone = Text.CleanOrNull(request.Phone),
             Profile = new EmployeeProfile(),
         };
-        foreach (var role in await ResolveRolesAsync(request.Roles, ct)) user.Roles.Add(new UserRole { Role = role });
+        foreach (var role in roles) user.Roles.Add(new UserRole { Role = role });
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
-        if (invite) Account.AccountLinks.Invite(db, events, authOptions.Value.WebUrl, user, currentUser.FullName ?? "Sistem yöneticisi");
-        audit.Add("user.created", "user", user.Id, new { request.Roles, invite });
+        Account.AccountLinks.Invite(db, events, authOptions.Value.WebUrl, user, currentUser.FullName ?? "Bilgi Teknolojileri");
+        audit.Add("user.created", "user", user.Id, new { request.Roles, direct = true });
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Yönetici yeni kullanıcı oluşturdu: {UserId} ({Roles})", user.Id, string.Join(",", request.Roles));
         return user.Id;
@@ -149,6 +152,8 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
         if (user.Id == currentUser.UserId &&
             (!request.IsActive || (user.Roles.Any(r => r.Role.Name == RoleNames.SystemAdmin) && !request.Roles.Contains(RoleNames.SystemAdmin))))
             throw new ForbiddenException("Kendi hesabınızı pasifleştiremez veya kendi yönetici rolünüzü kaldıramazsınız.");
+        await RoleGuard.EnsureCanManageAsync(db, currentUser, id, ct);
+        var newRoles = await RoleGuard.ResolveAssignableAsync(db, currentUser, request.Roles, ct);
         await EnsureStoreAsync(request.StoreId, ct);
         await EnsureDepartmentAsync(request.DepartmentId, ct);
         var username = Employees.EmployeeService.NormalizeUsername(request.Username);
@@ -162,7 +167,7 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
         user.Roles.Clear();
-        foreach (var role in await ResolveRolesAsync(request.Roles, ct)) user.Roles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
+        foreach (var role in newRoles) user.Roles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
         audit.Add("user.updated", "user", user.Id, new { request.Roles, request.IsActive, request.StoreId });
         await db.SaveChangesAsync(ct);
 
@@ -176,11 +181,44 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
         }
     }
 
-    private async Task<List<Role>> ResolveRolesAsync(IReadOnlyList<string> names, CancellationToken ct)
+    /// <summary>Hesabı kilitler: şifre doğru olsa da giriş yapılamaz, açık oturumlar hemen kapanır (ör. hesabın ele geçirildiğinden şüphelenildiğinde).</summary>
+    public async Task LockAsync(int id, LockUserRequest request, CancellationToken ct = default)
     {
-        var roles = await db.Roles.Where(r => names.Contains(r.Name)).ToListAsync(ct);
-        if (roles.Count != names.Distinct().Count()) throw new ConflictException("Seçilen rollerden biri bulunamadı.");
-        return roles;
+        currentUser.Require(Permissions.UsersManage);
+        if (id == currentUser.UserId) throw new ForbiddenException("Kendi hesabınızı kilitleyemezsiniz.");
+        await RoleGuard.EnsureCanManageAsync(db, currentUser, id, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw NotFoundException.For("Kullanıcı", id);
+        if (user.LockedAt is not null) throw new DomainException("Hesap zaten kilitli.");
+        user.LockedAt = DateTime.UtcNow;
+        user.LockReason = Text.Clean(request.Reason);
+        foreach (var t in await db.RefreshTokens.Where(t => t.UserId == id && t.RevokedAt == null).ToListAsync(ct)) t.RevokedAt = DateTime.UtcNow;
+        audit.Add("user.locked", "user", id, new { reason = user.LockReason });
+        await db.SaveChangesAsync(ct);
+        await cache.RemoveAsync(CacheKeys.Permissions(id), ct);
+    }
+
+    public async Task UnlockAsync(int id, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.UsersManage);
+        await RoleGuard.EnsureCanManageAsync(db, currentUser, id, ct);
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id, ct) ?? throw NotFoundException.For("Kullanıcı", id);
+        if (user.LockedAt is null) throw new DomainException("Hesap kilitli değil.");
+        user.LockedAt = null;
+        user.LockReason = null;
+        audit.Add("user.unlocked", "user", id);
+        await db.SaveChangesAsync(ct);
+        await cache.RemoveAsync(CacheKeys.Permissions(id), ct);
+    }
+
+    /// <summary>Davet bağlantısının süresi dolduysa veya e-posta kaybolduysa yenisi gönderilir (yalnızca şifresini henüz belirlememiş hesaplar).</summary>
+    public async Task ResendInvitationAsync(int id, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.UsersManage);
+        var u = await db.Users.FirstOrDefaultAsync(x => x.Id == id && x.IsActive, ct) ?? throw NotFoundException.For("Kullanıcı", id);
+        if (!string.IsNullOrEmpty(u.PasswordHash)) throw new DomainException("Bu çalışan şifresini zaten belirlemiş. Şifresini unuttuysa giriş ekranından sıfırlayabilir.");
+        Account.AccountLinks.Invite(db, events, authOptions.Value.WebUrl, u, currentUser.FullName ?? "Bilgi Teknolojileri");
+        audit.Add("user.invitation_resent", "user", id);
+        await db.SaveChangesAsync(ct);
     }
 
     private async Task EnsureDepartmentAsync(int? departmentId, CancellationToken ct)
@@ -202,7 +240,6 @@ public sealed class CreateUserRequestValidator : AbstractValidator<CreateUserReq
     {
         RuleFor(x => x.FullName).NotEmpty().WithMessage("Ad soyad zorunludur.").MaximumLength(100).NoMarkup();
         RuleFor(x => x.Email).NotEmpty().EmailAddress().WithMessage("ad@sirket.com biçiminde bir e-posta girin.").MaximumLength(150);
-        RuleFor(x => x.Password!).SetValidator(new PasswordRule()).When(x => !string.IsNullOrEmpty(x.Password));
         RuleFor(x => x.Roles).NotEmpty().WithMessage("En az bir rol seçin.");
         RuleFor(x => x.Username).Matches("^[a-zA-Z0-9._-]{3,50}$").WithMessage("Kullanıcı adı 3–50 karakter olmalı; harf, rakam, nokta, tire ve alt çizgi içerebilir.").When(x => !string.IsNullOrWhiteSpace(x.Username));
         RuleFor(x => x.Phone).MaximumLength(30).NoMarkup();
@@ -232,4 +269,9 @@ public sealed class PasswordRule : AbstractValidator<string>
             .Matches("[a-z]").WithMessage("Şifreye en az bir küçük harf ekleyin.")
             .Matches("[0-9]").WithMessage("Şifreye en az bir rakam ekleyin.");
     }
+}
+
+public sealed class LockUserRequestValidator : AbstractValidator<LockUserRequest>
+{
+    public LockUserRequestValidator() => RuleFor(x => x.Reason).NotEmpty().WithMessage("Kilitleme gerekçesini yazın.").MaximumLength(300).NoMarkup();
 }

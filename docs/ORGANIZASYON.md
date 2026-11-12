@@ -12,16 +12,39 @@
 "Müdür" unvanlı biri sistemde yalnızca "Kullanıcı" rolünde olabilir; yetkiyi unvan değil rol verir.
 Promptun örnek hiyerarşisindeki "Super Admin / Admin" birer **rol**dür, unvan listesinde yer almaz.
 
-## 2. İnsan Kaynakları rolü
+## 2. Kurumsal hesap süreci (kapalı portal)
 
-`hr` (İK Personeli) rolü yalnızca personel yönetimi verir:
+StajDesk yalnızca şirket çalışanlarına açıktır: **kimse kendi hesabını açamaz** (kayıt ekranı ve `/api/auth/register` yoktur).
 
-| Yapabilir | Yapamaz |
-|---|---|
-| Personel kaydı oluşturmak (davet e-postasıyla) | Sistem rolü / izin vermek (`users.manage`, `roles.manage`) |
-| Departman, unvan, yönetici, mağaza, işe giriş/çıkış, çalışma türü, personel no | Departman ağacını ve unvan listesini düzenlemek (`org.manage`) |
-| Hesabı aktif/pasif yapmak (pasifte oturumlar anında kapanır) | Talepleri yönetmek, denetim kaydı görmek |
-| Kişisel bilgileri görmek ve düzeltmek | İzin / masraf onaylamak (ilgili modüller ayrı izin isteyecek) |
+```mermaid
+sequenceDiagram
+    participant IK as İK (accounts.request)
+    participant BT as BT / Yönetici (users.manage)
+    participant S as StajDesk
+    participant C as Yeni çalışan
+    IK->>S: Yeni çalışan hesabı talebi (ad, personel kodu, departman, unvan, personel türü, kurumsal e-posta, işe başlama)
+    S-->>BT: Uygulama içi bildirim
+    BT->>S: İnceler → kullanıcı adı + sistem rolleri → Onayla (veya gerekçeyle Reddet)
+    S->>S: Hesap açılır (şifresiz), personel kartı talepten doldurulur
+    S-->>C: "İlk şifreni belirle" e-postası (72 saat, tek kullanımlık)
+    C->>S: Şifresini belirler → kullanıcı adı veya e-postayla giriş
+    S-->>IK: "Talep onaylandı" bildirimi
+```
+
+| Rol | Yapabilir | Yapamaz |
+|---|---|---|
+| **İK Personeli** (`hr`) | Personel bilgilerini düzenlemek; yeni hesap ve hesap kapatma **talebi** açmak | Hesap açmak/kapatmak/kilitlemek, rol vermek, talep onaylamak |
+| **BT Hesap Yöneticisi** (`it_admin`) | Talepleri onaylamak/reddetmek; hesap açmak, pasife almak, kilitlemek, davet yenilemek; **kendi sahip olduğu yetkiler kadar** rol vermek | Sistem Yöneticisi / İK / Destek gibi kendisinde olmayan yetkileri içeren rolleri vermek; kendinden yetkili hesabı değiştirmek |
+| **Sistem Yöneticisi** | Hepsi + rol/izin matrisi | — |
+| **Çalışan** | Kendisine açılan hesapla giriş, kendi şifresi ve kişisel bilgileri | Hesap açmak, başkasına yetki vermek |
+
+Güvenlik kuralları (hepsi API'de uygulanır, arayüz yalnızca yansıtır):
+- **Yetki yükseltme koruması:** bir rolü atayabilmek için o rolün tüm izinlerine sahip olmak gerekir; işlemi yapandan daha yetkili hesap değiştirilemez.
+- **Görevler ayrılığı:** BT kendi açtığı talebi onaylayamaz (yalnızca rol/izin yöneticisi istisna).
+- **Şifreyi kimse bilmez:** hesap şifresiz açılır, çalışan davet bağlantısıyla belirler.
+- **Ayrılan personel:** İK ayrılış tarihi girince BT'ye otomatik **hesap kapatma talebi** açılır; BT onaylayınca hesap pasife alınır ve açık oturumlar kapanır.
+- **Kilitleme:** BT bir hesabı gerekçeyle kilitleyebilir; şifre doğru olsa bile giriş yapılamaz (`account_locked`), mevcut oturumlar o an kapanır.
+- **Kayıt:** talep açma, geri çekme, onay, ret, hesap açma, pasife alma, kilitleme/kilit açma, davet yenileme denetim kaydına yazılır.
 
 ## 3. Kim neyi görür?
 
@@ -40,14 +63,14 @@ Kişisel bilgi değişiklikleri denetim kaydına yazılır ama **değerleri** ya
 | Akış | Nasıl çalışır |
 |---|---|
 | Giriş | Kullanıcı adı **veya** e-posta + şifre (`@` içeriyorsa e-posta) |
-| Kendi kaydı | Kayıt → doğrulama e-postası (24 saat) → doğrulanmadan giriş yok (`email_not_verified`) |
-| İK / yönetici hesabı açar | Şifre girilmez → "ilk şifreni belirle" daveti (72 saat, tek kullanımlık) → şifre belirlenince e-posta doğrulanmış sayılır |
+| Hesap açılışı | Yalnızca BT / yönetici (İK talebi üzerine) → "ilk şifreni belirle" daveti (72 saat, tek kullanımlık) → şifre belirlenince e-posta doğrulanmış sayılır |
+| Kilitli hesap | Şifre doğruysa `account_locked` döner (yanlış şifrede kilit bilgisi sızdırılmaz) |
 | Şifre değiştirme | Profil → Hesap ve güvenlik (mevcut şifre gerekir) |
 | Şifre sıfırlama | Giriş ekranı → Şifremi unuttum (30 dk) |
 | SMS ile iki adımlı doğrulama | Aşağıya bakın |
 
 Tüm bağlantı türleri tek tabloda (`password_reset_tokens.purpose`) yalnızca SHA-256 özetiyle saklanır;
-bir türün bağlantısı başka iş için kullanılamaz (doğrulama bağlantısıyla şifre sıfırlanamaz).
+bir türün bağlantısı başka iş için kullanılamaz.
 
 Bu sürümden önce açılmış hesaplar migration'da doğrulanmış sayıldı; mevcut kullanıcıların girişi etkilenmedi.
 
@@ -91,10 +114,8 @@ Migration, eski serbest metin `users.department` değerlerini `departments` tabl
 |---|---|---|
 | GET | `/api/employees?search=&departmentId=&includeInactive=` | Oturum (pasifleri yalnızca İK) |
 | GET | `/api/employees/{id}` | Oturum (alan bazlı gizlilik) |
-| POST | `/api/employees` | `employees.manage` |
 | PUT | `/api/employees/{id}/personal` | Kendisi veya `employees.manage` |
 | PUT | `/api/employees/{id}/work` | `employees.manage` |
-| POST | `/api/employees/{id}/invite` | `employees.manage` / `users.manage` |
 | GET / PUT / DELETE | `/api/employees/{id}/photo` · `/cover` | Okuma: oturum · Değişiklik: kendisi veya İK (PNG/JPG/WEBP, 2 MB, imza kontrolü) |
 | GET | `/api/org/chart`, `/api/org/departments`, `/api/org/positions` | Oturum |
 | POST / PUT / DELETE | `/api/org/departments`, `/api/org/positions` | `org.manage` |
@@ -102,18 +123,24 @@ Migration, eski serbest metin `users.department` değerlerini `departments` tabl
 | PUT | `/api/me/password` | Oturum |
 | GET | `/api/me/security` | Oturum |
 | POST | `/api/me/2fa/start` · `/confirm` · `/disable` | Oturum |
-| POST | `/api/auth/verify-email` · `/resend-verification` | Anonim (hız sınırlı) |
+| GET | `/api/account-requests?status=` | `accounts.request` / `users.manage` |
+| POST | `/api/account-requests/new-account` · `/deactivation` | `accounts.request` / `users.manage` |
+| POST | `/api/account-requests/{id}/approve` · `/reject` | `users.manage` |
+| POST | `/api/account-requests/{id}/cancel` | Talebi açan |
+| POST | `/api/users/{id}/lock` · `/unlock` · `/invite` | `users.manage` |
 | POST | `/connect/authorize/otp` | Anonim (hız sınırlı) |
 
 ## 8. Ekranlar
 
 | Ekran | Yol |
 |---|---|
-| Çalışanlar (rehber, İK için "Personel ekle") | `/employees` |
+| Çalışanlar (rehber; İK için "Yeni çalışan hesabı talebi") | `/employees` |
+| Hesap talepleri (İK açar, BT onaylar/reddeder) | `/account-requests` |
+| Kullanıcı hesapları (BT: rol, pasif, kilit, davet) | `/admin/users` |
 | Profil: Genel bakış · Kişisel bilgiler · İş bilgileri · Hesap ve güvenlik · Bildirim tercihleri | `/employees/{id}`, `/profile` |
 | Organizasyon şeması (departman ağacı + yönetici ağacı) | `/org` |
 | Departmanlar ve unvanlar | `/admin/org` |
-| E-posta doğrulama · İlk şifre belirleme | `/verify-email`, `/set-password` |
+| İlk şifre belirleme | `/set-password` |
 
 ## 9. Bu aşamada bilerek yapılmayanlar
 
@@ -123,3 +150,7 @@ Migration, eski serbest metin `users.department` değerlerini `departments` tabl
 | Dil seçimi (TR/EN) | Ayar kaydı backend'de hazır; arayüz çevirisi Aşama 5'te. Çalışmayan bir seçenek gösterilmedi |
 | Duyuru e-postası tercihi | Duyurular henüz e-posta göndermiyor; işlevsiz anahtar gösterilmedi |
 | Gerçek SMS sağlayıcısı | Hesap bilgisi gerekiyor (bkz. §5) |
+
+## 10. Bekleyen
+
+- **Departman ve unvan listesi:** gönderileceği belirtilen CSV dosyası henüz ulaşmadı. Gelince bu listeler CSV'den yüklenecek (seed + mevcut kayıtlarla eşleştirme). O zamana kadar demo departmanları ve 15 varsayılan unvan kullanılıyor.

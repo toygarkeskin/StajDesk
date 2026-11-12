@@ -159,7 +159,7 @@ Veri bütünlüğü kuralları:
 | POST | `/connect/revoke` | Anonim | Refresh token iptali (RFC 7009) |
 | GET | `/.well-known/oauth-authorization-server` | Anonim | Sunucu metadata (RFC 8414) |
 | GET | `/.well-known/jwks.json` | Anonim | İmza doğrulama anahtarı |
-| POST | `/api/auth/register` | Anonim | Kayıt (rol: Kullanıcı) |
+| POST | `/api/account-requests/…` | `accounts.request` / `users.manage` | Kurumsal hesap talebi (kendi kendine kayıt yok; bkz. ORGANIZASYON.md) |
 | POST | `/api/auth/forgot-password`, `/reset-password` | Anonim | Şifre sıfırlama (e-posta ile, 30 dk) |
 | GET | `/api/auth/me` | Oturum | Kullanıcı, roller, izinler, mağaza |
 | GET | `/api/tickets`, `/api/tickets/{id}` | Oturum | Kapsam: kendi / mağaza / tümü |
@@ -198,7 +198,7 @@ Veri bütünlüğü kuralları:
 | Exchange | `stajdesk.events` (topic, durable) |
 | Kuyruk | `stajdesk.notifications` (`ticket.*` ve `user.*` ile bağlı) |
 | Ölü mektup | `stajdesk.events.dlx` → `stajdesk.notifications.dlq` |
-| Mesajlar | `ticket.created`, `ticket.status-changed`, `ticket.assigned`, `ticket.comment-added`, `user.registered`, `user.password-reset-requested` |
+| Mesajlar | `ticket.created`, `ticket.status-changed`, `ticket.assigned`, `ticket.comment-added`, `user.invited`, `user.password-reset-requested` |
 
 - **Outbox:** olay, iş verisiyle aynı transaction'da yazılır. Broker kapalıyken bile olay kaybolmaz; broker açılınca gönderilir.
 - **Gönderim:** `OutboxDispatcher` satırları `FOR UPDATE SKIP LOCKED` ile alır (birden çok API kopyası çakışmaz) ve publisher confirm bekler.

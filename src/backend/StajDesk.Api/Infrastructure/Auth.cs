@@ -106,7 +106,8 @@ public sealed class PermissionLoadingMiddleware(RequestDelegate next)
             {
                 var access = await cache.GetOrSetAsync(CacheKeys.Permissions(userId), async ct =>
                 {
-                    var user = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive, u.StoreId }).FirstOrDefaultAsync(ct);
+                    // Kilitli hesap pasif hesap gibi davranır: token geçerli olsa bile istek reddedilir.
+                    var user = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { IsActive = u.IsActive && u.LockedAt == null, u.StoreId }).FirstOrDefaultAsync(ct);
                     if (user is null) return new UserAccess(0, false, []);
                     var perms = await db.UserRoles.Where(ur => ur.UserId == userId)
                         .SelectMany(ur => ur.Role.Permissions.Select(p => p.Permission.Key)).Distinct().ToArrayAsync(ct);
@@ -117,7 +118,7 @@ public sealed class PermissionLoadingMiddleware(RequestDelegate next)
                 {
                     // Pasif hesap: token geçerli olsa bile istek reddedilir.
                     ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                    await ctx.Response.WriteAsJsonAsync(ApiResponse.Fail("Hesabınız pasif durumda. Yöneticinizle iletişime geçin."));
+                    await ctx.Response.WriteAsJsonAsync(ApiResponse.Fail("Hesabınız pasif veya kilitli. Bilgi Teknolojileri ile iletişime geçin."));
                     return;
                 }
                 ctx.Items[ItemKey] = access;

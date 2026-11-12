@@ -87,3 +87,19 @@ public enum OtpPurpose
     Login = 0,
     EnableTwoFactor = 1
 }
+
+public enum AccountRequestType
+{
+    /// <summary>Yeni çalışan için portal hesabı</summary>
+    NewAccount = 0,
+    /// <summary>Ayrılan çalışanın hesabının kapatılması</summary>
+    Deactivation = 1
+}
+
+public enum AccountRequestStatus
+{
+    Pending = 0,
+    Approved = 1,
+    Rejected = 2,
+    Cancelled = 3
+}

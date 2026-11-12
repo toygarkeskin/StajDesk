@@ -46,9 +46,11 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `employees.read.private` — kişisel bilgileri görme | ✔ | | | |
 | `employees.manage` — personel kaydı ve iş bilgileri (İK) | ✔ | | | |
 | `org.manage` — departman ve unvan yönetimi | ✔ | | | |
+| `accounts.request` — hesap açma / kapatma talebi (İK) | ✔ | | | |
 
-**İK Personeli (`hr`)** rolü: `employees.read.private`, `employees.manage` + kendi taleplerini açma/izleme.
-Sistem rolü veremez, departman ağacını değiştiremez, talepleri yönetemez. Ayrıntı: [ORGANIZASYON.md](ORGANIZASYON.md).
+**İK Personeli (`hr`)**: `employees.read.private`, `employees.manage`, `accounts.request` — personel bilgisi ve hesap **talebi**; hesap açamaz, rol veremez.
+**BT Hesap Yöneticisi (`it_admin`)**: `users.read`, `users.manage`, `audit.read` — talepleri onaylar, hesap açar/kapatır/kilitler;
+yalnızca kendisinde olan yetkileri içeren rolleri atayabilir (Sistem Yöneticisi rolünü veremez). Ayrıntı: [ORGANIZASYON.md](ORGANIZASYON.md).
 
 Sürüm güncellemesiyle gelen yeni bir izin, varsayılanında o izni içeren rollere açılışta bir kez eklenir.
 Yöneticinin ekrandan kaldırdığı eski izinlere dokunulmaz.

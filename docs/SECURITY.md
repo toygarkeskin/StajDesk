@@ -40,7 +40,7 @@ nginx ve API: `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-F
 
 Kim, ne zaman, hangi IP'den, ne yaptı? Kaydedilen olaylar:
 
-`auth.login`, `auth.login_failed`, `auth.logout`, `auth.refresh_reuse_detected`, `user.registered`,
+`auth.login`, `auth.login_failed`, `auth.logout`, `auth.refresh_reuse_detected`, `auth.login_blocked_locked`, `account_request.created/approved/rejected/cancelled`, `user.locked`, `user.unlocked`, `user.deactivated`, `user.invitation_resent`,
 `user.password_reset_requested`, `user.password_reset`, `user.created`, `user.updated`,
 `role.permissions_changed`, `ticket.created`, `ticket.deleted`, `asset.created`, `asset.updated`, `asset.deleted`.
 

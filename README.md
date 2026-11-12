@@ -59,7 +59,10 @@ Tam liste ve deneme senaryosu: [docs/DEMO.md](docs/DEMO.md).
 | Destek Personeli | Tüm talepler, atama/durum/öncelik, dahili notlar, envanter, genel özet paneli |
 | Mağaza Sahibi | Kendi mağazasının talepleri, cihazları, çalışanları ve mağaza özet paneli |
 | Kullanıcı | Yalnızca kendi talepleri ve kendisine zimmetli cihazlar |
-| İK Personeli | Personel kayıtları ve çalışan bilgileri (sistem rolü veremez, diğer modüllere otomatik erişimi yoktur) |
+| İK Personeli | Personel bilgileri; yeni çalışan / ayrılan çalışan için **hesap talebi** açar (hesap açamaz, rol veremez) |
+| BT Hesap Yöneticisi | Hesap taleplerini onaylar; hesap açar, pasife alır, kilitler; yalnızca kendi yetkileri kadar rol verir |
+
+StajDesk kapalı bir portaldır: kimse kendi hesabını açamaz. Süreç: İK talep → BT onay → çalışana "ilk şifreni belirle" e-postası.
 
 Unvan (Müdür, Uzman, Stajyer…) ile sistem rolü ayrıdır; yetkiyi rol belirler. Ayrıntı: [docs/ORGANIZASYON.md](docs/ORGANIZASYON.md).
 

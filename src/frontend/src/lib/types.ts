@@ -15,7 +15,7 @@ export type Permission =
   | 'assets.read.own' | 'assets.read.store' | 'assets.read.all' | 'assets.manage'
   | 'users.read' | 'users.manage' | 'roles.manage' | 'reports.read.store' | 'reports.read.all'
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
-  | 'employees.read.private' | 'employees.manage' | 'org.manage'
+  | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -69,6 +69,8 @@ export interface UserListItem extends UserSummary {
   username?: string | null
   /** false: davet gönderildi, kullanıcı henüz şifresini belirlemedi */
   passwordSet?: boolean
+  lockedAt?: string | null
+  lockReason?: string | null
   phone?: string | null
   isActive: boolean
   store?: StoreRef | null
@@ -386,3 +388,33 @@ export interface OrgChart { departments: Department[]; people: OrgPerson[] }
 
 export interface UserSettings { language: 'tr' | 'en'; theme: 'system' | 'light' | 'dark'; emailTicketUpdates: boolean; emailAnnouncements: boolean }
 export interface SecurityInfo { smsAvailable: boolean; smsProvider?: string | null; twoFactorEnabled: boolean; maskedPhone?: string | null; hasPhone: boolean }
+
+// ---------- Kurumsal hesap talepleri ----------
+
+export type AccountRequestType = 'NewAccount' | 'Deactivation'
+export type AccountRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled'
+
+export interface AccountRequestItem {
+  id: number
+  type: AccountRequestType
+  status: AccountRequestStatus
+  fullName: string
+  email?: string | null
+  employeeNumber?: string | null
+  department?: Ref | null
+  position?: Ref | null
+  manager?: UserSummary | null
+  store?: StoreRef | null
+  employmentType: EmploymentType
+  hireDate?: string | null
+  phone?: string | null
+  targetUser?: UserSummary | null
+  terminationDate?: string | null
+  note?: string | null
+  requestedBy: UserSummary
+  createdAt: string
+  reviewedBy?: UserSummary | null
+  reviewedAt?: string | null
+  reviewNote?: string | null
+  createdUserId?: number | null
+}

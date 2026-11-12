@@ -29,8 +29,6 @@ public sealed record AuthorizeRequest(string ResponseType, string ClientId, stri
 /// </summary>
 public sealed record AuthorizeResponse(string? Code, string? State, string RedirectUri, bool OtpRequired = false, Guid? ChallengeId = null, string? MaskedPhone = null);
 public sealed record VerifyLoginOtpRequest(Guid ChallengeId, string Code);
-public sealed record VerifyEmailRequest(string Token);
-public sealed record ResendVerificationRequest(string Email);
 
 /// <summary>Token isteği (RFC 6749 §4.1.3, §4.4.2, §6).</summary>
 public sealed record TokenRequest(string GrantType, string? Code, string? CodeVerifier, string? RedirectUri, string? RefreshToken,
@@ -38,7 +36,6 @@ public sealed record TokenRequest(string GrantType, string? Code, string? CodeVe
 
 public sealed record TokenResult(string AccessToken, string TokenType, int ExpiresIn, string Scope, string? RefreshToken, bool FirstParty);
 
-public sealed record RegisterRequest(string FullName, string Email, string Password);
 public sealed record ForgotPasswordRequest(string Email);
 public sealed record ResetPasswordRequest(string Token, string Password);
 
@@ -54,12 +51,9 @@ public interface IAuthService
     Task<AuthorizeResponse> AuthorizeAsync(AuthorizeRequest request, CancellationToken ct = default);
     Task<TokenResult> TokenAsync(TokenRequest request, string? userAgent, CancellationToken ct = default);
     Task RevokeAsync(string? token, string clientId, CancellationToken ct = default);
-    Task<int> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
     Task RequestPasswordResetAsync(string email, CancellationToken ct = default);
     Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken ct = default);
     Task<AuthorizeResponse> VerifyLoginOtpAsync(VerifyLoginOtpRequest request, CancellationToken ct = default);
-    Task VerifyEmailAsync(string token, CancellationToken ct = default);
-    Task ResendVerificationAsync(string email, CancellationToken ct = default);
 }
 
 public sealed class AuthOptions
@@ -192,26 +186,7 @@ internal sealed partial class AuthService(
         await db.SaveChangesAsync(ct);
     }
 
-    // ----- Hesap işlemleri -----
-    public async Task<int> RegisterAsync(RegisterRequest r, CancellationToken ct = default)
-    {
-        var email = r.Email.Trim().ToLowerInvariant();
-        if (await db.Users.AnyAsync(u => u.Email == email, ct))
-            throw new ConflictException("Bu e-posta adresiyle kayıtlı bir hesap var. Giriş yapmayı veya şifre sıfırlamayı deneyin.");
-        var role = await db.Roles.FirstAsync(x => x.Name == RoleNames.User, ct);
-        var user = new User { FullName = Text.Clean(r.FullName), Email = email, PasswordHash = hasher.Hash(r.Password) };
-        user.Roles.Add(new UserRole { Role = role });
-        db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
-        // E-posta doğrulanana kadar giriş yapılamaz: bağlantı hoş geldiniz e-postasında gider.
-        var verifyUrl = Account.AccountLinks.VerifyUrl(db, options.Value.WebUrl, user.Id);
-        events.Enqueue(new UserRegisteredEvent(user.Id, user.Email, user.FullName, verifyUrl), Messaging.RoutingKeys.UserRegistered);
-        audit.Add("user.registered", "user", user.Id);
-        await db.SaveChangesAsync(ct);
-        logger.LogInformation("Yeni kullanıcı kaydoldu: {UserId}", user.Id);
-        return user.Id;
-    }
-
+    // ----- Hesap işlemleri (kapalı portal: kendi kendine kayıt yok; hesapları BT/yönetici açar) -----
     /// <summary>Hesap var olsun ya da olmasın aynı yanıt döner (hesap varlığı sızdırılmaz).</summary>
     public async Task RequestPasswordResetAsync(string email, CancellationToken ct = default)
     {
@@ -243,7 +218,7 @@ internal sealed partial class AuthService(
                       && (t.Purpose == AccountTokenPurpose.PasswordReset || t.Purpose == AccountTokenPurpose.Invitation), ct)
                   ?? throw new DomainExceptionAdapter("Bu bağlantı geçersiz veya süresi dolmuş. Yeni bir bağlantı isteyin.");
         var user = await db.Users.FirstAsync(u => u.Id == rec.UserId, ct);
-        if (!user.IsActive) throw new DomainExceptionAdapter("Hesabınız pasif durumda. İnsan Kaynakları ile iletişime geçin.");
+        if (!user.IsActive || user.LockedAt is not null) throw new DomainExceptionAdapter("Hesabınız pasif veya kilitli. Bilgi Teknolojileri ile iletişime geçin.");
         rec.UsedAt = now;
         user.PasswordHash = hasher.Hash(r.Password);
         user.EmailVerifiedAt ??= now;
@@ -251,34 +226,6 @@ internal sealed partial class AuthService(
         // Şifre değişince açık tüm oturumlar kapatılır.
         foreach (var t in await db.RefreshTokens.Where(t => t.UserId == user.Id && t.RevokedAt == null).ToListAsync(ct)) t.RevokedAt = now;
         audit.Add(rec.Purpose == AccountTokenPurpose.Invitation ? "user.first_password_set" : "user.password_reset", "user", user.Id);
-        await db.SaveChangesAsync(ct);
-    }
-
-    public async Task VerifyEmailAsync(string token, CancellationToken ct = default)
-    {
-        var hash = Sha256(token);
-        var now = DateTime.UtcNow;
-        var rec = await db.PasswordResetTokens.FirstOrDefaultAsync(t => t.TokenHash == hash && t.UsedAt == null && t.ExpiresAt > now
-                      && t.Purpose == AccountTokenPurpose.EmailVerification, ct)
-                  ?? throw new DomainExceptionAdapter("Doğrulama bağlantısı geçersiz veya süresi dolmuş. Giriş ekranından yeni bağlantı isteyin.");
-        var user = await db.Users.FirstAsync(u => u.Id == rec.UserId, ct);
-        rec.UsedAt = now;
-        user.EmailVerifiedAt ??= now;
-        audit.Add("user.email_verified", "user", user.Id);
-        await db.SaveChangesAsync(ct);
-    }
-
-    /// <summary>Hesap var olsun ya da olmasın aynı yanıt; hız sınırlı.</summary>
-    public async Task ResendVerificationAsync(string email, CancellationToken ct = default)
-    {
-        var normalized = email.Trim().ToLowerInvariant();
-        var key = $"verify:{normalized}";
-        if (await limiter.GetBlockedSecondsAsync(key, ct) is not null) return;
-        await limiter.RegisterHitAsync(key, ct);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == normalized && u.IsActive && u.EmailVerifiedAt == null, ct);
-        if (user is null) return;
-        var verifyUrl = Account.AccountLinks.VerifyUrl(db, options.Value.WebUrl, user.Id);
-        events.Enqueue(new UserRegisteredEvent(user.Id, user.Email, user.FullName, verifyUrl), Messaging.RoutingKeys.UserRegistered);
         await db.SaveChangesAsync(ct);
     }
 
@@ -312,6 +259,12 @@ internal sealed partial class AuthService(
         }
 
         foreach (var key in keys) await limiter.ResetAsync(key, ct);
+        if (user.LockedAt is not null)
+        {
+            audit.Add("auth.login_blocked_locked", "user", user.Id);
+            await db.SaveChangesAsync(ct);
+            throw new OAuthException("account_locked", "Hesabınız Bilgi Teknolojileri tarafından kilitlendi. Erişim için BT ile iletişime geçin.", 403);
+        }
         if (user.EmailVerifiedAt is null)
         {
             // Şifre doğru olduktan SONRA söylenir: hesap varlığı şifresiz öğrenilemez.
@@ -440,16 +393,6 @@ internal sealed partial class AuthService(
 
 /// <summary>Domain hatasını uygulama katmanından fırlatmak için (400).</summary>
 public sealed class DomainExceptionAdapter(string message) : Domain.Common.DomainException(message);
-
-public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>
-{
-    public RegisterRequestValidator()
-    {
-        RuleFor(x => x.FullName).NotEmpty().WithMessage("Adınızı ve soyadınızı girin.").MaximumLength(100).NoMarkup();
-        RuleFor(x => x.Email).NotEmpty().WithMessage("E-posta adresinizi girin.").EmailAddress().WithMessage("ad@sirket.com biçiminde bir e-posta girin.").MaximumLength(150);
-        RuleFor(x => x.Password).SetValidator(new PasswordRule());
-    }
-}
 
 public sealed class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRequest>
 {

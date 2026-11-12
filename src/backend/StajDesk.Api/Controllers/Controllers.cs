@@ -30,27 +30,6 @@ public abstract class ApiControllerBase : ControllerBase
 [Route("api/auth")]
 public sealed class AuthController(IAuthService auth, IUserService users) : ApiControllerBase
 {
-    [AllowAnonymous, HttpPost("register"), EnableRateLimiting("auth")]
-    public async Task<ActionResult<ApiResponse<object>>> Register(RegisterRequest request, CancellationToken ct)
-    {
-        await auth.RegisterAsync(request, ct);
-        return StatusCode(201, ApiResponse<object>.Ok(new { }, "Hesabınız oluşturuldu. Giriş yapmadan önce e-postanıza gönderilen bağlantıyla adresinizi doğrulayın."));
-    }
-
-    [AllowAnonymous, HttpPost("verify-email"), EnableRateLimiting("auth")]
-    public async Task<ActionResult<ApiResponse<object>>> VerifyEmail(VerifyEmailRequest request, CancellationToken ct)
-    {
-        await auth.VerifyEmailAsync(request.Token, ct);
-        return Envelope<object>(new { }, "E-posta adresiniz doğrulandı. Şimdi giriş yapabilirsiniz.");
-    }
-
-    [AllowAnonymous, HttpPost("resend-verification"), EnableRateLimiting("auth")]
-    public async Task<ActionResult<ApiResponse<object>>> ResendVerification(ResendVerificationRequest request, CancellationToken ct)
-    {
-        await auth.ResendVerificationAsync(request.Email, ct);
-        return Envelope<object>(new { }, "Bu adrese bağlı doğrulanmamış bir hesap varsa yeni bağlantı gönderildi.");
-    }
-
     [AllowAnonymous, HttpPost("forgot-password"), EnableRateLimiting("auth")]
     public async Task<ActionResult<ApiResponse<object>>> ForgotPassword(ForgotPasswordRequest request, CancellationToken ct)
     {
@@ -241,6 +220,27 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
         await users.UpdateAsync(id, request, ct);
         return Envelope<object>(new { id }, "Kullanıcı güncellendi.");
     }
+
+    [HttpPost("{id:int}/lock"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> Lock(int id, LockUserRequest request, CancellationToken ct)
+    {
+        await users.LockAsync(id, request, ct);
+        return Envelope<object>(new { id }, "Hesap kilitlendi; açık oturumları kapatıldı.");
+    }
+
+    [HttpPost("{id:int}/unlock"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> Unlock(int id, CancellationToken ct)
+    {
+        await users.UnlockAsync(id, ct);
+        return Envelope<object>(new { id }, "Hesap kilidi açıldı.");
+    }
+
+    [HttpPost("{id:int}/invite"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> ResendInvite(int id, CancellationToken ct)
+    {
+        await users.ResendInvitationAsync(id, ct);
+        return Envelope<object>(new { id }, "İlk şifre bağlantısı yeniden gönderildi.");
+    }
 }
 
 [Route("api/stores")]
@@ -366,13 +366,6 @@ public sealed class EmployeesController(IEmployeeService employees) : ApiControl
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Get(int id, CancellationToken ct) => Envelope(await employees.GetAsync(id, ct));
 
-    [HttpPost, RequirePermission(Permissions.EmployeesManage)]
-    public async Task<ActionResult<ApiResponse<object>>> Create(CreateEmployeeRequest request, CancellationToken ct)
-    {
-        var id = await employees.CreateAsync(request, ct);
-        return StatusCode(201, ApiResponse<object>.Ok(new { id }, "Personel kaydı oluşturuldu. İlk şifre bağlantısı çalışanın e-postasına gönderildi."));
-    }
-
     [HttpPut("{id:int}/personal")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> UpdatePersonal(int id, UpdatePersonalRequest request, CancellationToken ct)
     {
@@ -385,13 +378,6 @@ public sealed class EmployeesController(IEmployeeService employees) : ApiControl
     {
         await employees.UpdateWorkAsync(id, request, ct);
         return Envelope(await employees.GetAsync(id, ct), "İş bilgileri güncellendi.");
-    }
-
-    [HttpPost("{id:int}/invite"), RequirePermission(Permissions.EmployeesManage, Permissions.UsersManage)]
-    public async Task<ActionResult<ApiResponse<object>>> ResendInvite(int id, CancellationToken ct)
-    {
-        await employees.ResendInvitationAsync(id, ct);
-        return Envelope<object>(new { id }, "Davet e-postası yeniden gönderildi.");
     }
 
     /// <summary>Profil (photo) veya kapak (cover) fotoğrafı. Oturum gerektirir; tarayıcı yetkili istekle alıp gösterir.</summary>
@@ -503,4 +489,48 @@ public sealed class AccountController(IAccountService account) : ApiControllerBa
         await account.DisableTwoFactorAsync(request, ct);
         return Envelope<object>(new { }, "İki adımlı doğrulama kapatıldı.");
     }
+}
+
+/// <summary>Kurumsal hesap talepleri: İK açar (accounts.request), BT / yönetici onaylar veya reddeder (users.manage).</summary>
+[Route("api/account-requests")]
+public sealed class AccountRequestsController(IAccountRequestService requests) : ApiControllerBase
+{
+    [HttpGet, RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<PagedResult<AccountRequestDto>>>> List([FromQuery] AccountRequestQuery query, CancellationToken ct) =>
+        Envelope(await requests.ListAsync(query, ct));
+
+    [HttpGet("pending-count"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<int>>> PendingCount(CancellationToken ct) => Envelope(await requests.PendingCountAsync(ct));
+
+    [HttpGet("{id:int}"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Get(int id, CancellationToken ct) => Envelope(await requests.GetAsync(id, ct));
+
+    [HttpPost("new-account"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> NewAccount(CreateAccountRequest request, CancellationToken ct)
+    {
+        var id = await requests.CreateNewAccountAsync(request, ct);
+        return StatusCode(201, ApiResponse<object>.Ok(new { id }, "Hesap talebi Bilgi Teknolojileri'ne iletildi."));
+    }
+
+    [HttpPost("deactivation"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> Deactivation(CreateDeactivationRequest request, CancellationToken ct)
+    {
+        var id = await requests.CreateDeactivationAsync(request, ct);
+        return StatusCode(201, ApiResponse<object>.Ok(new { id }, "Hesap kapatma talebi Bilgi Teknolojileri'ne iletildi."));
+    }
+
+    [HttpPost("{id:int}/cancel"), RequirePermission(Permissions.AccountsRequest, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> Cancel(int id, CancellationToken ct)
+    {
+        await requests.CancelAsync(id, ct);
+        return Envelope<object>(new { id }, "Talep geri çekildi.");
+    }
+
+    [HttpPost("{id:int}/approve"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Approve(int id, ApproveAccountRequest request, CancellationToken ct) =>
+        Envelope(await requests.ApproveAsync(id, request, ct), "Talep onaylandı.");
+
+    [HttpPost("{id:int}/reject"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Reject(int id, RejectAccountRequest request, CancellationToken ct) =>
+        Envelope(await requests.RejectAsync(id, request, ct), "Talep reddedildi.");
 }

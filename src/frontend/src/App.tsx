@@ -1,7 +1,8 @@
 import { createBrowserRouter } from 'react-router'
 import { AnnouncementsPage, OnCallPage } from './pages/WorkspacePages'
 import { AppLayout, RequireAuth } from './components/layout/AppLayout'
-import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, RegisterPage, ResetPasswordPage, SetPasswordPage, VerifyEmailPage } from './pages/AuthPages'
+import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, ResetPasswordPage, SetPasswordPage } from './pages/AuthPages'
+import { AccountRequestsPage } from './pages/AccountRequestsPage'
 import { EmployeesPage, MyProfilePage, ProfilePage } from './pages/PeoplePages'
 import { OrgAdminPage, OrgChartPage } from './pages/OrgPages'
 import { StoresPage } from './pages/StoresPage'
@@ -24,11 +25,9 @@ import { NotFoundPage } from './pages/NotFoundPage'
 /** Veri yönlendiricisi (data router): kaydedilmemiş form uyarısı için useBlocker'ı mümkün kılar. */
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/set-password', element: <SetPasswordPage /> },
-  { path: '/verify-email', element: <VerifyEmailPage /> },
   { path: '/oauth/authorize', element: <OAuthAuthorizePage /> },
   {
     element: <AppLayout />,
@@ -44,6 +43,7 @@ export const router = createBrowserRouter([
       { path: 'employees/:id', element: <ProfilePage /> },
       { path: 'profile', element: <MyProfilePage /> },
       { path: 'org', element: <OrgChartPage /> },
+      { path: 'account-requests', element: <RequireAuth perms={['accounts.request', 'users.manage']}><AccountRequestsPage /></RequireAuth> },
       { path: 'admin/org', element: <RequireAuth perms={['org.manage']}><OrgAdminPage /></RequireAuth> },
       { path: 'assets', element: <RequireAuth perms={['assets.read.all', 'assets.read.store']}><AssetsPage /></RequireAuth> },
       { path: 'assets/new', element: <RequireAuth perms={['assets.manage']}><AssetFormPage /></RequireAuth> },

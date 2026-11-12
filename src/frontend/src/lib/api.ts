@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { useAuth } from '@/stores/auth'
 import { refresh } from './oauth'
 import type {
+  AccountRequestItem,
   Announcement,
   ApiResponse,
   AssetDetail,
@@ -118,11 +119,8 @@ const clean = (q: Query) => Object.fromEntries(Object.entries(q).filter(([, v]) 
 export const api = {
   auth: {
     me: () => unwrap<Me>(http.get('/auth/me')),
-    register: (body: { fullName: string; email: string; password: string; department?: string }) => unwrap<object>(http.post('/auth/register', body)),
     forgotPassword: (email: string) => http.post<ApiResponse<object>>('/auth/forgot-password', { email }).then((r) => r.data.message),
     resetPassword: (token: string, password: string) => http.post<ApiResponse<object>>('/auth/reset-password', { token, password }).then((r) => r.data.message),
-    verifyEmail: (token: string) => http.post<ApiResponse<object>>('/auth/verify-email', { token }).then((r) => r.data.message),
-    resendVerification: (email: string) => http.post<ApiResponse<object>>('/auth/resend-verification', { email }).then((r) => r.data.message),
   },
   tickets: {
     list: (q: Query) => unwrap<PagedResult<TicketListItem>>(http.get('/tickets', { params: clean(q) })),
@@ -165,6 +163,9 @@ export const api = {
     lookup: (search: string) => unwrap<UserSummary[]>(http.get('/users/lookup', { params: { search } })),
     create: (body: object) => unwrap<{ id: number }>(http.post('/users', body)),
     update: (id: number, body: object) => unwrap<{ id: number }>(http.put(`/users/${id}`, body)),
+    lock: (id: number, reason: string) => unwrap<object>(http.post(`/users/${id}/lock`, { reason })),
+    unlock: (id: number) => unwrap<object>(http.post(`/users/${id}/unlock`)),
+    resendInvite: (id: number) => unwrap<object>(http.post(`/users/${id}/invite`)),
   },
   stores: {
     list: () => unwrap<Store[]>(http.get('/stores')),
@@ -186,10 +187,8 @@ export const api = {
   employees: {
     list: (q: Query) => unwrap<PagedResult<EmployeeCard>>(http.get('/employees', { params: clean(q) })),
     get: (id: number) => unwrap<EmployeeDetail>(http.get(`/employees/${id}`)),
-    create: (body: object) => unwrap<{ id: number }>(http.post('/employees', body)),
     updatePersonal: (id: number, body: object) => unwrap<EmployeeDetail>(http.put(`/employees/${id}/personal`, body)),
     updateWork: (id: number, body: object) => unwrap<EmployeeDetail>(http.put(`/employees/${id}/work`, body)),
-    resendInvite: (id: number) => http.post(`/employees/${id}/invite`),
     image: (id: number, kind: 'photo' | 'cover', version: string) => http.get<Blob>(`/employees/${id}/${kind}`, { params: { v: version }, responseType: 'blob' }).then((r) => r.data),
     setImage: (id: number, kind: 'photo' | 'cover', file: File) => {
       const form = new FormData()
@@ -197,6 +196,15 @@ export const api = {
       return unwrap<EmployeeDetail>(http.put(`/employees/${id}/${kind}`, form, { headers: { 'Content-Type': 'multipart/form-data' } }))
     },
     removeImage: (id: number, kind: 'photo' | 'cover') => http.delete(`/employees/${id}/${kind}`),
+  },
+  accountRequests: {
+    list: (q: Query) => unwrap<PagedResult<AccountRequestItem>>(http.get('/account-requests', { params: clean(q) })),
+    pendingCount: () => unwrap<number>(http.get('/account-requests/pending-count')),
+    createNewAccount: (body: object) => unwrap<{ id: number }>(http.post('/account-requests/new-account', body)),
+    createDeactivation: (body: { userId: number; terminationDate: string; note?: string | null }) => unwrap<{ id: number }>(http.post('/account-requests/deactivation', body)),
+    cancel: (id: number) => unwrap<object>(http.post(`/account-requests/${id}/cancel`)),
+    approve: (id: number, body: { username?: string | null; roles?: string[]; note?: string | null }) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/approve`, body)),
+    reject: (id: number, reason: string) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/reject`, { reason })),
   },
   org: {
     chart: () => unwrap<OrgChart>(http.get('/org/chart')),

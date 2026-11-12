@@ -38,6 +38,7 @@ public static class Permissions
     public const string EmployeesReadPrivate = "employees.read.private";
     public const string EmployeesManage = "employees.manage";
     public const string OrgManage = "org.manage";
+    public const string AccountsRequest = "accounts.request";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -61,7 +62,7 @@ public static class Permissions
         new(AssetsReadAll, "Envanter", "Tüm envanteri görme"),
         new(AssetsManage, "Envanter", "Cihaz ekleme / düzenleme / zimmetleme"),
         new(UsersRead, "Kullanıcılar", "Kullanıcıları görme"),
-        new(UsersManage, "Kullanıcılar", "Kullanıcı oluşturma, rol atama, pasifleştirme"),
+        new(UsersManage, "Kullanıcılar", "Hesap taleplerini onaylama, hesap açma / pasifleştirme / kilitleme, rol atama (BT)"),
         new(RolesManage, "Kullanıcılar", "Rollerin izinlerini düzenleme"),
         new(ReportsReadStore, "Raporlar", "Mağaza özet paneli"),
         new(ReportsReadAll, "Raporlar", "Genel özet paneli ve ekip iş yükü"),
@@ -72,6 +73,7 @@ public static class Permissions
         new(EmployeesReadPrivate, "Personel", "Çalışanların kişisel bilgilerini görme (adres, doğum tarihi, acil durum kişisi)"),
         new(EmployeesManage, "Personel", "Personel kaydı oluşturma ve personel bilgilerini düzenleme (İK)"),
         new(OrgManage, "Personel", "Departman ve unvan yönetimi, organizasyon şeması"),
+        new(AccountsRequest, "Personel", "Yeni çalışan hesabı / hesap kapatma talebi açma (İK)"),
     ];
 
     public static bool IsKnown(string key) => All.Any(p => p.Key == key);
@@ -84,6 +86,7 @@ public static class RoleNames
     public const string StoreOwner = "store_owner";
     public const string User = "user";
     public const string Hr = "hr";
+    public const string ItAdmin = "it_admin";
 
     public sealed record Definition(string Name, string DisplayName, string Description, string[] Permissions);
 
@@ -110,7 +113,13 @@ public static class RoleNames
             Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
             Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
             Security.Permissions.StoresRead,
-            Security.Permissions.EmployeesReadPrivate, Security.Permissions.EmployeesManage,
+            Security.Permissions.EmployeesReadPrivate, Security.Permissions.EmployeesManage, Security.Permissions.AccountsRequest,
+        ]),
+        new(ItAdmin, "BT Hesap Yöneticisi", "Hesap taleplerini inceler, hesap açar/kapatır/kilitler ve sahip olduğu yetkiler kadar rol atar.",
+        [
+            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
+            Security.Permissions.StoresRead, Security.Permissions.UsersRead, Security.Permissions.UsersManage, Security.Permissions.AuditRead,
         ]),
         new(User, "Kullanıcı", "Talep açar ve kendi taleplerini takip eder.",
         [

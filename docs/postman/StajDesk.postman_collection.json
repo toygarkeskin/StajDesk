@@ -383,42 +383,6 @@
           }
         },
         {
-          "name": "Kayıt ol",
-          "event": [],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "noauth"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/register",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Deneme Kullanıcı\",\n  \"email\": \"deneme@stajdesk.local\",\n  \"password\": \"Deneme2026x\",\n  \"department\": \"Satış\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
           "name": "Şifremi unuttum",
           "event": [],
           "request": {
@@ -1140,7 +1104,41 @@
           }
         },
         {
-          "name": "Personel ekle (İK)",
+          "name": "Hesap talepleri",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/account-requests?status=Pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "account-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Yeni çalışan hesabı talebi (İK)",
           "event": [],
           "request": {
             "method": "POST",
@@ -1151,25 +1149,182 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/employees",
+              "raw": "{{baseUrl}}/api/account-requests/new-account",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "employees"
+                "account-requests",
+                "new-account"
               ]
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Yeni Çalışan\",\n  \"email\": \"yeni.calisan@stajdesk.local\",\n  \"username\": \"yeni.calisan\",\n  \"departmentId\": 2,\n  \"positionId\": 8,\n  \"hireDate\": \"2026-11-16\",\n  \"employmentType\": \"FullTime\"\n}",
+              "raw": "{\n  \"fullName\": \"Yeni Çalışan\",\n  \"email\": \"yeni.calisan@stajdesk.local\",\n  \"employeeNumber\": \"P3001\",\n  \"departmentId\": 2,\n  \"positionId\": 8,\n  \"employmentType\": \"FullTime\",\n  \"hireDate\": \"2026-12-01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Şifre girilmez; çalışana ilk şifre davet e-postası gider."
+            "description": "Hesap AÇMAZ; BT onaylayınca açılır."
+          }
+        },
+        {
+          "name": "Talebi onayla (BT)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/account-requests/1/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "account-requests",
+                "1",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"yeni.calisan\",\n  \"roles\": [\n    \"user\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Hesap açılır, çalışana ilk şifre daveti gider. Yalnızca sahip olunan yetkiler kadar rol verilebilir."
+          }
+        },
+        {
+          "name": "Talebi reddet (BT)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/account-requests/1/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "account-requests",
+                "1",
+                "reject"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Personel kodu hatalı\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Hesap kapatma talebi (İK)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/account-requests/deactivation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "account-requests",
+                "deactivation"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 8,\n  \"terminationDate\": \"2026-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Hesabı kilitle (BT)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/8/lock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "8",
+                "lock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Şüpheli giriş\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Kilidi aç (BT)",
+          "event": [],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/8/unlock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "8",
+                "unlock"
+              ]
+            }
           }
         },
         {
@@ -1231,7 +1386,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Elif Yılmaz\",\n  \"departmentId\": 2,\n  \"positionId\": 10,\n  \"managerId\": 3,\n  \"employmentType\": \"FullTime\",\n  \"isActive\": true\n}",
+              "raw": "{\n  \"fullName\": \"Elif Yılmaz\",\n  \"departmentId\": 2,\n  \"positionId\": 10,\n  \"managerId\": 3,\n  \"employmentType\": \"FullTime\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1381,42 +1536,6 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"currentPassword\": \"{{password}}\",\n  \"newPassword\": \"Yeni!Sifre2026\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "E-posta doğrula",
-          "event": [],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "noauth"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/verify-email",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "verify-email"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"e-postadaki-token\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

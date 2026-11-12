@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
         services.AddScoped<Features.Employees.IEmployeeService, Features.Employees.EmployeeService>();
+        services.AddScoped<IAccountRequestService, AccountRequestService>();
         services.AddScoped<Features.Employees.IOrgService, Features.Employees.OrgService>();
         services.AddScoped<Features.Account.IAccountService, Features.Account.AccountService>();
         services.AddScoped<Features.Account.OtpService>();

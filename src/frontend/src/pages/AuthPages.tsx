@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { CheckCircle2, Clock3, KeyRound, MailCheck, ShieldCheck, Smartphone } from 'lucide-react'
-import { api, errorCode, errorMessage, fieldErrors } from '@/lib/api'
+import { CheckCircle2, Clock3, KeyRound, ShieldCheck, Smartphone } from 'lucide-react'
+import { api, errorMessage, fieldErrors } from '@/lib/api'
 import { useForm } from '@/lib/hooks'
 import { authorize, challengeOf, completeOtpLogin, createVerifier, loginWithPassword, verifyOtp, type AuthorizeResult, type TokenResponse } from '@/lib/oauth'
 import { useAuth } from '@/stores/auth'
@@ -105,10 +105,8 @@ export function LoginPage() {
   const [params] = useSearchParams()
   const [alert, setAlert] = useState<string | null>(params.get('expired') ? 'Oturumun süresi doldu. Devam etmek için yeniden giriş yapın.' : null)
   const [info, setInfo] = useState<string | null>(
-    params.get('verified') ? 'E-posta adresiniz doğrulandı. Şimdi giriş yapabilirsiniz.'
-      : params.get('reset') ? 'Şifreniz kaydedildi. Yeni şifrenizle giriş yapın.' : null)
+    params.get('reset') ? 'Şifreniz kaydedildi. Yeni şifrenizle giriş yapın.' : null)
   const [pending, setPending] = useState(false)
-  const [unverified, setUnverified] = useState(false)
   const [otp, setOtp] = useState<{ challengeId: string; maskedPhone: string; verifier: string } | null>(null)
   const form = useForm({ email: '', password: '' }, { email: loginRule, password: (v) => (!v ? 'Şifrenizi girin.' : undefined) })
 
@@ -127,32 +125,15 @@ export function LoginPage() {
     if (pending || !form.validateAll()) return
     setAlert(null)
     setInfo(null)
-    setUnverified(false)
     setPending(true)
     try {
       const res = await loginWithPassword(form.values.email, form.values.password)
       if (res.kind === 'otp') setOtp(res)
       else await finish(res.token)
     } catch (err) {
-      setUnverified(errorCode(err) === 'email_not_verified')
       setAlert(errorMessage(err))
     } finally {
       setPending(false)
-    }
-  }
-
-  const resend = async () => {
-    const email = form.values.email.trim()
-    if (!email.includes('@')) {
-      setAlert('Yeni bağlantı için kullanıcı adı yerine e-posta adresinizi yazıp tekrar deneyin.')
-      return
-    }
-    try {
-      setInfo((await api.auth.resendVerification(email)) ?? 'Bağlantı gönderildi.')
-      setAlert(null)
-      setUnverified(false)
-    } catch (err) {
-      setAlert(errorMessage(err))
     }
   }
 
@@ -165,11 +146,10 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard title="Tekrar hoş geldiniz" description="Devam etmek için hesabınıza giriş yapın." footer={<>Hesabınız yok mu? <Link className={link} to="/register">Hesap oluşturun</Link></>}>
+    <AuthCard title="Tekrar hoş geldiniz" description="Devam etmek için hesabınıza giriş yapın." footer={<span className="text-gray-500">StajDesk yalnızca şirket çalışanlarına açıktır. Hesabınızı İnsan Kaynakları talep eder, Bilgi Teknolojileri açar; şifrenizi size gelen davet e-postasıyla belirlersiniz.</span>}>
       <form onSubmit={submit} noValidate className="space-y-4">
         {info && <Alert message={info} tone="success" />}
         {alert && <Alert message={alert} />}
-        {unverified && <button type="button" className="btn-secondary w-full" onClick={resend}><MailCheck className="size-4" aria-hidden="true" /> Doğrulama bağlantısını yeniden gönder</button>}
         <Field label="Kullanıcı adı veya e-posta" htmlFor="f-email" error={form.errors.email}>
           <input {...form.field('email')} type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} className="form-field" placeholder="ad.soyad veya ad@sirket.com" />
         </Field>
@@ -179,65 +159,6 @@ export function LoginPage() {
         <div className="flex justify-end text-sm"><Link className={link} to="/forgot-password">Şifremi unuttum</Link></div>
         <button type="submit" className="btn-violet w-full" aria-busy={pending}>
           {pending && <Spinner />} {pending ? 'Giriş yapılıyor…' : 'Giriş yap'}
-        </button>
-      </form>
-    </AuthCard>
-  )
-}
-
-export function RegisterPage() {
-  const [alert, setAlert] = useState<string | null>(null)
-  const [sentTo, setSentTo] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const form = useForm({ fullName: '', email: '', password: '' }, {
-    fullName: (v) => (!v.trim() ? 'Adınızı ve soyadınızı girin.' : undefined),
-    email: emailRule,
-    password: passwordRule,
-  })
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (pending || !form.validateAll()) return
-    setAlert(null)
-    setPending(true)
-    try {
-      const v = form.values
-      await api.auth.register({ fullName: v.fullName, email: v.email, password: v.password })
-      setSentTo(v.email)
-    } catch (err) {
-      form.setServerErrors(fieldErrors(err))
-      setAlert(errorMessage(err))
-    } finally {
-      setPending(false)
-    }
-  }
-
-  if (sentTo) {
-    return (
-      <AuthCard title="E-postanızı kontrol edin" description="Hesabınız oluşturuldu. Giriş yapmadan önce e-posta adresinizi doğrulayın." footer={<Link className={link} to="/login">Girişe dön</Link>}>
-        <div className="space-y-4">
-          <Alert tone="success" message={`${sentTo} adresine bir doğrulama bağlantısı gönderdik. Bağlantı 24 saat geçerlidir.`} />
-          <p className="text-sm text-gray-500">Demo ortamında e-postalar <a className={link} href="http://localhost:8025" target="_blank" rel="noreferrer">Mailpit posta kutusuna</a> düşer.</p>
-        </div>
-      </AuthCard>
-    )
-  }
-
-  return (
-    <AuthCard title="Hesap oluşturun" description="Talep açmak ve takip etmek için kayıt olun. Departman ve unvan bilgileriniz İnsan Kaynakları tarafından girilir." footer={<>Zaten hesabınız var mı? <Link className={link} to="/login">Girişe dön</Link></>}>
-      <form onSubmit={submit} noValidate className="space-y-4">
-        {alert && <Alert message={alert} />}
-        <Field label="Ad soyad" htmlFor="f-fullName" error={form.errors.fullName}>
-          <input {...form.field('fullName')} autoComplete="name" className="form-field" />
-        </Field>
-        <Field label="E-posta" htmlFor="f-email" error={form.errors.email}>
-          <input {...form.field('email')} type="email" autoComplete="email" className="form-field" placeholder="ad@sirket.com" />
-        </Field>
-        <Field label="Şifre" htmlFor="f-password" error={form.errors.password} hint="En az 10 karakter; büyük harf, küçük harf ve rakam içersin.">
-          <input {...form.field('password')} type="password" autoComplete="new-password" className="form-field" />
-        </Field>
-        <button type="submit" className="btn-violet w-full" aria-busy={pending}>
-          {pending && <Spinner />} {pending ? 'Hesap oluşturuluyor…' : 'Hesap oluştur'}
         </button>
       </form>
     </AuthCard>
@@ -281,27 +202,6 @@ export function ForgotPasswordPage() {
           <button type="submit" className="btn-violet w-full" aria-busy={pending}>{pending && <Spinner />} Sıfırlama bağlantısı gönder</button>
         </form>
       )}
-    </AuthCard>
-  )
-}
-
-/** E-postadaki doğrulama bağlantısı: açılınca otomatik doğrular ve girişe yönlendirir. */
-export function VerifyEmailPage() {
-  const [params] = useSearchParams()
-  const navigate = useNavigate()
-  const token = params.get('token') ?? ''
-  const [error, setError] = useState<string | null>(token ? null : 'Bağlantı eksik veya hatalı. E-postadaki bağlantıyı yeniden açın.')
-  const started = useRef(false)
-  useEffect(() => {
-    if (!token || started.current) return
-    started.current = true
-    api.auth.verifyEmail(token)
-      .then(() => navigate('/login?verified=1', { replace: true }))
-      .catch((err) => setError(errorMessage(err)))
-  }, [token, navigate])
-  return (
-    <AuthCard title="E-posta doğrulama" description="Adresiniz doğrulanıyor…" footer={<Link className={link} to="/login">Girişe dön</Link>}>
-      {error ? <Alert message={error} /> : <p className="flex items-center gap-2 text-sm text-gray-500"><Spinner /> Lütfen bekleyin…</p>}
     </AuthCard>
   )
 }

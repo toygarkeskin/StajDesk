@@ -14,6 +14,9 @@ public class User : BaseEntity
     public DateTime? EmailVerifiedAt { get; set; }
     /// <summary>Girişte SMS ile ikinci doğrulama (yalnızca SMS sağlayıcısı yapılandırılmışsa açılabilir).</summary>
     public bool TwoFactorEnabled { get; set; }
+    /// <summary>BT tarafından kilitlendiyse dolu: şifre doğru olsa bile giriş yapılamaz, açık oturumlar kapatılır.</summary>
+    public DateTime? LockedAt { get; set; }
+    public string? LockReason { get; set; }
     public string? Phone { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }

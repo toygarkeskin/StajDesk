@@ -403,3 +403,32 @@ internal sealed class OtpChallengeConfiguration : IEntityTypeConfiguration<OtpCh
         b.HasIndex(x => x.UserId);
     }
 }
+
+internal sealed class AccountRequestConfiguration : IEntityTypeConfiguration<AccountRequest>
+{
+    public void Configure(EntityTypeBuilder<AccountRequest> b)
+    {
+        b.Property(x => x.Type).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.Status).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.EmploymentType).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.FullName).HasMaxLength(100).IsRequired();
+        b.Property(x => x.Email).HasMaxLength(150);
+        b.Property(x => x.EmployeeNumber).HasMaxLength(20);
+        b.Property(x => x.Phone).HasMaxLength(30);
+        b.Property(x => x.Note).HasMaxLength(1000);
+        b.Property(x => x.ReviewNote).HasMaxLength(1000);
+        b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Position).WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Store).WithMany().HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.TargetUser).WithMany().HasForeignKey(x => x.TargetUserId).OnDelete(DeleteBehavior.Cascade);
+        // Talep geçmişi silinmesin diye talep açan/inceleyen kişi silinemez.
+        b.HasOne(x => x.RequestedBy).WithMany().HasForeignKey(x => x.RequestedById).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.ReviewedBy).WithMany().HasForeignKey(x => x.ReviewedById).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => new { x.Status, x.CreatedAt });
+        // Aynı e-posta için aynı anda tek bekleyen yeni hesap talebi
+        b.HasIndex(x => x.Email).IsUnique().HasFilter("status = 'Pending' AND type = 'NewAccount'");
+        b.ToTable(t => t.HasCheckConstraint("ck_account_requests_shape",
+            "(type = 'NewAccount' AND email IS NOT NULL) OR (type = 'Deactivation' AND target_user_id IS NOT NULL)"));
+    }
+}

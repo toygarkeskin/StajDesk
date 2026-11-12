@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router'
 import clsx from 'clsx'
-import { Bell, Building2, CalendarClock, FolderKanban, Megaphone, Network, UsersRound, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
+import { Bell, Building2, CalendarClock, FolderKanban, Megaphone, Network, UserCheck, UsersRound, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useFocusTrap } from '@/lib/hooks'
 import { useCan } from '@/stores/auth'
@@ -73,7 +73,8 @@ function NavContent({ onNavigate }: { onNavigate: () => void }) {
     can('users.read', 'users.manage') && !can('users.manage') && { to: '/admin/users', label: 'Mağaza çalışanları', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
   ])
   const admin = keep([
-    can('users.manage') && { to: '/admin/users', label: 'Kullanıcılar ve roller', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
+    can('accounts.request', 'users.manage') && { to: '/account-requests', label: 'Hesap talepleri', icon: <UserCheck className={i} />, isActive: (p) => p === '/account-requests' },
+    can('users.manage') && { to: '/admin/users', label: 'Kullanıcı hesapları', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
     can('org.manage') && { to: '/admin/org', label: 'Departmanlar ve unvanlar', icon: <Building2 className={i} />, isActive: (p) => p === '/admin/org' },
     can('roles.manage') && { to: '/admin/roles', label: 'Roller ve izinler', icon: <ShieldCheck className={i} />, isActive: (p) => p === '/admin/roles' },
     can('categories.manage') && { to: '/admin/categories', label: 'Kategoriler', icon: <Tags className={i} />, isActive: (p) => p === '/admin/categories' },

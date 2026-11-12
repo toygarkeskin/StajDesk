@@ -24,6 +24,154 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.AccountRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("CreatedUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("created_user_id");
+
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("department_id");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("EmployeeNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employee_number");
+
+                    b.Property<string>("EmploymentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employment_type");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("full_name");
+
+                    b.Property<DateOnly?>("HireDate")
+                        .HasColumnType("date")
+                        .HasColumnName("hire_date");
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("manager_id");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("phone");
+
+                    b.Property<int?>("PositionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("position_id");
+
+                    b.Property<int>("RequestedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("requested_by_id");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("review_note");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<int?>("ReviewedById")
+                        .HasColumnType("integer")
+                        .HasColumnName("reviewed_by_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("integer")
+                        .HasColumnName("store_id");
+
+                    b.Property<int?>("TargetUserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("target_user_id");
+
+                    b.Property<DateOnly?>("TerminationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("termination_date");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_account_requests");
+
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_account_requests_department_id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("ix_account_requests_email")
+                        .HasFilter("status = 'Pending' AND type = 'NewAccount'");
+
+                    b.HasIndex("ManagerId")
+                        .HasDatabaseName("ix_account_requests_manager_id");
+
+                    b.HasIndex("PositionId")
+                        .HasDatabaseName("ix_account_requests_position_id");
+
+                    b.HasIndex("RequestedById")
+                        .HasDatabaseName("ix_account_requests_requested_by_id");
+
+                    b.HasIndex("ReviewedById")
+                        .HasDatabaseName("ix_account_requests_reviewed_by_id");
+
+                    b.HasIndex("StoreId")
+                        .HasDatabaseName("ix_account_requests_store_id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("ix_account_requests_target_user_id");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_account_requests_status_created_at");
+
+                    b.ToTable("account_requests", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_account_requests_shape", "(type = 'NewAccount' AND email IS NOT NULL) OR (type = 'Deactivation' AND target_user_id IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
                 {
                     b.Property<int>("Id")
@@ -1442,6 +1590,14 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
 
+                    b.Property<string>("LockReason")
+                        .HasColumnType("text")
+                        .HasColumnName("lock_reason");
+
+                    b.Property<DateTime?>("LockedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("locked_at");
+
                     b.Property<int?>("ManagerId")
                         .HasColumnType("integer")
                         .HasColumnName("manager_id");
@@ -1557,6 +1713,66 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasName("pk_user_settings");
 
                     b.ToTable("user_settings", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.AccountRequest", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_account_requests_departments_department_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_account_requests_users_manager_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.Position", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_account_requests_positions_position_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "RequestedBy")
+                        .WithMany()
+                        .HasForeignKey("RequestedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_account_requests_users_requested_by_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "ReviewedBy")
+                        .WithMany()
+                        .HasForeignKey("ReviewedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_account_requests_users_reviewed_by_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_account_requests_stores_store_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "TargetUser")
+                        .WithMany()
+                        .HasForeignKey("TargetUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_account_requests_users_target_user_id");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Position");
+
+                    b.Navigation("RequestedBy");
+
+                    b.Navigation("ReviewedBy");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("TargetUser");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>

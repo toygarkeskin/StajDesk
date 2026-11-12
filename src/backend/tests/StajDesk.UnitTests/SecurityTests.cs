@@ -169,15 +169,6 @@ public class SecurityTests
         Assert.Equal("unauthorized_client", ex.Error);
     }
 
-    [Fact]
-    public async Task Register_gives_user_role_and_rejects_duplicate_email()
-    {
-        var f = new Fixture();
-        var id = await f.Auth.RegisterAsync(new RegisterRequest("Yeni Kişi", "Yeni@Test", "Guclu!Sifre1"));
-        Assert.Equal(RoleNames.User, f.Db.UserRoles.Where(r => r.UserId == id).Select(r => f.Db.Roles.First(x => x.Id == r.RoleId).Name).Single());
-        await Assert.ThrowsAsync<ConflictException>(() => f.Auth.RegisterAsync(new RegisterRequest("Tekrar", "yeni@test", "Guclu!Sifre1")));
-    }
-
     // ---------- Kimlik: kullanıcı adı, e-posta doğrulama, davet, SMS OTP ----------
 
     [Fact]
@@ -189,20 +180,16 @@ public class SecurityTests
     }
 
     [Fact]
-    public async Task Self_registered_user_must_verify_email_before_login()
+    public async Task Locked_account_cannot_log_in_even_with_correct_password()
     {
         var f = new Fixture();
-        await f.Auth.RegisterAsync(new RegisterRequest("Yeni Kişi", "yeni@test", "Dogru!Sifre1"));
-        var ex = await Assert.ThrowsAsync<OAuthException>(() => f.Auth.AuthorizeAsync(f.Login(login: "yeni@test")));
-        Assert.Equal("email_not_verified", ex.Error);
-
-        // E-postadaki bağlantının token'ı olayın içinden alınır (gerçekte Worker e-postayla gönderir).
-        var evt = f.Events.Published.Select(p => p.Event).OfType<StajDesk.Contracts.UserRegisteredEvent>().Single();
-        var token = evt.VerifyUrl!.Split("token=")[1];
-        await f.Auth.VerifyEmailAsync(token);
-        Assert.NotNull((await f.Auth.AuthorizeAsync(f.Login(login: "yeni@test"))).Code);
-        // Doğrulama bağlantısı şifre sıfırlamak için kullanılamaz.
-        await Assert.ThrowsAsync<DomainExceptionAdapter>(() => f.Auth.ResetPasswordAsync(new ResetPasswordRequest(token, "Baska!Sifre2")));
+        f.Db.Users.Single().LockedAt = DateTime.UtcNow;
+        f.Db.SaveChanges();
+        var ex = await Assert.ThrowsAsync<OAuthException>(() => f.Auth.AuthorizeAsync(f.Login()));
+        Assert.Equal("account_locked", ex.Error);
+        // Yanlış şifrede kilit bilgisi sızdırılmaz.
+        var wrong = await Assert.ThrowsAsync<OAuthException>(() => f.Auth.AuthorizeAsync(f.Login(password: "Yanlis!Sifre9")));
+        Assert.Equal("access_denied", wrong.Error);
     }
 
     [Fact]
