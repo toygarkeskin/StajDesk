@@ -17,7 +17,14 @@ namespace StajDesk.Application.Features.Workspace;
 
 public sealed record WelcomeDto(int UserId, string FullName, string? Department, string? StoreName, IReadOnlyList<string> Roles, DateTime MemberSince);
 public sealed record AnnouncementDto(int Id, string Title, string Body, AnnouncementLevel Level, bool IsPinned, DateTime PublishAt, DateTime? ExpiresAt,
-    int? StoreId, string? StoreName, string AuthorName);
+    int? StoreId, string? StoreName, string AuthorName,
+    int? TargetDepartmentId = null, string? TargetDepartment = null, bool IsRead = false,
+    string? AttachmentName = null, string? AttachmentContentType = null, long? AttachmentSize = null,
+    /// <summary>Yalnızca duyuru yöneticisine: okuyan sayısı / hedef kitle</summary>
+    int? ReadCount = null, int? AudienceCount = null);
+public sealed record AnnouncementReaderDto(int UserId, string FullName, string? Department, DateTime ReadAt);
+public sealed record AnnouncementReadersDto(int AudienceCount, IReadOnlyList<AnnouncementReaderDto> Readers);
+public sealed record AnnouncementFile(Stream Content, string ContentType, string FileName);
 public sealed record OnCallShiftDto(int Id, int UserId, string FullName, string Email, string? Phone, string? Department, DateOnly StartsOn, DateOnly EndsOn, string? Note, bool IsCurrent);
 public sealed record ActivityDto(int TicketId, string TicketTitle, TicketHistoryAction Action, string? OldValue, string? NewValue, string? ActorName, DateTime CreatedAt);
 public sealed record HomeCountersDto(int MyOpenTickets, int AwaitingMyApproval, int AssignedToMe, int MyAssets, int UnreadNotifications);
@@ -32,7 +39,7 @@ public sealed record HomeDto(
     IReadOnlyList<ActivityDto> Activity);
 
 public sealed record UpsertAnnouncementRequest(string Title, string Body, AnnouncementLevel Level = AnnouncementLevel.Info, bool IsPinned = false,
-    DateTime? PublishAt = null, DateTime? ExpiresAt = null, int? StoreId = null);
+    DateTime? PublishAt = null, DateTime? ExpiresAt = null, int? StoreId = null, int? TargetDepartmentId = null);
 public sealed record CreateOnCallShiftRequest(int UserId, DateOnly StartsOn, DateOnly EndsOn, string? Note);
 
 public interface IWorkspaceService
@@ -41,12 +48,17 @@ public interface IWorkspaceService
     Task<IReadOnlyList<AnnouncementDto>> GetAnnouncementsAsync(bool includeInactive, CancellationToken ct = default);
     Task<AnnouncementDto> SaveAnnouncementAsync(int? id, UpsertAnnouncementRequest request, CancellationToken ct = default);
     Task DeleteAnnouncementAsync(int id, CancellationToken ct = default);
+    Task MarkAnnouncementReadAsync(int id, CancellationToken ct = default);
+    Task<AnnouncementReadersDto> AnnouncementReadersAsync(int id, CancellationToken ct = default);
+    Task<AnnouncementDto> SetAnnouncementAttachmentAsync(int id, string fileName, long length, Stream content, CancellationToken ct = default);
+    Task RemoveAnnouncementAttachmentAsync(int id, CancellationToken ct = default);
+    Task<AnnouncementFile> OpenAnnouncementAttachmentAsync(int id, CancellationToken ct = default);
     Task<IReadOnlyList<OnCallShiftDto>> GetOnCallAsync(CancellationToken ct = default);
     Task<OnCallShiftDto> CreateOnCallAsync(CreateOnCallShiftRequest request, CancellationToken ct = default);
     Task DeleteOnCallAsync(int id, CancellationToken ct = default);
 }
 
-internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUser, IAuditLogger audit, TimeProvider clock) : IWorkspaceService
+internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUser, IAuditLogger audit, TimeProvider clock, IFileStorage? storage = null) : IWorkspaceService
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     // Nöbet günleri şirketin saat dilimine göre (Docker konteyneri UTC çalışır).
@@ -75,7 +87,7 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
 
         var myTasks = canManage
             ? await db.Tickets.AsNoTracking()
-                .Where(t => t.AssigneeId == userId && t.Status != TicketStatus.Closed && t.Status != TicketStatus.Resolved)
+                .Where(t => t.AssigneeId == userId && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected) && t.Status != TicketStatus.Resolved)
                 .OrderByDescending(t => t.Priority).ThenBy(t => t.CreatedAt).Take(6).ToListItems(includeInternal).ToListAsync(ct)
             : [];
         var awaiting = await db.Tickets.AsNoTracking()
@@ -89,9 +101,9 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
             .ToListAsync(ct);
 
         var counters = new HomeCountersDto(
-            await db.Tickets.CountAsync(t => t.RequesterId == userId && t.Status != TicketStatus.Closed, ct),
+            await db.Tickets.CountAsync(t => t.RequesterId == userId && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected), ct),
             await db.Tickets.CountAsync(t => t.RequesterId == userId && t.Status == TicketStatus.Resolved, ct),
-            canManage ? await db.Tickets.CountAsync(t => t.AssigneeId == userId && t.Status != TicketStatus.Closed && t.Status != TicketStatus.Resolved, ct) : 0,
+            canManage ? await db.Tickets.CountAsync(t => t.AssigneeId == userId && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected) && t.Status != TicketStatus.Resolved, ct) : 0,
             await db.Assets.CountAsync(a => a.AssignedUserId == userId, ct),
             await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead, ct));
 
@@ -105,21 +117,103 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
 
     // ---------- Duyurular ----------
 
-    public async Task<IReadOnlyList<AnnouncementDto>> GetAnnouncementsAsync(bool includeInactive, CancellationToken ct = default)
+    /// <summary>Kullanıcının görebileceği duyurular: yayında + mağaza hedefi + departman hedefi. Duyuru yöneticisi hepsini görür.</summary>
+    private async Task<IQueryable<Announcement>> VisibleAnnouncementsAsync(bool includeInactive, CancellationToken ct)
     {
-        currentUser.RequireUserId();
+        var me = currentUser.RequireUserId();
         var canManage = currentUser.Has(Permissions.AnnouncementsManage);
         var now = Now;
         var q = db.Announcements.AsNoTracking();
         if (!(includeInactive && canManage))
             q = q.Where(a => a.PublishAt <= now && (a.ExpiresAt == null || a.ExpiresAt > now));
         if (!canManage)
-            q = q.Where(a => a.StoreId == null || a.StoreId == currentUser.StoreId);
+        {
+            var myDepartment = await db.Users.Where(u => u.Id == me).Select(u => u.DepartmentId).FirstOrDefaultAsync(ct);
+            q = q.Where(a => (a.StoreId == null || a.StoreId == currentUser.StoreId)
+                             && (a.TargetDepartmentId == null || a.TargetDepartmentId == myDepartment));
+        }
+        return q;
+    }
 
+    public async Task<IReadOnlyList<AnnouncementDto>> GetAnnouncementsAsync(bool includeInactive, CancellationToken ct = default)
+    {
+        var me = currentUser.RequireUserId();
+        var canManage = currentUser.Has(Permissions.AnnouncementsManage);
+        var q = await VisibleAnnouncementsAsync(includeInactive, ct);
         return await q.OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.Level).ThenByDescending(a => a.PublishAt).Take(100)
             .Select(a => new AnnouncementDto(a.Id, a.Title, a.Body, a.Level, a.IsPinned, a.PublishAt, a.ExpiresAt,
-                a.StoreId, a.Store == null ? null : a.Store.Name, a.Author.FullName))
+                a.StoreId, a.Store == null ? null : a.Store.Name, a.Author.FullName,
+                a.TargetDepartmentId, a.TargetDepartment == null ? null : a.TargetDepartment.Name, a.Reads.Any(r => r.UserId == me),
+                a.AttachmentName, a.AttachmentContentType, a.AttachmentSize,
+                canManage ? a.Reads.Count : null,
+                canManage ? db.Users.Count(u => u.IsActive && (a.StoreId == null || u.StoreId == a.StoreId) && (a.TargetDepartmentId == null || u.DepartmentId == a.TargetDepartmentId)) : null))
             .ToListAsync(ct);
+    }
+
+    public async Task MarkAnnouncementReadAsync(int id, CancellationToken ct = default)
+    {
+        var me = currentUser.RequireUserId();
+        if (!await (await VisibleAnnouncementsAsync(false, ct)).AnyAsync(a => a.Id == id, ct)) throw NotFoundException.For("Duyuru", id);
+        if (await db.AnnouncementReads.AnyAsync(r => r.AnnouncementId == id && r.UserId == me, ct)) return;
+        db.AnnouncementReads.Add(new AnnouncementRead { AnnouncementId = id, UserId = me });
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<AnnouncementReadersDto> AnnouncementReadersAsync(int id, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.AnnouncementsManage);
+        var a = await db.Announcements.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw NotFoundException.For("Duyuru", id);
+        var audience = await db.Users.CountAsync(u => u.IsActive && (a.StoreId == null || u.StoreId == a.StoreId) && (a.TargetDepartmentId == null || u.DepartmentId == a.TargetDepartmentId), ct);
+        var readers = await db.AnnouncementReads.AsNoTracking().Where(r => r.AnnouncementId == id).OrderByDescending(r => r.ReadAt).Take(500)
+            .Select(r => new AnnouncementReaderDto(r.UserId, r.User.FullName, r.User.Department == null ? null : r.User.Department.Name, r.ReadAt)).ToListAsync(ct);
+        return new AnnouncementReadersDto(audience, readers);
+    }
+
+    public async Task<AnnouncementDto> SetAnnouncementAttachmentAsync(int id, string fileName, long length, Stream content, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.AnnouncementsManage);
+        if (storage is null) throw new InvalidOperationException("Dosya deposu yapılandırılmadı.");
+        var a = await db.Announcements.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw NotFoundException.For("Duyuru", id);
+        var name = Tickets.AttachmentRules.SafeFileName(fileName);
+        var ext = Path.GetExtension(name);
+        if (!Tickets.AttachmentRules.Types.TryGetValue(ext, out var contentType))
+            throw new DomainException($"Bu dosya türü desteklenmiyor. İzin verilenler: {Tickets.AttachmentRules.AllowedList}");
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, ct);
+        if (buffer.Length == 0) throw new DomainException("Dosya boş görünüyor.");
+        if (buffer.Length > Tickets.AttachmentRules.MaxBytes) throw new DomainException("Dosya 5 MB'tan büyük olamaz.");
+        if (!Tickets.AttachmentRules.SignatureMatches(ext, buffer.GetBuffer().AsSpan(0, (int)Math.Min(buffer.Length, 4096))))
+            throw new DomainException("Dosyanın içeriği uzantısıyla uyuşmuyor. Dosyayı orijinal biçiminde yükleyin.");
+        var key = Guid.NewGuid().ToString("N");
+        buffer.Position = 0;
+        await storage.SaveAsync(key, buffer, ct);
+        var old = a.AttachmentKey;
+        (a.AttachmentKey, a.AttachmentName, a.AttachmentContentType, a.AttachmentSize) = (key, name, contentType, buffer.Length);
+        a.UpdatedAt = Now;
+        audit.Add("announcement.attachment_set", "announcement", id, new { name, size = buffer.Length });
+        await db.SaveChangesAsync(ct);
+        if (old is not null) await storage.DeleteAsync(old, ct);
+        return (await GetAnnouncementsAsync(true, ct)).First(x => x.Id == id);
+    }
+
+    public async Task RemoveAnnouncementAttachmentAsync(int id, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.AnnouncementsManage);
+        var a = await db.Announcements.FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw NotFoundException.For("Duyuru", id);
+        var old = a.AttachmentKey;
+        (a.AttachmentKey, a.AttachmentName, a.AttachmentContentType, a.AttachmentSize) = (null, null, null, null);
+        audit.Add("announcement.attachment_removed", "announcement", id);
+        await db.SaveChangesAsync(ct);
+        if (old is not null && storage is not null) await storage.DeleteAsync(old, ct);
+    }
+
+    public async Task<AnnouncementFile> OpenAnnouncementAttachmentAsync(int id, CancellationToken ct = default)
+    {
+        var a = await (await VisibleAnnouncementsAsync(true, ct)).Where(x => x.Id == id)
+            .Select(x => new { x.AttachmentKey, x.AttachmentName, x.AttachmentContentType }).FirstOrDefaultAsync(ct);
+        if (a?.AttachmentKey is null || storage is null) throw NotFoundException.For("Duyuru eki", id);
+        var stream = await storage.OpenReadAsync(a.AttachmentKey, ct) ?? throw NotFoundException.For("Duyuru eki", id);
+        return new AnnouncementFile(stream, a.AttachmentContentType ?? "application/octet-stream", a.AttachmentName ?? "ek");
     }
 
     public async Task<AnnouncementDto> SaveAnnouncementAsync(int? id, UpsertAnnouncementRequest r, CancellationToken ct = default)
@@ -127,6 +221,7 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
         currentUser.Require(Permissions.AnnouncementsManage);
         var userId = currentUser.RequireUserId();
         if (r.StoreId is { } sid && !await db.Stores.AnyAsync(s => s.Id == sid, ct)) throw NotFoundException.For("Mağaza", sid);
+        if (r.TargetDepartmentId is { } did && !await db.Departments.AnyAsync(d => d.Id == did && d.IsActive, ct)) throw NotFoundException.For("Departman", did);
 
         Announcement a;
         if (id is null)
@@ -146,6 +241,9 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
         a.PublishAt = r.PublishAt?.ToUniversalTime() ?? (id is null ? Now : a.PublishAt);
         a.ExpiresAt = r.ExpiresAt?.ToUniversalTime();
         a.StoreId = r.StoreId;
+        a.TargetDepartmentId = r.TargetDepartmentId;
+        // Hedeflenmiş duyuru kurumsal sitede gösterilmez
+        if (a.StoreId is not null || a.TargetDepartmentId is not null) a.IsPublic = false;
         audit.Add(id is null ? "announcement.created" : "announcement.updated", "announcement", id, new { a.Title, a.StoreId });
         await db.SaveChangesAsync(ct);
 

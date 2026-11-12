@@ -161,7 +161,7 @@ internal sealed class AssetService(IAppDbContext db, ICurrentUser currentUser, I
             a.Model, a.Location,
             a.Store == null ? null : new StoreRefDto(a.Store.Id, a.Store.Code, a.Store.Name),
             a.AssignedUser == null ? null : new UserSummaryDto(a.AssignedUser.Id, a.AssignedUser.FullName, a.AssignedUser.Email),
-            a.WarrantyEndDate, a.Tickets.Count(t => t.Status != TicketStatus.Closed)));
+            a.WarrantyEndDate, a.Tickets.Count(t => (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected))));
 }
 
 public sealed class UpsertAssetRequestValidator : AbstractValidator<UpsertAssetRequest>

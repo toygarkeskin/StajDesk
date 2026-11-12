@@ -79,10 +79,10 @@ public static class AttachmentRules
 internal static class AttachmentAccess
 {
     public static bool CanDelete(ICurrentUser user, Ticket t, TicketAttachment a) =>
-        user.Has(Permissions.TicketsManage) || (a.UploadedById == user.UserId && t.Status != TicketStatus.Closed);
+        user.Has(Permissions.TicketsManage) || (a.UploadedById == user.UserId && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected));
 
     public static bool CanUpload(ICurrentUser user, Ticket t) =>
-        t.Status != TicketStatus.Closed && (user.Has(Permissions.TicketsManage) || (user.Has(Permissions.CommentsCreate) && TicketAccess.CanSee(user, t)));
+        (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected) && (user.Has(Permissions.TicketsManage) || (user.Has(Permissions.CommentsCreate) && TicketAccess.CanSee(user, t)));
 }
 
 internal sealed class UploadAttachmentHandler(IAppDbContext db, ICurrentUser user, IFileStorage storage, IAuditLogger audit)
@@ -94,7 +94,7 @@ internal sealed class UploadAttachmentHandler(IAppDbContext db, ICurrentUser use
         var ticket = await db.Tickets.FirstOrDefaultAsync(t => t.Id == c.TicketId, ct) ?? throw NotFoundException.For("Talep", c.TicketId);
         TicketAccess.EnsureCanSee(user, ticket);
         if (!AttachmentAccess.CanUpload(user, ticket))
-            throw new ForbiddenException(ticket.Status == TicketStatus.Closed ? "Kapanmış talebe dosya eklenemez." : "Bu talebe dosya ekleme yetkiniz yok.");
+            throw new ForbiddenException(ticket.IsFinished ? "Kapanmış veya reddedilmiş talebe dosya eklenemez." : "Bu talebe dosya ekleme yetkiniz yok.");
 
         var fileName = AttachmentRules.SafeFileName(c.FileName);
         var ext = Path.GetExtension(fileName);

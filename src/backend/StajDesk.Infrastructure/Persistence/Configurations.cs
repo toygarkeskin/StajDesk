@@ -659,3 +659,49 @@ internal sealed class LeaveRequestConfiguration : IEntityTypeConfiguration<Leave
         b.ToTable(t => t.HasCheckConstraint("ck_leave_requests_dates", "end_date >= start_date AND days > 0"));
     }
 }
+
+/// <summary>Talep → ilgili departman (Aşama 6). Ayrı sınıf: mevcut TicketConfiguration'a dokunmadan ilişkiyi ekler.</summary>
+internal sealed class TicketDepartmentConfiguration : IEntityTypeConfiguration<Ticket>
+{
+    public void Configure(EntityTypeBuilder<Ticket> b)
+    {
+        b.HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+        b.HasIndex(x => new { x.DepartmentId, x.Status });
+    }
+}
+
+internal sealed class WorkTaskConfiguration : IEntityTypeConfiguration<WorkTask>
+{
+    public void Configure(EntityTypeBuilder<WorkTask> b)
+    {
+        b.ToTable("work_tasks");
+        b.Property(x => x.Title).HasMaxLength(200);
+        b.Property(x => x.Description).HasMaxLength(4000);
+        b.HasIndex(x => new { x.AssigneeId, x.Status, x.DueDate });
+        b.HasIndex(x => new { x.CreatedById, x.Status });
+        b.HasOne(x => x.Assignee).WithMany().HasForeignKey(x => x.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedById).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class AnnouncementReadConfiguration : IEntityTypeConfiguration<AnnouncementRead>
+{
+    public void Configure(EntityTypeBuilder<AnnouncementRead> b)
+    {
+        b.HasKey(x => new { x.AnnouncementId, x.UserId });
+        b.HasOne<Announcement>().WithMany(a => a.Reads).HasForeignKey(x => x.AnnouncementId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+/// <summary>Duyuru → hedef departman ve ek dosya alanları (Aşama 6).</summary>
+internal sealed class AnnouncementTargetConfiguration : IEntityTypeConfiguration<Announcement>
+{
+    public void Configure(EntityTypeBuilder<Announcement> b)
+    {
+        b.HasOne(x => x.TargetDepartment).WithMany().HasForeignKey(x => x.TargetDepartmentId).OnDelete(DeleteBehavior.SetNull);
+        b.Property(x => x.AttachmentKey).HasMaxLength(40);
+        b.Property(x => x.AttachmentName).HasMaxLength(200);
+        b.Property(x => x.AttachmentContentType).HasMaxLength(100);
+    }
+}

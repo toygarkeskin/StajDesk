@@ -132,3 +132,21 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Doğrulama:** 132 birim testi (10 yeni); smoke 95/95 (12 yeni: yönetici onayı, İK'nın ve talep sahibinin onaylayamaması, izin yöneticisi onayı, gizlilik, yetkiler, temizlik).
 
 **Sıradaki (Aşama 6 devamı):** görev yönetimi, duyurularda hedef departman, okundu bilgisi ve ek dosya, destek talebi durumlarının uyarlanması (Yeni / Reddedildi, ilgili departman), sosyal akış, mesajlaşma, SSS.
+
+## 12.11.2026 — Aşama 6.2: Görevler, duyurular, talep durumları
+
+**Yapılan**
+- Görev yönetimi: kendine veya organizasyonda altındakilere (tasks.manage ile herkese) atama, teslim tarihi, öncelik, gecikme, bildirimler; Görevler ekranı ve Yapılacaklarım kutucuğu.
+- Duyurular: hedef departman, okundu bilgisi (okuyan / hedef kitle, okuyanlar listesi), yetki denetimli ek dosya ve görsel.
+- Destek talebi: "Yeni" (başlangıç) ve "Reddedildi" (gerekçe zorunlu, talep sahibine görünür) durumları; ilgili departman alanı ve filtresi. Reddedilen talepler aktif sayımlardan çıkarıldı.
+- Talep listesindeki filtre çubuğu ekran genişliğine göre 2, 4 ve 6 sütuna iniyor (yeni filtreyle sıkışıyordu).
+
+**Hata → çözüm**
+- Smoke testinde Türkçe karakterli istek gövdeleri 400 aldı: Windows'taki curl argümanları UTF-8 göndermiyor. Test verisi ASCII'ye çevrildi.
+- Hata ayıklarken elle atılan bir istek demo veritabanındaki 1 numaralı talebi reddetti. Talep eski durumuna (Açık) döndürüldü; eklenen yorum, geçmiş kaydı ve bildirim silindi. Bundan sonra elle denemeler yalnızca test verisiyle yapılıyor.
+- Davet e-postası kontrolü Mailpit'in 500 e-posta sınırından etkilenmesin diye alıcı adresine göre arıyor.
+- Duyuru sayfasında okundu işareti sonrası sayaç güncellenmiyordu; liste yenileniyor.
+
+**Doğrulama:** 141 birim testi (10 yeni); smoke 110/110 (16 yeni).
+
+**Sıradaki (Aşama 6.3):** sosyal akış (paylaşım, yorum, beğeni, moderasyon), mesajlaşma, SSS.

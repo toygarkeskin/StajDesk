@@ -55,6 +55,8 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<LeaveEntitlement> LeaveEntitlements => Set<LeaveEntitlement>();
     public DbSet<LeaveRequest> LeaveRequests => Set<LeaveRequest>();
+    public DbSet<WorkTask> WorkTasks => Set<WorkTask>();
+    public DbSet<AnnouncementRead> AnnouncementReads => Set<AnnouncementRead>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -91,6 +93,12 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<WorkflowApproval>().HasOne(x => x.ApproverUser).WithMany().HasForeignKey(x => x.ApproverUserId);
         b.Entity<WorkflowApproval>().HasOne(x => x.DecidedBy).WithMany().HasForeignKey(x => x.DecidedById);
         b.Entity<LeaveRequest>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+        b.Entity<AnnouncementRead>().HasKey(x => new { x.AnnouncementId, x.UserId });
+        b.Entity<AnnouncementRead>().HasOne<Announcement>().WithMany(a => a.Reads).HasForeignKey(x => x.AnnouncementId);
+        b.Entity<AnnouncementRead>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+        b.Entity<WorkTask>().HasOne(x => x.Assignee).WithMany().HasForeignKey(x => x.AssigneeId);
+        b.Entity<WorkTask>().HasOne(x => x.CreatedBy).WithMany().HasForeignKey(x => x.CreatedById);
+        b.Entity<Announcement>().HasOne(x => x.TargetDepartment).WithMany().HasForeignKey(x => x.TargetDepartmentId);
         b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
         b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
         b.Entity<UserSettings>().HasKey(x => x.UserId);

@@ -1,3 +1,4 @@
+using StajDesk.Application.Features.Employees;
 using Microsoft.EntityFrameworkCore;
 using StajDesk.Application.Abstractions;
 using StajDesk.Application.Common;
@@ -26,7 +27,7 @@ public static class TicketProjections
             new UserSummaryDto(t.Requester.Id, t.Requester.FullName, t.Requester.Email),
             t.Assignee == null ? null : new UserSummaryDto(t.Assignee.Id, t.Assignee.FullName, t.Assignee.Email),
             t.Comments.Count(c => !c.IsInternal || includeInternal),
-            t.CreatedAt, t.UpdatedAt));
+            t.CreatedAt, t.UpdatedAt, t.Department == null ? null : new RefDto(t.Department.Id, t.Department.Name)));
 }
 
 internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser user, ITicketSearch? search = null) : IRequestHandler<ListTicketsQuery, PagedResult<TicketListItemDto>>
@@ -43,8 +44,9 @@ internal sealed class ListTicketsHandler(IAppDbContext db, ICurrentUser user, IT
         if (f.StoreId is not null) q = q.Where(t => t.StoreId == f.StoreId);
         if (f.AssigneeId is not null) q = q.Where(t => t.AssigneeId == f.AssigneeId);
         if (f.AssetId is not null) q = q.Where(t => t.AssetId == f.AssetId);
+        if (f.DepartmentId is not null) q = q.Where(t => t.DepartmentId == f.DepartmentId);
         if (f.Unassigned == true) q = q.Where(t => t.AssigneeId == null);
-        if (f.ActiveOnly == true) q = q.Where(t => t.Status != TicketStatus.Closed);
+        if (f.ActiveOnly == true) q = q.Where(t => (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected));
         if (!string.IsNullOrWhiteSpace(f.Search)) q = (search ?? new ContainsTicketSearch()).Apply(q, f.Search);
 
         q = f.Sort?.ToLowerInvariant() switch
@@ -63,7 +65,7 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser user) : IR
     public async Task<TicketDetailDto> HandleAsync(GetTicketQuery request, CancellationToken ct)
     {
         var t = await db.Tickets.AsNoTracking()
-            .Include(x => x.Category).Include(x => x.Store).Include(x => x.Requester).Include(x => x.Assignee).Include(x => x.Asset)
+            .Include(x => x.Category).Include(x => x.Store).Include(x => x.Requester).Include(x => x.Assignee).Include(x => x.Asset).Include(x => x.Department)
             .Include(x => x.Comments.OrderBy(c => c.CreatedAt)).ThenInclude(c => c.Author)
             .Include(x => x.History.OrderBy(h => h.CreatedAt)).ThenInclude(h => h.Actor)
             .Include(x => x.Attachments.OrderBy(a => a.CreatedAt)).ThenInclude(a => a.UploadedBy)
@@ -93,8 +95,9 @@ internal sealed class GetTicketHandler(IAppDbContext db, ICurrentUser user) : IR
                 CanEdit: TicketAccess.CanEdit(user, t),
                 CanManage: user.Has(Permissions.TicketsManage),
                 CanDelete: user.Has(Permissions.TicketsDelete),
-                CanComment: user.Has(Permissions.CommentsCreate) && t.Status != TicketStatus.Closed,
+                CanComment: user.Has(Permissions.CommentsCreate) && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected),
                 CanInternal: showInternal,
-                CanAttach: AttachmentAccess.CanUpload(user, t)));
+                CanAttach: AttachmentAccess.CanUpload(user, t)),
+            t.Department is null ? null : new RefDto(t.Department.Id, t.Department.Name));
     }
 }

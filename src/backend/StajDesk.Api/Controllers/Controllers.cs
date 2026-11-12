@@ -18,6 +18,7 @@ using StajDesk.Application.Features.Site;
 using StajDesk.Application.Features.Portal;
 using StajDesk.Application.Features.Workflows;
 using StajDesk.Application.Features.Leave;
+using StajDesk.Application.Features.Tasks;
 using StajDesk.Domain.Enums;
 using StajDesk.Domain.Security;
 
@@ -84,7 +85,7 @@ public sealed class TicketsController(IDispatcher dispatcher) : ApiControllerBas
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult<ApiResponse<TicketDetailDto>>> ChangeStatus(int id, ChangeStatusRequest request, CancellationToken ct)
     {
-        await dispatcher.SendAsync(new ChangeTicketStatusCommand(id, request.Status), ct);
+        await dispatcher.SendAsync(new ChangeTicketStatusCommand(id, request.Status, request.Reason), ct);
         return Envelope(await dispatcher.SendAsync(new GetTicketQuery(id), ct), "Talep durumu güncellendi.");
     }
 
@@ -342,6 +343,41 @@ public sealed class WorkspaceController(IWorkspaceService workspace) : ApiContro
     {
         await workspace.DeleteAnnouncementAsync(id, ct);
         return NoContent();
+    }
+
+    /// <summary>Duyuruyu okudum olarak işaretle (yalnızca görebildiği duyuru).</summary>
+    [HttpPost("announcements/{id:int}/read")]
+    public async Task<IActionResult> ReadAnnouncement(int id, CancellationToken ct)
+    {
+        await workspace.MarkAnnouncementReadAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("announcements/{id:int}/readers"), RequirePermission(Permissions.AnnouncementsManage)]
+    public async Task<ActionResult<ApiResponse<AnnouncementReadersDto>>> AnnouncementReaders(int id, CancellationToken ct) => Envelope(await workspace.AnnouncementReadersAsync(id, ct));
+
+    [HttpPut("announcements/{id:int}/attachment"), RequirePermission(Permissions.AnnouncementsManage), RequestSizeLimit(6 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> SetAnnouncementAttachment(int id, IFormFile? file, CancellationToken ct)
+    {
+        if (file is null) throw new StajDesk.Domain.Common.DomainException("Eklenecek dosyayı seçin.");
+        await using var stream = file.OpenReadStream();
+        return Envelope(await workspace.SetAnnouncementAttachmentAsync(id, file.FileName, file.Length, stream, ct), "Ek dosya yüklendi.");
+    }
+
+    [HttpDelete("announcements/{id:int}/attachment"), RequirePermission(Permissions.AnnouncementsManage)]
+    public async Task<IActionResult> RemoveAnnouncementAttachment(int id, CancellationToken ct)
+    {
+        await workspace.RemoveAnnouncementAttachmentAsync(id, ct);
+        return NoContent();
+    }
+
+    /// <summary>Ek dosya: yalnızca duyuruyu görebilen indirir. Görseller satır içi, diğerleri "attachment" olarak.</summary>
+    [HttpGet("announcements/{id:int}/attachment")]
+    public async Task<IActionResult> AnnouncementAttachment(int id, CancellationToken ct)
+    {
+        var file = await workspace.OpenAnnouncementAttachmentAsync(id, ct);
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return file.ContentType.StartsWith("image/") ? File(file.Content, file.ContentType) : File(file.Content, file.ContentType, file.FileName);
     }
 
     /// <summary>Nöbet çizelgesi: geçen haftadan 60 gün sonrasına kadar.</summary>
@@ -910,5 +946,38 @@ public sealed class LeaveController(ILeaveService leave, IWorkflowService workfl
     {
         await leave.CancelAsync(id, ct);
         return Envelope<object>(new { id }, "İzin talebi geri çekildi.");
+    }
+}
+
+/// <summary>Görev yönetimi. Kendine herkes; başkasına yalnızca ekibine (organizasyon) veya tasks.manage ile.</summary>
+[Route("api/tasks")]
+public sealed class TasksController(ITaskService tasks) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PagedResult<WorkTaskDto>>>> List([FromQuery] TaskQuery query, CancellationToken ct) => Envelope(await tasks.ListAsync(query, ct));
+
+    [HttpGet("summary")]
+    public async Task<ActionResult<ApiResponse<TaskSummaryDto>>> Summary(CancellationToken ct) => Envelope(await tasks.SummaryAsync(ct));
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<WorkTaskDto>>> Get(int id, CancellationToken ct) => Envelope(await tasks.GetAsync(id, ct));
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<WorkTaskDto>>> Create(SaveTaskRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<WorkTaskDto>.Ok(await tasks.SaveAsync(null, request, ct), "Görev oluşturuldu."));
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<ApiResponse<WorkTaskDto>>> Update(int id, SaveTaskRequest request, CancellationToken ct) =>
+        Envelope(await tasks.SaveAsync(id, request, ct), "Görev güncellendi.");
+
+    [HttpPatch("{id:int}/status")]
+    public async Task<ActionResult<ApiResponse<WorkTaskDto>>> Status(int id, ChangeTaskStatusRequest request, CancellationToken ct) =>
+        Envelope(await tasks.ChangeStatusAsync(id, request.Status, ct), "Görev durumu güncellendi.");
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        await tasks.DeleteAsync(id, ct);
+        return NoContent();
     }
 }

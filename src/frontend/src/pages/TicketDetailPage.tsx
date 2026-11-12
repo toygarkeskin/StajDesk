@@ -69,6 +69,13 @@ export function TicketDetailPage() {
   const onError = (err: unknown) => toast(errorMessage(err), 'error')
 
   const setStatus = useMutation({ mutationFn: (s: TicketStatus) => api.tickets.setStatus(id, s), onSuccess: (t) => onUpdated(t, `Durum "${statusLabels[t.status]}" olarak güncellendi.`), onError })
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const reject = useMutation({
+    mutationFn: () => api.tickets.setStatus(id, 'Rejected', rejectReason.trim()),
+    onSuccess: (t) => { onUpdated(t, 'Talep reddedildi; gerekçe talep sahibine iletildi.'); setRejecting(false); setRejectReason('') },
+    onError,
+  })
   const setPriority = useMutation({ mutationFn: (p: TicketPriority) => api.tickets.setPriority(id, p), onSuccess: (t) => onUpdated(t, 'Öncelik güncellendi.'), onError })
   const assign = useMutation({ mutationFn: (a: number | null) => api.tickets.assign(id, a), onSuccess: (t) => onUpdated(t, t.assignee ? `Talep ${t.assignee.fullName} kişisine atandı.` : 'Atama kaldırıldı.'), onError })
   const remove = useMutation({
@@ -95,7 +102,7 @@ export function TicketDetailPage() {
   const t = ticket.data!
   const isRequester = me?.id === t.requester.id
   const canEdit = t.permissions.canEdit
-  const closed = t.status === 'Closed'
+  const closed = t.status === 'Closed' || t.status === 'Rejected'
 
   return (
     <>
@@ -170,7 +177,7 @@ export function TicketDetailPage() {
               )}
             </ol>
             {closed ? (
-              <p className="mt-6 border-t border-gray-100 pt-5 text-sm text-gray-500 dark:border-gray-700/60">Bu talep kapatıldığı için yeni yorum eklenemez; yanıt yazmak için önce talebi yeniden açın.</p>
+              <p className="mt-6 border-t border-gray-100 pt-5 text-sm text-gray-500 dark:border-gray-700/60">Bu talep kapatıldığı veya reddedildiği için yeni yorum eklenemez; yanıt yazmak için önce talebi yeniden açın.</p>
             ) : (
               <CommentForm ticketId={t.id} isStaff={isStaff} />
             )}
@@ -183,7 +190,7 @@ export function TicketDetailPage() {
             <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
               {isStaff && !closed ? (
                 <>
-                  <InlineSelect id="ctl-status" label="Durum" value={t.status} disabled={setStatus.isPending || t.allowedStatuses.length === 0} onChange={(v) => setStatus.mutate(v as TicketStatus)}>
+                  <InlineSelect id="ctl-status" label="Durum" value={t.status} disabled={setStatus.isPending || t.allowedStatuses.length === 0} onChange={(v) => (v === 'Rejected' ? setRejecting(true) : setStatus.mutate(v as TicketStatus))}>
                     <option value={t.status}>{statusLabels[t.status]}</option>
                     {t.allowedStatuses.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}
                   </InlineSelect>
@@ -205,6 +212,7 @@ export function TicketDetailPage() {
                 </>
               )}
               <Meta label="Tür">{typeLabels[t.type]}</Meta>
+              <Meta label="İlgili departman">{t.department?.name ?? <span className="text-gray-400">Belirtilmedi</span>}</Meta>
               <Meta label="Talep sahibi"><span className="inline-flex items-center gap-2"><Avatar name={t.requester.fullName} size="sm" /> {t.requester.fullName}</span></Meta>
               <Meta label="Oluşturma">{formatDateTime(t.createdAt)}</Meta>
               {t.updatedAt && <Meta label="Son güncelleme">{timeAgo(t.updatedAt)}</Meta>}
@@ -213,6 +221,14 @@ export function TicketDetailPage() {
             </div>
           </div>
 
+          {rejecting && (
+            <SlideOver open onClose={() => setRejecting(false)} title={`#${t.id} talebini reddet`} description="Gerekçe talep sahibine görünen bir yorum olarak eklenir. Talep daha sonra yeniden açılabilir."
+              footer={<><button className="btn-secondary" onClick={() => setRejecting(false)}>Vazgeç</button><button className="btn-danger" disabled={reject.isPending || rejectReason.trim().length < 5} onClick={() => reject.mutate()}>{reject.isPending && <Spinner />}Talebi reddet</button></>}>
+              <Field label="Ret gerekçesi" htmlFor="reject-reason" hint="Ör. kapsam dışı, mükerrer talep (#123), kişisel cihaz. En az 5 karakter.">
+                <textarea id="reject-reason" className="form-field min-h-32" maxLength={1000} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+              </Field>
+            </SlideOver>
+          )}
           <AttachmentsCard ticketId={t.id} attachments={t.attachments} canAttach={t.permissions.canAttach} />
 
           {t.asset && (
@@ -302,15 +318,16 @@ function CommentForm({ ticketId, isStaff }: { ticketId: number; isStaff: boolean
 
 function EditTicketPanel({ ticket, onClose, onSaved }: { ticket: TicketDetail; onClose: () => void; onSaved: (t: TicketDetail) => void }) {
   const categories = useQuery({ queryKey: ['categories'], queryFn: () => api.categories.list() })
+  const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
   const form = useForm(
-    { title: ticket.title, description: ticket.description, categoryId: String(ticket.category.id), type: ticket.type as string },
+    { title: ticket.title, description: ticket.description, categoryId: String(ticket.category.id), type: ticket.type as string, departmentId: String(ticket.department?.id ?? '') },
     {
       title: (v) => (v.trim().length < 5 ? 'En az 5 karakterlik bir başlık yazın.' : undefined),
       description: (v) => (v.trim().length < 10 ? 'Sorunu en az 10 karakterle açıklayın.' : undefined),
     },
   )
   const save = useMutation({
-    mutationFn: () => api.tickets.update(ticket.id, { ...form.values, categoryId: Number(form.values.categoryId), type: form.values.type as TicketType, assetId: ticket.asset?.id ?? null }),
+    mutationFn: () => api.tickets.update(ticket.id, { ...form.values, categoryId: Number(form.values.categoryId), type: form.values.type as TicketType, assetId: ticket.asset?.id ?? null, departmentId: form.values.departmentId ? Number(form.values.departmentId) : null }),
     onSuccess: (t) => {
       onSaved(t)
       onClose()
@@ -345,6 +362,12 @@ function EditTicketPanel({ ticket, onClose, onSaved }: { ticket: TicketDetail; o
         <Field label="Kategori" htmlFor="f-categoryId">
           <select {...form.field('categoryId')} className="form-field">
             {categories.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </Field>
+        <Field label="İlgili departman" htmlFor="f-departmentId" optional>
+          <select {...form.field('departmentId')} className="form-field">
+            <option value="">Belirtilmedi</option>
+            {departments.data?.filter((d) => d.isActive).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         </Field>
         <Field label="Tür" htmlFor="f-type">

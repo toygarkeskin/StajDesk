@@ -50,7 +50,7 @@ internal sealed class AdminService(IAppDbContext db, ICurrentUser currentUser, I
         return await q.OrderBy(s => s.Code)
             .Select(s => new StoreDto(s.Id, s.Code, s.Name, s.City, s.Address, s.Phone, s.IsActive,
                 s.Users.Count,
-                db.Tickets.Count(t => t.StoreId == s.Id && t.Status != TicketStatus.Closed),
+                db.Tickets.Count(t => t.StoreId == s.Id && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected)),
                 db.Assets.Count(a => a.StoreId == s.Id),
                 s.Users.Where(u => u.Roles.Any(r => r.Role.Name == RoleNames.StoreOwner)).Select(u => u.FullName).ToList()))
             .ToListAsync(ct);

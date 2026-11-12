@@ -60,7 +60,7 @@ internal sealed class StatsService(IAppDbContext db, ICurrentUser currentUser, I
         var byStatus = await tickets.GroupBy(t => t.Status).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
         int S(TicketStatus s) => byStatus.FirstOrDefault(x => x.Key == s)?.Count ?? 0;
 
-        var byPriority = await tickets.Where(t => t.Status != TicketStatus.Closed)
+        var byPriority = await tickets.Where(t => (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected))
             .GroupBy(t => t.Priority).Select(g => new { g.Key, Count = g.Count() }).ToListAsync(ct);
 
         var byCategory = await tickets.GroupBy(t => new { t.CategoryId, t.Category.Name, t.Category.Color })
@@ -80,11 +80,11 @@ internal sealed class StatsService(IAppDbContext db, ICurrentUser currentUser, I
         var byStore = new List<CountItem>();
         if (scope == "all")
         {
-            topAgents = (await tickets.Where(t => t.AssigneeId != null && t.Status != TicketStatus.Closed)
+            topAgents = (await tickets.Where(t => t.AssigneeId != null && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected))
                     .GroupBy(t => new { t.AssigneeId, t.Assignee!.FullName }).Select(g => new { g.Key.AssigneeId, g.Key.FullName, Count = g.Count() })
                     .OrderByDescending(x => x.Count).Take(5).ToListAsync(ct))
                 .Select(a => new CountItem(a.AssigneeId!.Value.ToString(), a.FullName, a.Count)).ToList();
-            byStore = (await tickets.Where(t => t.StoreId != null && t.Status != TicketStatus.Closed)
+            byStore = (await tickets.Where(t => t.StoreId != null && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected))
                     .GroupBy(t => new { t.StoreId, t.Store!.Name }).Select(g => new { g.Key.StoreId, g.Key.Name, Count = g.Count() })
                     .OrderByDescending(x => x.Count).Take(8).ToListAsync(ct))
                 .Select(s => new CountItem(s.StoreId!.Value.ToString(), s.Name, s.Count)).ToList();
@@ -99,9 +99,9 @@ internal sealed class StatsService(IAppDbContext db, ICurrentUser currentUser, I
         };
 
         return new DashboardStatsDto(scope, scopeLabel,
-            byStatus.Sum(x => x.Count), S(TicketStatus.Open), S(TicketStatus.InProgress), S(TicketStatus.Pending), S(TicketStatus.Resolved), S(TicketStatus.Closed),
-            await tickets.CountAsync(t => t.AssigneeId == null && t.Status != TicketStatus.Closed, ct),
-            await tickets.CountAsync(t => t.Priority == TicketPriority.Critical && t.Status != TicketStatus.Closed, ct),
+            byStatus.Sum(x => x.Count), S(TicketStatus.Open) + S(TicketStatus.New), S(TicketStatus.InProgress), S(TicketStatus.Pending), S(TicketStatus.Resolved), S(TicketStatus.Closed),
+            await tickets.CountAsync(t => t.AssigneeId == null && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected), ct),
+            await tickets.CountAsync(t => t.Priority == TicketPriority.Critical && (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected), ct),
             avgHours,
             Enum.GetValues<TicketStatus>().Select(s => new CountItem(s.ToString(), StatusLabel(s), S(s))).ToList(),
             Enum.GetValues<TicketPriority>().Select(p => new CountItem(p.ToString(), PriorityLabel(p), byPriority.FirstOrDefault(x => x.Key == p)?.Count ?? 0)).ToList(),
@@ -115,7 +115,9 @@ internal sealed class StatsService(IAppDbContext db, ICurrentUser currentUser, I
 
     private static string StatusLabel(TicketStatus s) => s switch
     {
+        TicketStatus.New => "Yeni",
         TicketStatus.Open => "Açık",
+        TicketStatus.Rejected => "Reddedildi",
         TicketStatus.InProgress => "İşlemde",
         TicketStatus.Pending => "Beklemede",
         TicketStatus.Resolved => "Çözüldü",

@@ -35,6 +35,24 @@ export interface ApprovalInboxItem {
   requesterId: number; requesterName: string; requesterDepartment?: string | null; createdAt: string
 }
 
+/* ---------- Görevler ---------- */
+
+export type WorkTaskStatus = 'Todo' | 'InProgress' | 'Done' | 'Cancelled'
+export type WorkTaskPriority = 'Low' | 'Normal' | 'High'
+export const taskStatusLabels: Record<WorkTaskStatus, string> = { Todo: 'Yapılacak', InProgress: 'Devam ediyor', Done: 'Tamamlandı', Cancelled: 'İptal' }
+export const taskStatusClasses: Record<WorkTaskStatus, string> = {
+  Todo: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  InProgress: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  Done: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  Cancelled: 'bg-gray-500/10 text-gray-600 dark:text-gray-400',
+}
+export const taskPriorityLabels: Record<WorkTaskPriority, string> = { Low: 'Düşük', Normal: 'Normal', High: 'Yüksek' }
+export interface WorkTask {
+  id: number; title: string; description?: string | null; assignee: { id: number; fullName: string }; createdBy: { id: number; fullName: string }
+  dueDate?: string | null; priority: WorkTaskPriority; status: WorkTaskStatus; createdAt: string; completedAt?: string | null
+  isOverdue: boolean; canEdit: boolean; canChangeStatus: boolean
+}
+
 /* ---------- İzin ---------- */
 
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected' | 'Cancelled'
@@ -50,6 +68,14 @@ type Q = Record<string, string | number | boolean | undefined | null>
 const clean = (q: Q) => Object.fromEntries(Object.entries(q).filter(([, v]) => v !== undefined && v !== null && v !== ''))
 
 export const workApi = {
+  tasks: (q: Q) => unwrap<PagedResult<WorkTask>>(http.get('/tasks', { params: clean(q) })),
+  taskSummary: () => unwrap<{ open: number; overdue: number; dueToday: number }>(http.get('/tasks/summary')),
+  task: (id: number) => unwrap<WorkTask>(http.get(`/tasks/${id}`)),
+  saveTask: (id: number | null, body: { title: string; description?: string | null; assigneeId?: number | null; dueDate?: string | null; priority: WorkTaskPriority }) =>
+    unwrap<WorkTask>(id ? http.put(`/tasks/${id}`, body) : http.post('/tasks', body)),
+  setTaskStatus: (id: number, status: WorkTaskStatus) => unwrap<WorkTask>(http.patch(`/tasks/${id}/status`, { status })),
+  removeTask: (id: number) => http.delete(`/tasks/${id}`),
+
   inbox: (page = 1) => unwrap<PagedResult<ApprovalInboxItem>>(http.get('/approvals', { params: { page, pageSize: 20 } })),
   inboxCount: () => unwrap<number>(http.get('/approvals/count')),
   instance: (id: number) => unwrap<WorkflowInstance>(http.get(`/approvals/instances/${id}`)),

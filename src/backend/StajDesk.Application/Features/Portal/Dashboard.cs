@@ -26,6 +26,7 @@ public static class WidgetCatalog
         new("profile", "Profil özeti", "Departman, unvan, yönetici, işe başlama ve kıdem", "Kişisel", WidgetSize.Small, 20, []),
         new("leave-balance", "İzin bakiyem", "Bu yılki izin haklarınız, kullanılan ve kalan günler", "Kişisel", WidgetSize.Small, 25, [Permissions.LeaveRequest]),
         new("approval-inbox", "Onay kutum", "Kararınızı bekleyen izin ve iş akışı onayları", "Kişisel", WidgetSize.Small, 26, []),
+        new("my-tasks", "Yapılacaklarım", "Size atanan açık görevler; geciken ve bugün teslim olanlar", "Kişisel", WidgetSize.Small, 27, []),
         new("announcements", "Duyurular", "Yayındaki şirket ve mağaza duyuruları", "Kurumsal", WidgetSize.Small, 30, []),
         new("oncall", "BT nöbetçi personel", "Bu haftanın nöbetçisi ve iletişim bilgileri", "Kurumsal", WidgetSize.Small, 40, []),
         new("weather", "Hava durumu", "Canlı hava durumu (Open-Meteo)", "Bilgi", WidgetSize.Small, 50, []),

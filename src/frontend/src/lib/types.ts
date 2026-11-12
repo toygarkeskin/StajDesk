@@ -1,6 +1,6 @@
 // Backend DTO'larının TypeScript karşılıkları (enum'lar API'den metin olarak gelir).
 
-export type TicketStatus = 'Open' | 'InProgress' | 'Pending' | 'Resolved' | 'Closed'
+export type TicketStatus = 'New' | 'Open' | 'InProgress' | 'Pending' | 'Resolved' | 'Closed' | 'Rejected'
 export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Critical'
 export type TicketType = 'Incident' | 'Request'
 export type AssetType = 'Computer' | 'Laptop' | 'Monitor' | 'Printer' | 'Phone' | 'NetworkDevice' | 'Software' | 'Other' | 'PointOfSale'
@@ -17,7 +17,7 @@ export type Permission =
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
   | 'employees.read.private' | 'employees.manage' | 'org.manage' | 'accounts.request'
   | 'content.manage' | 'ads.manage' | 'widgets.manage'
-  | 'leave.request' | 'leave.manage' | 'workflows.manage'
+  | 'leave.request' | 'leave.manage' | 'workflows.manage' | 'tasks.manage'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -108,6 +108,8 @@ export interface TicketListItem {
   commentCount: number
   createdAt: string
   updatedAt?: string | null
+  /** İlgili departman */
+  department?: Ref | null
 }
 
 export interface TicketComment {
@@ -280,6 +282,15 @@ export interface Announcement {
   storeId?: number | null
   storeName?: string | null
   authorName: string
+  targetDepartmentId?: number | null
+  targetDepartment?: string | null
+  isRead: boolean
+  attachmentName?: string | null
+  attachmentContentType?: string | null
+  attachmentSize?: number | null
+  /** Yalnızca duyuru yöneticisine dolu gelir */
+  readCount?: number | null
+  audienceCount?: number | null
 }
 
 export interface OnCallShift {

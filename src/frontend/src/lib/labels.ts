@@ -1,11 +1,13 @@
 import type { AssetStatus, AssetType, TicketPriority, TicketStatus, TicketType } from './types'
 
 export const statusLabels: Record<TicketStatus, string> = {
+  New: 'Yeni',
   Open: 'Açık',
   InProgress: 'İşlemde',
   Pending: 'Beklemede',
   Resolved: 'Çözüldü',
   Closed: 'Kapandı',
+  Rejected: 'Reddedildi',
 }
 
 export const priorityLabels: Record<TicketPriority, string> = {
@@ -51,11 +53,13 @@ export const assetStatusLabels: Record<AssetStatus, string> = {
 
 // Tailwind sınıfları derleme anında taranır; bu yüzden tam sınıf adları burada açıkça yazılı olmalı.
 export const statusClasses: Record<TicketStatus, string> = {
+  New: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300",
   Open: "bg-sky-500/15 text-sky-700 dark:text-sky-400",
   InProgress: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
   Pending: "bg-violet-500/15 text-violet-700 dark:text-violet-400",
   Resolved: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
   Closed: "bg-gray-400/20 text-gray-600 dark:text-gray-400",
+  Rejected: "bg-rose-500/15 text-rose-700 dark:text-rose-400",
 }
 
 export const priorityClasses: Record<TicketPriority, string> = {

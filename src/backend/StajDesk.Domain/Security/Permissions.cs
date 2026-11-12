@@ -45,6 +45,7 @@ public static class Permissions
     public const string LeaveRequest = "leave.request";
     public const string LeaveManage = "leave.manage";
     public const string WorkflowsManage = "workflows.manage";
+    public const string TasksManage = "tasks.manage";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -84,6 +85,7 @@ public static class Permissions
         new(AdsManage, "Kurumsal site", "Reklam ve banner yönetimi, gösterim/tıklama istatistikleri"),
         new(LeaveRequest, "İzin", "İzin talebi açma, kendi bakiyesini ve taleplerini görme"),
         new(LeaveManage, "İzin", "İzin türleri, hak/bakiye tanımlama, tüm izin taleplerini görme (İK rolünden ayrı)"),
+        new(TasksManage, "Görevler", "Tüm görevleri görme ve herkese görev atama (yöneticiler kendi ekibine bu izin olmadan atayabilir)"),
         new(WorkflowsManage, "İş akışları", "Onay zincirlerini tanımlama: adımlar, onaylayıcılar, departman yönlendirmesi"),
         new(WidgetsManage, "Portal", "Panel kutucuklarını yönetme: açık/kapalı, sıra, boyut, hangi rolün göreceği"),
     ];

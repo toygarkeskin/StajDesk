@@ -115,6 +115,7 @@ bash scripts/smoke-test.sh
 | [docs/SECURITY.md](docs/SECURITY.md) | XSS, CSP, hız sınırı, denetim kaydı, kontrol listesi |
 | [docs/DEMO.md](docs/DEMO.md) | Demo hesapları ve adım adım deneme senaryosu |
 | [docs/ORGANIZASYON.md](docs/ORGANIZASYON.md) | Departman, unvan, yönetici, personel kartı, İK rolü, e-posta doğrulama, davet, SMS doğrulaması |
+| [docs/GOREV_DUYURU_TALEP.md](docs/GOREV_DUYURU_TALEP.md) | Görev yönetimi, hedefli duyurular (okundu bilgisi, ek dosya), talep durumları (Yeni / Reddedildi) ve ilgili departman |
 | [docs/IS_AKISI_VE_IZIN.md](docs/IS_AKISI_VE_IZIN.md) | Onay (iş akışı) motoru, onay kutusu, izin türleri, bakiye ve izin talebi |
 | [docs/PORTAL.md](docs/PORTAL.md) | Çalışan portalı: kutucuk (widget) sistemi, menü, genel arama, doğum günü / yeni başlayan / etkinlik / takdir akışları |
 | [docs/KURUMSAL_SITE.md](docs/KURUMSAL_SITE.md) | Kurumsal karşılama sitesi, reklam/banner yönetimi, canlı hava/kur/altın verisi |

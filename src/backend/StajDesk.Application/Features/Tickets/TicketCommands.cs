@@ -18,7 +18,7 @@ namespace StajDesk.Application.Features.Tickets;
 
 public sealed record CreateTicketCommand(CreateTicketRequest Request) : ICommand<int>;
 public sealed record UpdateTicketCommand(int Id, UpdateTicketRequest Request) : ICommand<bool>;
-public sealed record ChangeTicketStatusCommand(int Id, TicketStatus Status) : ICommand<bool>;
+public sealed record ChangeTicketStatusCommand(int Id, TicketStatus Status, string? Reason = null) : ICommand<bool>;
 public sealed record ChangeTicketPriorityCommand(int Id, TicketPriority Priority) : ICommand<bool>;
 public sealed record AssignTicketCommand(int Id, int? AssigneeId) : ICommand<bool>;
 public sealed record AddCommentCommand(int Id, AddCommentRequest Request) : ICommand<int>;
@@ -57,10 +57,13 @@ internal sealed class CreateTicketHandler(IAppDbContext db, ICurrentUser user, I
             if (!allowed) throw new ForbiddenException("Yalnızca size veya mağazanıza ait cihazları seçebilirsiniz.");
         }
 
+        if (r.DepartmentId is { } dep && !await Db.Departments.AnyAsync(x => x.Id == dep && x.IsActive, ct)) throw NotFoundException.For("Departman", dep);
+
         var id = await uow.ExecuteAsync(async token =>
         {
             var ticket = new Ticket(Text.Clean(r.Title), Text.Clean(r.Description), userId, category.Id, r.Priority, r.Type, r.AssetId, User.StoreId);
-            ticket.History.Add(new TicketHistory { ActorId = userId, Action = TicketHistoryAction.Created, NewValue = nameof(TicketStatus.Open) });
+            if (r.DepartmentId is not null) ticket.SetDepartment(r.DepartmentId);
+            ticket.History.Add(new TicketHistory { ActorId = userId, Action = TicketHistoryAction.Created, NewValue = nameof(TicketStatus.New) });
             Db.Tickets.Add(ticket);
             await Db.SaveChangesAsync(token); // kimlik (Id) üretildi
 
@@ -89,7 +92,9 @@ internal sealed class UpdateTicketHandler(IAppDbContext db, ICurrentUser user, I
         var r = command.Request;
         if (!await Db.Categories.AnyAsync(c => c.Id == r.CategoryId, ct)) throw new NotFoundException("Seçilen kategori bulunamadı.");
 
+        if (r.DepartmentId is { } dep && dep != ticket.DepartmentId && !await Db.Departments.AnyAsync(x => x.Id == dep && x.IsActive, ct)) throw NotFoundException.For("Departman", dep);
         ticket.UpdateDetails(Text.Clean(r.Title), Text.Clean(r.Description), r.CategoryId, r.Type, r.AssetId);
+        if (r.DepartmentId != ticket.DepartmentId) ticket.SetDepartment(r.DepartmentId);
         History(ticket, TicketHistoryAction.Updated, null, null);
         await Db.SaveChangesAsync(ct);
         await InvalidateStatsAsync(ct);
@@ -112,9 +117,15 @@ internal sealed class ChangeTicketStatusHandler(IAppDbContext db, ICurrentUser u
             throw new DomainException($"Talep '{ticket.Status}' durumundan '{command.Status}' durumuna geçirilemez.");
         }
 
+        var reason = Text.CleanOrNull(command.Reason);
+        if (command.Status == TicketStatus.Rejected && reason is null)
+            throw new DomainException("Talebi reddetmek için gerekçe yazın; talep sahibi bu açıklamayı görür.");
+
         var old = ticket.Status;
         ticket.ChangeStatus(command.Status);
         History(ticket, TicketHistoryAction.StatusChanged, old.ToString(), command.Status.ToString());
+        if (command.Status == TicketStatus.Rejected)
+            ticket.Comments.Add(new TicketComment { AuthorId = userId, Body = $"Talep reddedildi. Gerekçe: {reason}", IsInternal = false });
         events.Enqueue(new TicketStatusChangedEvent(ticket.Id, ticket.Title, old.ToString(), command.Status.ToString(),
             ticket.RequesterId, ticket.AssigneeId, userId, User.FullName ?? ""), Messaging.RoutingKeys.TicketStatusChanged);
         await Db.SaveChangesAsync(ct); // talep + geçmiş + outbox tek transaction
@@ -166,11 +177,12 @@ internal sealed class AssignTicketHandler(IAppDbContext db, ICurrentUser user, I
         events.Enqueue(new TicketAssignedEvent(ticket.Id, ticket.Title, command.AssigneeId, assignee?.FullName, ticket.RequesterId, userId), Messaging.RoutingKeys.TicketAssigned);
 
         // GLPI davranışı: açık bir talep birine atanınca otomatik "İşlemde" olur.
-        if (assignee is not null && ticket.Status == TicketStatus.Open)
+        if (assignee is not null && ticket.Status is TicketStatus.New or TicketStatus.Open)
         {
+            var before = ticket.Status.ToString();
             ticket.ChangeStatus(TicketStatus.InProgress);
-            History(ticket, TicketHistoryAction.StatusChanged, nameof(TicketStatus.Open), nameof(TicketStatus.InProgress));
-            events.Enqueue(new TicketStatusChangedEvent(ticket.Id, ticket.Title, nameof(TicketStatus.Open), nameof(TicketStatus.InProgress),
+            History(ticket, TicketHistoryAction.StatusChanged, before, nameof(TicketStatus.InProgress));
+            events.Enqueue(new TicketStatusChangedEvent(ticket.Id, ticket.Title, before, nameof(TicketStatus.InProgress),
                 ticket.RequesterId, ticket.AssigneeId, userId, User.FullName ?? ""), Messaging.RoutingKeys.TicketStatusChanged);
         }
         await Db.SaveChangesAsync(ct);

@@ -140,14 +140,15 @@ check "CSV önizlemesi hatalı satırı ayırır" "$(csv_body | curl -s -X POST 
 check "Çalışan CSV ile talep açamaz (403)" "$(csv_body | curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/import?dryRun=true" -H "Authorization: Bearer $USER" -F "file=@-;filename=personel.csv;type=text/csv")" 403
 IT=$(login "kaan" "$DEMO_PASSWORD")
 check "BT sistem yöneticisi rolü veremez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/$REQ/approve" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d '{"roles":["system_admin"]}')" 403
-BEFORE_INV=$(curl -s "$MAILPIT/api/v1/search?query=subject:hesab%C4%B1n%C4%B1z" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); BEFORE_INV=${BEFORE_INV:-0}
 NEW_ID=$(curl -s -X POST "$API/api/account-requests/$REQ/approve" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d "{\"username\":\"duman$STAMP\",\"roles\":[\"user\"]}" | sed -n 's/.*"createdUserId":\([0-9]*\).*/\1/p')
 [ -n "$NEW_ID" ] && ok "BT onaylar → hesap açıldı (#$NEW_ID)" || bad "BT onayı hesap açmadı"
+# Mailpit yalnızca son ~500 e-postayı saklar; sayı yerine bu hesabın adresine giden e-posta aranır.
+INV=0
 for _ in $(seq 1 15); do
-  AFTER_INV=$(curl -s "$MAILPIT/api/v1/search?query=subject:hesab%C4%B1n%C4%B1z" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); AFTER_INV=${AFTER_INV:-0}
-  [ "$AFTER_INV" -gt "$BEFORE_INV" ] && break; sleep 1
+  INV=$(curl -s "$MAILPIT/api/v1/search?query=to:duman.$STAMP@stajdesk.local" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); INV=${INV:-0}
+  [ "$INV" -gt 0 ] && break; sleep 1
 done
-[ "$AFTER_INV" -gt "$BEFORE_INV" ] && ok "İlk şifre davet e-postası Mailpit'te" || bad "Davet e-postası gelmedi"
+[ "$INV" -gt 0 ] && ok "İlk şifre davet e-postası Mailpit'te" || bad "Davet e-postası gelmedi"
 check "BT hesabı kilitler" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/users/$NEW_ID/lock" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d '{"reason":"Duman testi"}')" 200
 # Test hesabını kapat (rehberde kalmasın)
 check "BT test hesabını pasife alır" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API/api/users/$NEW_ID" -H "Authorization: Bearer $IT" -H 'Content-Type: application/json' -d '{"fullName":"Duman Test","roles":["user"],"isActive":false}')" 200
@@ -204,6 +205,27 @@ check "Başka çalışan izni göremez (404)" "$(curl -s -o /dev/null -w '%{http
 check "Çalışan izin türü ekleyemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/leave/types" -H "Authorization: Bearer $OTHER" -H 'Content-Type: application/json' -d '{"code":"X1","name":"x","tracksBalance":false,"defaultDaysPerYear":0,"isPaid":true,"isActive":true,"sortOrder":1}')" 403
 check "Çalışan onay zinciri yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/workflows" -H "Authorization: Bearer $USER")" 403
 check "Onaylı gelecek izin geri çekilir (test verisi temizlenir)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/leave/requests/$LEAVE/cancel" -H "Authorization: Bearer $USER")" 200
+
+echo "== Görevler, hedefli duyurular, talep durumları (Yeni / Reddedildi)"
+TASK=$(curl -s -X POST "$API/api/tasks" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"title":"Smoke gorevi","priority":"Normal"}' | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$TASK" ] && ok "Çalışan kendine görev açar (#$TASK)" || bad "Görev açılamadı"
+check "Çalışan başkasına (ekibi dışına) görev atayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/tasks" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"title":"x","priority":"Normal","assigneeId":1}')" 403
+check "Başkasının görevi görünmez (404)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/tasks/$TASK" -H "Authorization: Bearer $OTHER")" 404
+check "Görev tamamlanır" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/api/tasks/$TASK/status" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"status":"Done"}')" 200
+check "Görev silinir (test verisi temizlenir)" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/tasks/$TASK" -H "Authorization: Bearer $USER")" 204
+NEWT=$(curl -s -X POST "$API/api/tickets" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"title":"Smoke ret testi","description":"Reddedilecek test talebi.","categoryId":1}' | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+check "Yeni talep 'Yeni' durumunda başlar" "$(curl -s "$API/api/tickets/$NEWT" -H "Authorization: Bearer $USER" | grep -c '"status":"New"')" 1
+check "Gerekçesiz ret reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/api/tickets/$NEWT/status" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' -d '{"status":"Rejected"}')" 400
+check "Destek personeli gerekçeyle reddeder" "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/api/tickets/$NEWT/status" -H "Authorization: Bearer $AGENT" -H 'Content-Type: application/json' -d '{"status":"Rejected","reason":"Smoke: kapsam disi"}')" 200
+check "Ret gerekçesi talep sahibine görünür" "$(curl -s "$API/api/tickets/$NEWT" -H "Authorization: Bearer $USER" | grep -c 'Smoke: kapsam disi')" 1
+DEPT=$(curl -s "$API/api/org/departments" -H "Authorization: Bearer $ADMIN" | grep -o '"id":[0-9]*,"code":"BT"' | grep -o '[0-9]\+' | head -1)
+ANN=$(curl -s -X POST "$API/api/announcements" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d "{\"title\":\"Smoke hedefli duyuru\",\"body\":\"Yalnizca BT\",\"targetDepartmentId\":$DEPT}" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$ANN" ] && ok "Departmana hedefli duyuru yayınlanır (#$ANN)" || bad "Hedefli duyuru yayınlanamadı"
+check "Hedef dışındaki çalışan duyuruyu okuyamaz (404)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/announcements/$ANN/read" -H "Authorization: Bearer $USER")" 404
+check "Çalışan okuyanlar listesini göremez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/announcements/$ANN/readers" -H "Authorization: Bearer $USER")" 403
+check "Yönetici okuyanları görür" "$(curl -s "$API/api/announcements/$ANN/readers" -H "Authorization: Bearer $ADMIN" | grep -c '"audienceCount"')" 1
+check "Hedefli duyuru kurumsal sitede yok" "$(curl -s "$API/api/public/announcements" | grep -c 'Smoke hedefli duyuru')" 0
+check "Test duyurusu silinir" "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/api/announcements/$ANN" -H "Authorization: Bearer $ADMIN")" 204
 
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null

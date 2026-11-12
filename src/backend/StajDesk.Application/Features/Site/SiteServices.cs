@@ -161,7 +161,7 @@ internal sealed class PublicSiteService(IAppDbContext db, IFileStorage storage, 
     {
         var now = Now;
         return await db.Announcements.AsNoTracking()
-            .Where(a => a.IsPublic && a.StoreId == null && a.PublishAt <= now && (a.ExpiresAt == null || a.ExpiresAt > now))
+            .Where(a => a.IsPublic && a.StoreId == null && a.TargetDepartmentId == null && a.PublishAt <= now && (a.ExpiresAt == null || a.ExpiresAt > now))
             .OrderByDescending(a => a.IsPinned).ThenByDescending(a => a.PublishAt).Take(20)
             .Select(a => new PublicAnnouncementDto(a.Id, a.Title, a.Body, a.Level, a.PublishAt))
             .ToListAsync(ct);

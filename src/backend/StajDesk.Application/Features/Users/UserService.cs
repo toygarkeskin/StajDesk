@@ -88,7 +88,7 @@ internal sealed class UserService(IAppDbContext db, IPasswordHasher hasher, ICur
             .Select(u => new UserListItemDto(u.Id, u.FullName, u.Email, u.Department == null ? null : u.Department.Name, u.Phone, u.IsActive,
                 u.Store == null ? null : new StoreRefDto(u.Store.Id, u.Store.Code, u.Store.Name),
                 u.Roles.Select(r => r.Role.Name).ToList(), u.CreatedAt, u.LastLoginAt,
-                u.RequestedTickets.Count(t => t.Status != TicketStatus.Closed), u.DepartmentId, u.Username, u.PasswordHash != "", u.LockedAt, u.LockReason))
+                u.RequestedTickets.Count(t => (t.Status != TicketStatus.Closed && t.Status != TicketStatus.Rejected)), u.DepartmentId, u.Username, u.PasswordHash != "", u.LockedAt, u.LockReason))
             .ToPagedResultAsync(query, ct);
     }
 

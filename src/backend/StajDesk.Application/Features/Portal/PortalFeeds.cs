@@ -156,7 +156,11 @@ internal sealed class PortalService(IAppDbContext db, ICurrentUser currentUser, 
 
         var now = Now;
         var ann = db.Announcements.AsNoTracking().Where(a => a.PublishAt <= now && (a.ExpiresAt == null || a.ExpiresAt > now));
-        if (!currentUser.Has(Permissions.AnnouncementsManage)) ann = ann.Where(a => a.StoreId == null || a.StoreId == currentUser.StoreId);
+        if (!currentUser.Has(Permissions.AnnouncementsManage))
+        {
+            var myDepartment = await db.Users.Where(u => u.Id == currentUser.UserId).Select(u => u.DepartmentId).FirstOrDefaultAsync(ct);
+            ann = ann.Where(a => (a.StoreId == null || a.StoreId == currentUser.StoreId) && (a.TargetDepartmentId == null || a.TargetDepartmentId == myDepartment));
+        }
         var announcements = await ann.Where(a => a.Title.ToLower().Contains(lower) || a.Body.ToLower().Contains(lower))
             .OrderByDescending(a => a.PublishAt).Take(5)
             .Select(a => new SearchRefDto(a.Id, a.Title, a.Store == null ? "Tüm şirket" : a.Store.Name)).ToListAsync(ct);

@@ -23,6 +23,18 @@ public class Announcement : BaseEntity
 
     public int AuthorId { get; set; }
     public User Author { get; set; } = null!;
+
+    /// <summary>Hedef departman: doluysa yalnızca o departmandaki çalışanlar görür (mağaza hedefiyle birlikte uygulanır).</summary>
+    public int? TargetDepartmentId { get; set; }
+    public Department? TargetDepartment { get; set; }
+
+    /// <summary>Ek dosya / görsel (depolama anahtarı rastgeledir; indirme yetki denetimli uçtan yapılır).</summary>
+    public string? AttachmentKey { get; set; }
+    public string? AttachmentName { get; set; }
+    public string? AttachmentContentType { get; set; }
+    public long? AttachmentSize { get; set; }
+
+    public ICollection<AnnouncementRead> Reads { get; set; } = new List<AnnouncementRead>();
 }
 
 /// <summary>Bilgi işlem nöbet çizelgesi: belirli tarih aralığında acil durumlarda aranacak destek personeli.</summary>

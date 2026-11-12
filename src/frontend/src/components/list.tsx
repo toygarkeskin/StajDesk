@@ -34,8 +34,8 @@ export function ListToolbar({ searchLabel, searchPlaceholder, search, onSearch, 
 
   return (
     <div className="border-b border-gray-100 p-4 dark:border-gray-700/60">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
-        <form role="search" className="relative md:col-span-2" onSubmit={(e) => { e.preventDefault(); onSearch(text.trim()) }}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+        <form role="search" className="relative sm:col-span-2" onSubmit={(e) => { e.preventDefault(); onSearch(text.trim()) }}>
           <label htmlFor="list-search" className="sr-only">{searchLabel}</label>
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           <input

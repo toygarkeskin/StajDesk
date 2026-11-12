@@ -31,7 +31,7 @@ internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ICu
             await db.Categories.AsNoTracking()
                 .OrderBy(c => c.Name)
                 .Select(c => new CategoryDto(c.Id, c.Name, c.Description, c.Color, c.IsActive,
-                    c.Tickets.Count, c.Tickets.Count(t => t.Status != Domain.Enums.TicketStatus.Closed)))
+                    c.Tickets.Count, c.Tickets.Count(t => (t.Status != Domain.Enums.TicketStatus.Closed && t.Status != Domain.Enums.TicketStatus.Rejected))))
                 .ToListAsync(token), CacheTtl, ct);
 
         return includeInactive && currentUser.Has(Permissions.CategoriesManage) ? all : all.Where(c => c.IsActive).ToList();
@@ -70,7 +70,7 @@ internal sealed class CategoryService(IAppDbContext db, ICacheService cache, ICu
 
         var counts = await db.Tickets.Where(t => t.CategoryId == id)
             .GroupBy(_ => 1)
-            .Select(g => new { Total = g.Count(), Open = g.Count(t => t.Status != Domain.Enums.TicketStatus.Closed) })
+            .Select(g => new { Total = g.Count(), Open = g.Count(t => (t.Status != Domain.Enums.TicketStatus.Closed && t.Status != Domain.Enums.TicketStatus.Rejected)) })
             .FirstOrDefaultAsync(ct);
         return new CategoryDto(category.Id, category.Name, category.Description, category.Color, category.IsActive,
             counts?.Total ?? 0, counts?.Open ?? 0);

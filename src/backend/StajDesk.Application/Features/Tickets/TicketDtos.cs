@@ -1,3 +1,4 @@
+using StajDesk.Application.Features.Employees;
 using FluentValidation;
 using StajDesk.Application.Common;
 using StajDesk.Application.Features.Users;
@@ -14,6 +15,7 @@ public sealed record TicketQuery : PagedQuery
     public int? StoreId { get; init; }
     public int? AssigneeId { get; init; }
     public int? AssetId { get; init; }
+    public int? DepartmentId { get; init; }
     public bool? Unassigned { get; init; }
     public bool? ActiveOnly { get; init; }
     /// <summary>newest | oldest | priority | updated</summary>
@@ -25,7 +27,7 @@ public sealed record AssetRefDto(int Id, string Name, string InventoryNumber, As
 
 public sealed record TicketListItemDto(int Id, string Title, TicketStatus Status, TicketPriority Priority, TicketType Type,
     CategoryRefDto Category, StoreRefDto? Store, UserSummaryDto Requester, UserSummaryDto? Assignee, int CommentCount,
-    DateTime CreatedAt, DateTime? UpdatedAt);
+    DateTime CreatedAt, DateTime? UpdatedAt, RefDto? Department = null);
 
 public sealed record CommentAuthorDto(int Id, string FullName, bool IsStaff);
 public sealed record TicketCommentDto(int Id, string Body, bool IsInternal, CommentAuthorDto Author, DateTime CreatedAt);
@@ -39,12 +41,13 @@ public sealed record TicketDetailDto(int Id, string Title, string Description, T
     AssetRefDto? Asset, DateTime CreatedAt, DateTime? UpdatedAt, DateTime? ResolvedAt, DateTime? ClosedAt,
     IReadOnlyList<TicketCommentDto> Comments, IReadOnlyList<TicketHistoryDto> History,
     IReadOnlyList<TicketAttachmentDto> Attachments,
-    IReadOnlyList<TicketStatus> AllowedStatuses, TicketPermissionsDto Permissions);
+    IReadOnlyList<TicketStatus> AllowedStatuses, TicketPermissionsDto Permissions, RefDto? Department = null);
 
 public sealed record CreateTicketRequest(string Title, string Description, int CategoryId,
-    TicketPriority Priority = TicketPriority.Medium, TicketType Type = TicketType.Incident, int? AssetId = null);
-public sealed record UpdateTicketRequest(string Title, string Description, int CategoryId, TicketType Type, int? AssetId);
-public sealed record ChangeStatusRequest(TicketStatus Status);
+    TicketPriority Priority = TicketPriority.Medium, TicketType Type = TicketType.Incident, int? AssetId = null, int? DepartmentId = null);
+public sealed record UpdateTicketRequest(string Title, string Description, int CategoryId, TicketType Type, int? AssetId, int? DepartmentId = null);
+/// <summary>Reddedildi durumunda gerekçe zorunludur; talep sahibine görünen yorum olarak eklenir.</summary>
+public sealed record ChangeStatusRequest(TicketStatus Status, string? Reason = null);
 public sealed record ChangePriorityRequest(TicketPriority Priority);
 public sealed record AssignTicketRequest(int? AssigneeId);
 public sealed record AddCommentRequest(string Body, bool IsInternal = false);

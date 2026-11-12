@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Award, Briefcase, Cake, CalendarDays, CheckSquare, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
+import { Award, Briefcase, Cake, CalendarDays, CheckSquare, ListTodo, ChevronDown, ChevronUp, Eye, EyeOff, IdCard, MapPin, PartyPopper, Trophy, UserCheck } from 'lucide-react'
 import { api, errorMessage } from '@/lib/api'
 import { portalApi, type DashboardLayout, type DashboardWidget, type PersonRef } from '@/lib/portal'
 import { siteApi } from '@/lib/site'
@@ -305,6 +305,39 @@ export function ApprovalInboxWidget({ className }: { className?: string }) {
           ))}
           {q.data!.totalCount > 5 && <li className="text-xs text-gray-500">ve {q.data!.totalCount - 5} talep daha</li>}
         </ul>
+      )}
+    </Widget>
+  )
+}
+
+export function MyTasksWidget({ className }: { className?: string }) {
+  const summary = useQuery({ queryKey: ['tasks', 'summary'], queryFn: workApi.taskSummary, refetchInterval: 120_000 })
+  const list = useQuery({ queryKey: ['tasks', 'mine', true, 1], queryFn: () => workApi.tasks({ scope: 'mine', openOnly: true, page: 1, pageSize: 5 }) })
+  const s = summary.data
+  return (
+    <Widget title="Yapılacaklarım" icon={<ListTodo className="size-4" />} action={{ label: 'Görevler', to: '/tasks' }} className={className}>
+      {list.isLoading ? <Loading /> : list.isError ? <WidgetEmpty text={errorMessage(list.error)} /> : (
+        <>
+          {s && (
+            <div className="mb-3 grid grid-cols-3 gap-2 text-center">
+              {[['Açık', s.open, 'text-gray-900 dark:text-gray-50'], ['Geciken', s.overdue, s.overdue ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-gray-50'], ['Bugün', s.dueToday, 'text-gray-900 dark:text-gray-50']].map(([k, v, c]) => (
+                <div key={k as string} className="rounded-lg bg-gray-50 py-2 dark:bg-gray-900/40"><div className={`text-xl font-bold tabular-nums ${c}`}>{v}</div><div className="text-[11px] text-gray-500">{k}</div></div>
+              ))}
+            </div>
+          )}
+          {list.data!.items.length === 0 ? <WidgetEmpty icon={<ListTodo className="size-8" />} text="Açık göreviniz yok." /> : (
+            <ul className="space-y-1">
+              {list.data!.items.map((t) => (
+                <li key={t.id}>
+                  <Link to={`/tasks?task=${t.id}`} className="-mx-2 flex min-h-11 items-center justify-between gap-2 rounded-lg px-2 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                    <span className="truncate text-sm text-gray-800 dark:text-gray-100">{t.title}</span>
+                    {t.dueDate && <span className={`shrink-0 text-xs ${t.isOverdue ? 'font-medium text-rose-600 dark:text-rose-400' : 'text-gray-500'}`}>{formatDate(t.dueDate)}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
     </Widget>
   )

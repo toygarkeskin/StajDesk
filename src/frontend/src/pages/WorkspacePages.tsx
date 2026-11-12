@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { CalendarClock, Megaphone, Pencil, Plus, Trash2 } from 'lucide-react'
+import { CalendarClock, Check, Eye, Megaphone, Paperclip, Pencil, Plus, Trash2, Users2 } from 'lucide-react'
 import { api, errorDetails, errorMessage, fieldErrors } from '@/lib/api'
 import { useForm } from '@/lib/hooks'
+import { formatDateTime } from '@/lib/format'
 import type { Announcement, AnnouncementLevel, OnCallShift } from '@/lib/types'
 import { useCan } from '@/stores/auth'
 import { toast } from '@/stores/ui'
@@ -32,6 +33,23 @@ export function AnnouncementsPage() {
   const { hash } = useLocation()
   useEffect(() => { if (hash && list.data) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' }) }, [hash, list.data])
   const now = Date.now()
+  const [readersOf, setReadersOf] = useState<Announcement | null>(null)
+
+  // Okundu bilgisi: sayfada görünen, yayındaki ve henüz okunmamış duyurular bir kez işaretlenir.
+  const marked = useRef(new Set<number>())
+  const [readNow, setReadNow] = useState<Set<number>>(new Set())
+  useEffect(() => {
+    if (!list.data) return
+    const due = list.data.filter((a) => !a.isRead && !marked.current.has(a.id) && new Date(a.publishAt).getTime() <= Date.now() && (!a.expiresAt || new Date(a.expiresAt).getTime() > Date.now()))
+    if (!due.length) return
+    due.forEach((a) => marked.current.add(a.id))
+    void Promise.allSettled(due.map((a) => api.announcements.markRead(a.id))).then((rs) => {
+      const ok = due.filter((_, i) => rs[i]?.status === 'fulfilled').map((a) => a.id)
+      setReadNow((s) => new Set([...s, ...ok]))
+      qc.invalidateQueries({ queryKey: ['home'] })
+      if (ok.length) qc.invalidateQueries({ queryKey: ['announcements'] }) // okuyan sayıları güncellensin
+    })
+  }, [list.data, qc])
 
   const remove = useMutation({
     mutationFn: (a: Announcement) => api.announcements.remove(a.id),
@@ -66,7 +84,19 @@ export function AnnouncementsPage() {
             const st = stateOf(a)
             return (
               <div key={a.id} id={`duyuru-${a.id}`} className="flex scroll-mt-20 flex-col gap-3 p-5 target:bg-violet-500/5 sm:flex-row sm:items-start">
-                <div className="min-w-0 flex-1"><AnnouncementItem a={a} clamp={false} /></div>
+                <div className="min-w-0 flex-1">
+                  <AnnouncementItem a={a} clamp={false} />
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    {a.targetDepartment && <span className="rounded bg-violet-500/10 px-2 py-0.5 font-medium text-violet-700 dark:text-violet-300">Hedef: {a.targetDepartment}</span>}
+                    {a.attachmentName && <AttachmentLink a={a} />}
+                    {(a.isRead || readNow.has(a.id)) && <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><Check className="size-3.5" aria-hidden="true" />Okundu</span>}
+                    {canManage && a.audienceCount != null && (
+                      <button type="button" onClick={() => setReadersOf(a)} className="inline-flex min-h-9 items-center gap-1 rounded px-1 font-medium text-gray-600 hover:text-violet-700 dark:text-gray-300">
+                        <Users2 className="size-3.5" aria-hidden="true" />{a.readCount ?? 0} / {a.audienceCount} kişi okudu
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {canManage && (
                   <div className="flex shrink-0 items-center gap-1 sm:flex-col sm:items-end">
                     <span className={clsx('rounded px-2 py-0.5 text-xs font-medium', st.cls)}>{st.label}</span>
@@ -82,6 +112,7 @@ export function AnnouncementsPage() {
       </section>
 
       {editing && <AnnouncementPanel item={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {readersOf && <ReadersPanel a={readersOf} onClose={() => setReadersOf(null)} />}
       <ConfirmDialog
         open={toDelete != null}
         title={`"${toDelete?.title}" duyurusu silinsin mi?`}
@@ -98,10 +129,13 @@ export function AnnouncementsPage() {
 function AnnouncementPanel({ item, onClose }: { item: Announcement | null; onClose: () => void }) {
   const qc = useQueryClient()
   const stores = useQuery({ queryKey: ['stores'], queryFn: api.stores.list })
+  const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
+  const [file, setFile] = useState<File | null>(null)
   const form = useForm(
     {
       title: item?.title ?? '', body: item?.body ?? '', level: (item?.level ?? 'Info') as string, isPinned: item?.isPinned ? 'true' : 'false',
       publishAt: toLocalInput(item?.publishAt), expiresAt: toLocalInput(item?.expiresAt), storeId: item?.storeId ? String(item.storeId) : '',
+      targetDepartmentId: item?.targetDepartmentId ? String(item.targetDepartmentId) : '',
     },
     {
       title: (v) => (v.trim().length < 3 ? 'En az 3 karakterlik bir başlık yazın.' : undefined),
@@ -110,14 +144,18 @@ function AnnouncementPanel({ item, onClose }: { item: Announcement | null; onClo
     },
   )
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const v = form.values
       const body = {
         title: v.title, body: v.body, level: v.level as AnnouncementLevel, isPinned: v.isPinned === 'true',
         publishAt: v.publishAt ? new Date(v.publishAt).toISOString() : null, expiresAt: v.expiresAt ? new Date(v.expiresAt).toISOString() : null,
         storeId: v.storeId ? Number(v.storeId) : null,
+        targetDepartmentId: v.targetDepartmentId ? Number(v.targetDepartmentId) : null,
       }
-      return item ? api.announcements.update(item.id, body) : api.announcements.create(body)
+      const saved = item ? await api.announcements.update(item.id, body) : await api.announcements.create(body)
+      // Ek dosya duyuru kaydedildikten sonra yüklenir (yeni duyuruda kimlik o an oluşur)
+      if (file) await api.announcements.uploadAttachment(saved.id, file)
+      return saved
     },
     onSuccess: () => {
       toast(item ? 'Duyuru güncellendi.' : 'Duyuru yayınlandı.')
@@ -153,6 +191,12 @@ function AnnouncementPanel({ item, onClose }: { item: Announcement | null; onClo
               {stores.data?.map((s) => <option key={s.id} value={s.id}>Yalnızca {s.name}</option>)}
             </select>
           </Field>
+          <Field label="Hedef departman" htmlFor="f-targetDepartmentId" hint="Seçilirse yalnızca o departmandaki çalışanlar görür; mağaza seçimiyle birlikte uygulanır.">
+            <select {...form.field('targetDepartmentId')} className="form-field">
+              <option value="">Tüm departmanlar</option>
+              {departments.data?.filter((d) => d.isActive).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </Field>
           <Field label="Yayın zamanı" htmlFor="f-publishAt" optional hint="Boş bırakılırsa hemen yayınlanır."><input type="datetime-local" {...form.field('publishAt')} className="form-field" /></Field>
           <Field label="Bitiş zamanı" htmlFor="f-expiresAt" optional error={form.errors.expiresAt} hint="Boşsa siz kaldırana kadar kalır."><input type="datetime-local" {...form.field('expiresAt')} className="form-field" /></Field>
         </div>
@@ -160,7 +204,85 @@ function AnnouncementPanel({ item, onClose }: { item: Announcement | null; onClo
           <input type="checkbox" className="size-4 accent-violet-500" checked={form.values.isPinned === 'true'} onChange={(e) => form.setValue('isPinned', e.target.checked ? 'true' : 'false')} />
           Panelde en üstte sabitle
         </label>
+        <div>
+          <div className="form-label flex items-center gap-2"><Paperclip className="size-4" aria-hidden="true" /> Ek dosya veya görsel <span className="font-normal text-gray-400">(isteğe bağlı)</span></div>
+          {item?.attachmentName && !file && <AttachmentEditor item={item} />}
+          <label className="btn-secondary mt-2">
+            {file ? 'Başka dosya seç' : item?.attachmentName ? 'Eki değiştir' : 'Dosya seç'}
+            <input type="file" className="sr-only" accept=".pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.txt" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          </label>
+          {file && <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">Kaydedince yüklenecek: {file.name}</p>}
+          <p className="mt-1 text-xs text-gray-400">PDF, görsel, Word, Excel veya metin · en fazla 5 MB. Dosya içeriği uzantısıyla doğrulanır.</p>
+        </div>
       </form>
+    </SlideOver>
+  )
+}
+
+/** Ek dosya: oturum bilgisiyle indirilir (doğrudan bağlantı kimlik doğrulamasız çalışmaz). Görseller yeni sekmede açılır. */
+function AttachmentLink({ a }: { a: Announcement }) {
+  const [busy, setBusy] = useState(false)
+  const open = async () => {
+    setBusy(true)
+    try {
+      const blob = await api.announcements.attachment(a.id)
+      const url = URL.createObjectURL(blob)
+      if (a.attachmentContentType?.startsWith('image/') || a.attachmentContentType === 'application/pdf') window.open(url, '_blank', 'noopener')
+      else { const link = document.createElement('a'); link.href = url; link.download = a.attachmentName ?? 'ek'; link.click() }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } catch (e) {
+      toast(errorMessage(e), 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const kb = a.attachmentSize ? Math.max(1, Math.round(a.attachmentSize / 1024)) : null
+  return (
+    <button type="button" onClick={open} disabled={busy} className="inline-flex min-h-9 items-center gap-1 rounded px-1 font-medium text-violet-700 hover:underline dark:text-violet-300">
+      {busy ? <Spinner /> : <Paperclip className="size-3.5" aria-hidden="true" />}{a.attachmentName}{kb && <span className="font-normal text-gray-500"> ({kb} KB)</span>}
+    </button>
+  )
+}
+
+function AttachmentEditor({ item }: { item: Announcement }) {
+  const qc = useQueryClient()
+  const remove = useMutation({
+    mutationFn: () => api.announcements.removeAttachment(item.id),
+    onSuccess: () => { toast('Ek dosya kaldırıldı.'); qc.invalidateQueries({ queryKey: ['announcements'] }) },
+    onError: (e) => toast(errorMessage(e), 'error'),
+  })
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-700/60">
+      <AttachmentLink a={item} />
+      <button type="button" className="text-xs font-medium text-rose-600" disabled={remove.isPending} onClick={() => remove.mutate()}>Eki kaldır</button>
+    </div>
+  )
+}
+
+/** Okuyanlar (yalnızca duyuru yöneticisi): hedef kitle büyüklüğü ve okuyanlar listesi. */
+function ReadersPanel({ a, onClose }: { a: Announcement; onClose: () => void }) {
+  const q = useQuery({ queryKey: ['announcements', 'readers', a.id], queryFn: () => api.announcements.readers(a.id) })
+  return (
+    <SlideOver open onClose={onClose} title={`"${a.title}" · okuyanlar`} description={a.targetDepartment ? `Hedef: ${a.targetDepartment} departmanı` : 'Hedef: tüm çalışanlar'}
+      footer={<div className="flex justify-end"><button className="btn-secondary" onClick={onClose}>Kapat</button></div>}>
+      {q.isLoading ? <BlockSkeleton className="h-40" /> : q.isError ? <ErrorState message={errorMessage(q.error)} /> : (
+        <>
+          <p className="mb-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"><Eye className="size-4" aria-hidden="true" />
+            <strong>{q.data!.readers.length}</strong> / {q.data!.audienceCount} kişi okudu
+            {q.data!.audienceCount > 0 && <span className="text-gray-500">(%{Math.round((q.data!.readers.length / q.data!.audienceCount) * 100)})</span>}
+          </p>
+          {q.data!.readers.length === 0 ? <p className="text-sm text-gray-500">Henüz okuyan yok.</p> : (
+            <ul className="divide-y divide-gray-100 text-sm dark:divide-gray-700/60">
+              {q.data!.readers.map((r) => (
+                <li key={r.userId} className="flex items-center justify-between gap-2 py-2">
+                  <span><span className="font-medium text-gray-800 dark:text-gray-100">{r.fullName}</span><span className="block text-xs text-gray-500">{r.department ?? '—'}</span></span>
+                  <time className="text-xs text-gray-500" dateTime={r.readAt}>{formatDateTime(r.readAt)}</time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </SlideOver>
   )
 }

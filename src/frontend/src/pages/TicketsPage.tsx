@@ -20,7 +20,7 @@ export function TicketsPage() {
   const mine = params.get('mine') === '1'
   const get = (k: string) => params.get(k) ?? ''
   const f = {
-    status: get('status'), priority: get('priority'), categoryId: get('categoryId'), type: get('type'), storeId: get('storeId'),
+    status: get('status'), priority: get('priority'), categoryId: get('categoryId'), departmentId: get('departmentId'), type: get('type'), storeId: get('storeId'),
     sort: get('sort'), activeOnly: get('activeOnly'), unassigned: get('unassigned'), search: get('search'),
     page: Number(params.get('page') ?? 1),
   }
@@ -34,6 +34,7 @@ export function TicketsPage() {
   const clearAll = () => setParams(mine ? { mine: '1' } : {})
 
   const categories = useQuery({ queryKey: ['categories'], queryFn: () => api.categories.list() })
+  const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
   const tickets = useQuery({
     queryKey: ['tickets', f, mine],
     queryFn: () => api.tickets.list({ ...f, assigneeId: mine ? userId : undefined, pageSize: PAGE_SIZE }),
@@ -46,6 +47,7 @@ export function TicketsPage() {
     f.status && { key: 'status', label: `Durum: ${statusLabels[f.status as keyof typeof statusLabels]}` },
     f.priority && { key: 'priority', label: `Öncelik: ${priorityLabels[f.priority as keyof typeof priorityLabels]}` },
     f.categoryId && { key: 'categoryId', label: `Kategori: ${categoryName ?? f.categoryId}` },
+    f.departmentId && { key: 'departmentId', label: `Departman: ${departments.data?.find((d) => String(d.id) === f.departmentId)?.name ?? f.departmentId}` },
     f.type && { key: 'type', label: `Tür: ${typeLabels[f.type as keyof typeof typeLabels]}` },
     f.storeId && { key: 'storeId', label: `Mağaza #${f.storeId}` },
     f.activeOnly && { key: 'activeOnly', label: 'Kapananlar gizli' },
@@ -80,6 +82,8 @@ export function TicketsPage() {
                   options={Object.entries(priorityLabels).map(([value, label]) => ({ value, label }))} />
                 <FilterSelect id="flt-category" label="Kategori" allLabel="Tüm kategoriler" value={f.categoryId} onChange={(v) => update({ categoryId: v })}
                   options={(categories.data ?? []).map((c) => ({ value: String(c.id), label: c.name }))} />
+                <FilterSelect id="flt-department" label="Departman" allLabel="Tüm departmanlar" value={f.departmentId} onChange={(v) => update({ departmentId: v })}
+                  options={(departments.data ?? []).filter((d) => d.isActive).map((d) => ({ value: String(d.id), label: d.name }))} />
                 <div>
                   <label htmlFor="flt-sort" className="sr-only">Sıralama</label>
                   <select id="flt-sort" className="form-field" value={f.sort} onChange={(e) => update({ sort: e.target.value })}>
@@ -87,7 +91,7 @@ export function TicketsPage() {
                     {Object.entries(sortLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 md:col-span-6">
+                <div className="col-span-full flex flex-wrap items-center gap-2">
                   <div className="w-full md:w-48">
                     <FilterSelect id="flt-type" label="Tür" allLabel="Tüm türler" value={f.type} onChange={(v) => update({ type: v })}
                       options={Object.entries(typeLabels).map(([value, label]) => ({ value, label }))} />

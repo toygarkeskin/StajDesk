@@ -8,11 +8,13 @@ public class Ticket : BaseEntity
     /// <summary>Hangi durumdan hangi duruma geçilebilir? İş kuralı burada, tek yerde.</summary>
     private static readonly Dictionary<TicketStatus, TicketStatus[]> AllowedTransitions = new()
     {
-        [TicketStatus.Open] = [TicketStatus.InProgress, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed],
-        [TicketStatus.InProgress] = [TicketStatus.Open, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed],
-        [TicketStatus.Pending] = [TicketStatus.InProgress, TicketStatus.Resolved, TicketStatus.Closed],
+        [TicketStatus.New] = [TicketStatus.Open, TicketStatus.InProgress, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed, TicketStatus.Rejected],
+        [TicketStatus.Open] = [TicketStatus.InProgress, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed, TicketStatus.Rejected],
+        [TicketStatus.InProgress] = [TicketStatus.Open, TicketStatus.Pending, TicketStatus.Resolved, TicketStatus.Closed, TicketStatus.Rejected],
+        [TicketStatus.Pending] = [TicketStatus.InProgress, TicketStatus.Resolved, TicketStatus.Closed, TicketStatus.Rejected],
         [TicketStatus.Resolved] = [TicketStatus.InProgress, TicketStatus.Closed],
-        [TicketStatus.Closed] = [TicketStatus.Open]
+        [TicketStatus.Closed] = [TicketStatus.Open],
+        [TicketStatus.Rejected] = [TicketStatus.Open]
     };
 
     private Ticket() { } // EF Core için
@@ -28,7 +30,7 @@ public class Ticket : BaseEntity
         Priority = priority;
         Type = type;
         AssetId = assetId;
-        Status = TicketStatus.Open;
+        Status = TicketStatus.New;
     }
 
     public string Title { get; private set; } = string.Empty;
@@ -55,11 +57,24 @@ public class Ticket : BaseEntity
     public int? StoreId { get; private set; }
     public Store? Store { get; private set; }
 
+    /// <summary>Talebin ilgili olduğu departman (ör. Bilgi Teknolojileri, Lojistik). Departman bazlı listeleme ve raporlama için.</summary>
+    public int? DepartmentId { get; private set; }
+    public Department? Department { get; private set; }
+
     public ICollection<TicketComment> Comments { get; private set; } = new List<TicketComment>();
     public ICollection<TicketHistory> History { get; private set; } = new List<TicketHistory>();
     public ICollection<TicketAttachment> Attachments { get; private set; } = new List<TicketAttachment>();
 
-    public bool IsEditable => Status is TicketStatus.Open or TicketStatus.InProgress or TicketStatus.Pending;
+    public bool IsEditable => Status is TicketStatus.New or TicketStatus.Open or TicketStatus.InProgress or TicketStatus.Pending;
+    /// <summary>Kapanmış veya reddedilmiş: yorum/ek/düzenleme yapılmaz, yalnızca yeniden açılabilir.</summary>
+    public bool IsFinished => Status is TicketStatus.Closed or TicketStatus.Rejected;
+
+    public void SetDepartment(int? departmentId)
+    {
+        if (IsFinished) throw new DomainException("Kapanmış bir talebin departmanı değiştirilemez.");
+        DepartmentId = departmentId;
+        Touch();
+    }
 
     public void SetTitle(string title)
     {
@@ -79,8 +94,8 @@ public class Ticket : BaseEntity
 
     public void UpdateDetails(string title, string description, int categoryId, TicketType type, int? assetId)
     {
-        if (Status == TicketStatus.Closed)
-            throw new DomainException("Kapanmış bir talep düzenlenemez.");
+        if (IsFinished)
+            throw new DomainException("Kapanmış veya reddedilmiş bir talep düzenlenemez.");
         SetTitle(title);
         SetDescription(description);
         CategoryId = categoryId;
@@ -102,13 +117,13 @@ public class Ticket : BaseEntity
         Status = newStatus;
         var now = DateTime.UtcNow;
         ResolvedAt = newStatus == TicketStatus.Resolved ? now : newStatus == TicketStatus.Closed ? ResolvedAt ?? now : null;
-        ClosedAt = newStatus == TicketStatus.Closed ? now : null;
+        ClosedAt = newStatus is TicketStatus.Closed or TicketStatus.Rejected ? now : null;
         Touch();
     }
 
     public void ChangePriority(TicketPriority priority)
     {
-        if (Status == TicketStatus.Closed)
+        if (IsFinished)
             throw new DomainException("Kapanmış bir talebin önceliği değiştirilemez.");
         Priority = priority;
         Touch();
@@ -116,8 +131,8 @@ public class Ticket : BaseEntity
 
     public void AssignTo(int? agentId)
     {
-        if (Status == TicketStatus.Closed)
-            throw new DomainException("Kapanmış bir talep atanamaz.");
+        if (IsFinished)
+            throw new DomainException("Kapanmış veya reddedilmiş bir talep atanamaz.");
         AssigneeId = agentId;
         Touch();
     }

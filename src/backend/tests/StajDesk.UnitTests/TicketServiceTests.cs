@@ -77,7 +77,7 @@ public class TicketServiceTests
         var id = await CreateAs(_user, RoleNames.User);
         var t = await GetAs(_user, RoleNames.User, id);
 
-        Assert.Equal(TicketStatus.Open, t.Status);
+        Assert.Equal(TicketStatus.New, t.Status);
         Assert.Equal(_storeA.Id, t.Store?.Id);
         Assert.Single(t.History);
         var (evt, key) = Assert.Single(_events.Published);
@@ -160,6 +160,43 @@ public class TicketServiceTests
         var id = await CreateAs(_user, RoleNames.User);
         await ChangeStatusAs(_agent, RoleNames.Agent, id, TicketStatus.Pending);
         Assert.Equal(TicketStatus.Pending, (await GetAs(_agent, RoleNames.Agent, id)).Status);
+    }
+
+    [Fact]
+    public async Task Rejecting_requires_a_reason_that_the_requester_sees()
+    {
+        var id = await CreateAs(_user, RoleNames.User);
+        await Assert.ThrowsAsync<DomainException>(() => ChangeStatusAs(_agent, RoleNames.Agent, id, TicketStatus.Rejected));
+
+        _current.As(_agent, RoleNames.Agent);
+        await new ChangeTicketStatusHandler(_db, _current, _cache, _events, NullLogger<ChangeTicketStatusHandler>.Instance)
+            .HandleAsync(new ChangeTicketStatusCommand(id, TicketStatus.Rejected, "Kapsam dışı: kişisel cihaz"), default);
+
+        var t = await GetAs(_user, RoleNames.User, id);
+        Assert.Equal(TicketStatus.Rejected, t.Status);
+        Assert.Contains(t.Comments, c => !c.IsInternal && c.Body.Contains("Kapsam dışı"));
+        Assert.False(t.Permissions.CanComment); // reddedilen talebe yorum yazılmaz; önce yeniden açılır
+        Assert.Equal(0, (await ListAs(_user, RoleNames.User, new TicketQuery { ActiveOnly = true })).TotalCount);
+        // Kullanıcı reddedilen talebi kendi başına yeniden açamaz
+        await Assert.ThrowsAsync<ForbiddenException>(() => ChangeStatusAs(_user, RoleNames.User, id, TicketStatus.Open));
+    }
+
+    [Fact]
+    public async Task Tickets_can_be_routed_to_and_filtered_by_department()
+    {
+        var it = new Department { Code = "BT", Name = "Bilgi Teknolojileri" };
+        _db.Departments.Add(it);
+        _db.SaveChanges();
+        _current.As(_user, RoleNames.User);
+        var id = await new CreateTicketHandler(_db, _current, _cache, _events, new DirectUnitOfWork(), new NoAudit(), NullLogger<CreateTicketHandler>.Instance)
+            .HandleAsync(new CreateTicketCommand(new CreateTicketRequest("Yazıcı çalışmıyor", "Kâğıt sıkışıyor.", _category.Id, DepartmentId: it.Id)), default);
+        await CreateAs(_user, RoleNames.User, "Departmansız talep");
+
+        var filtered = await ListAs(_agent, RoleNames.Agent, new TicketQuery { DepartmentId = it.Id });
+        Assert.Equal(id, Assert.Single(filtered.Items).Id);
+        Assert.Equal("Bilgi Teknolojileri", (await GetAs(_user, RoleNames.User, id)).Department?.Name);
+        await Assert.ThrowsAsync<NotFoundException>(() => new CreateTicketHandler(_db, _current, _cache, _events, new DirectUnitOfWork(), new NoAudit(), NullLogger<CreateTicketHandler>.Instance)
+            .HandleAsync(new CreateTicketCommand(new CreateTicketRequest("Başlık", "Açıklama", _category.Id, DepartmentId: 999)), default));
     }
 
     [Fact]

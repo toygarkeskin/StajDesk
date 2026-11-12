@@ -53,6 +53,7 @@ users ──< user_roles >── roles ──< role_permissions >── permissi
 | `leave.request` — izin talebi açma, kendi bakiyesi | ✔ | ✔ | ✔ | ✔ |
 | `leave.manage` — izin türleri, haklar, tüm talepler (rol: **İzin Yöneticisi**; İK rolünden ayrı) | ✔ | | | |
 | `workflows.manage` — onay zincirlerini tanımlama | ✔ | | | |
+| `tasks.manage` — tüm görevleri görme, herkese görev atama (yöneticiler kendi ekibine bu izin olmadan atar) | ✔ | | | |
 
 **İzin Yöneticisi (`leave_admin`)**: `leave.request`, `leave.manage` — izin yönetimi İK rolüne bağlı değildir; ayrıca atanır.
 

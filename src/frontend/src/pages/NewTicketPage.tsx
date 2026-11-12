@@ -14,7 +14,7 @@ import { UnsavedChangesGuard } from '@/components/UnsavedChangesGuard'
 
 /* Form (Page) kalıbı: dar sütun · etiketler üstte · yapışkan Vazgeç / Kaydet · taslak otomatik kaydı · ayrılırken uyarı */
 
-const empty = { title: '', description: '', categoryId: '', priority: 'Medium', type: 'Incident', assetId: '' }
+const empty = { title: '', description: '', categoryId: '', priority: 'Medium', type: 'Incident', assetId: '', departmentId: '' }
 type Draft = typeof empty
 
 const safeGet = (k: string) => { try { return localStorage.getItem(k) } catch { return null } }
@@ -52,6 +52,7 @@ export function NewTicketPage() {
 
   const categories = useQuery({ queryKey: ['categories'], queryFn: () => api.categories.list() })
   const assets = useQuery({ queryKey: ['assets', 'mine'], queryFn: api.assets.mine })
+  const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
 
   // Kategori listesi gelince geçersiz bir varsayılanı temizle; tek kategori varsa onu seç.
   useEffect(() => {
@@ -74,7 +75,7 @@ export function NewTicketPage() {
   const create = useMutation({
     mutationFn: async () => {
       const v = form.values
-      const t = await api.tickets.create({ title: v.title, description: v.description, categoryId: Number(v.categoryId), priority: v.priority, type: v.type, assetId: v.assetId ? Number(v.assetId) : null })
+      const t = await api.tickets.create({ title: v.title, description: v.description, categoryId: Number(v.categoryId), priority: v.priority, type: v.type, assetId: v.assetId ? Number(v.assetId) : null, departmentId: v.departmentId ? Number(v.departmentId) : null })
       // Talep oluştuktan sonra ekler yüklenir; biri başarısız olsa bile talep kaybolmaz.
       let failed = 0
       for (const f of files) {
@@ -165,6 +166,12 @@ export function NewTicketPage() {
             <Field label="Öncelik" htmlFor="f-priority" hint="Destek ekibi önceliği yeniden değerlendirebilir.">
               <select {...form.field('priority')} className="form-field">
                 {Object.entries(priorityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </Field>
+            <Field label="İlgili departman" htmlFor="f-departmentId" optional hint="Talebin hangi birimi ilgilendirdiğini seçerseniz doğru ekibe daha hızlı ulaşır.">
+              <select {...form.field('departmentId')} className="form-field">
+                <option value="">Bilmiyorum / belirtmeyeceğim</option>
+                {departments.data?.filter((d) => d.isActive).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </Field>
             <Field label="İlgili cihaz" htmlFor="f-assetId" optional hint={assets.data?.length ? 'Size zimmetli cihazlardan birini seçebilirsiniz.' : 'Size zimmetli cihaz bulunmuyor.'}>

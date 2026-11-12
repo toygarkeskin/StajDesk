@@ -9,10 +9,10 @@ public class TicketDomainTests
     private static Ticket NewTicket() => new("Yazıcı çalışmıyor", "Kâğıt sıkışıyor ve ışık yanıp sönüyor.", 1, 1);
 
     [Fact]
-    public void New_ticket_starts_as_open()
+    public void New_ticket_starts_as_new()
     {
         var t = NewTicket();
-        Assert.Equal(TicketStatus.Open, t.Status);
+        Assert.Equal(TicketStatus.New, t.Status);
         Assert.Null(t.ResolvedAt);
     }
 
@@ -42,7 +42,31 @@ public class TicketDomainTests
     public void Changing_to_same_status_throws()
     {
         var t = NewTicket();
-        Assert.Throws<DomainException>(() => t.ChangeStatus(TicketStatus.Open));
+        Assert.Throws<DomainException>(() => t.ChangeStatus(TicketStatus.New));
+    }
+
+    [Fact]
+    public void Rejected_ticket_is_finished_and_can_only_be_reopened()
+    {
+        var t = NewTicket();
+        t.ChangeStatus(TicketStatus.Rejected);
+        Assert.True(t.IsFinished);
+        Assert.NotNull(t.ClosedAt);
+        Assert.Throws<DomainException>(() => t.ChangeStatus(TicketStatus.Resolved));
+        Assert.Throws<DomainException>(() => t.AssignTo(5));
+        Assert.Throws<DomainException>(() => t.UpdateDetails("Başlık", "Açıklama metni", 1, TicketType.Incident, null));
+
+        t.ChangeStatus(TicketStatus.Open);
+        Assert.False(t.IsFinished);
+        Assert.Null(t.ClosedAt);
+    }
+
+    [Fact]
+    public void Resolved_ticket_cannot_be_rejected()
+    {
+        var t = NewTicket();
+        t.ChangeStatus(TicketStatus.Resolved);
+        Assert.Throws<DomainException>(() => t.ChangeStatus(TicketStatus.Rejected));
     }
 
     [Fact]

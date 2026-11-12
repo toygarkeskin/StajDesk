@@ -54,6 +54,8 @@ public interface IAppDbContext
     DbSet<LeaveType> LeaveTypes { get; }
     DbSet<LeaveEntitlement> LeaveEntitlements { get; }
     DbSet<LeaveRequest> LeaveRequests { get; }
+    DbSet<WorkTask> WorkTasks { get; }
+    DbSet<AnnouncementRead> AnnouncementReads { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Kaydedilmemiş değişiklikleri atar. Toplu işlemlerde başarısız olan bir öğenin yarım değişikliği sonrakilere taşınmasın diye.</summary>

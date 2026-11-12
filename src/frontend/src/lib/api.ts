@@ -129,7 +129,7 @@ export const api = {
     get: (id: number) => unwrap<TicketDetail>(http.get(`/tickets/${id}`)),
     create: (body: object) => unwrap<TicketDetail>(http.post('/tickets', body)),
     update: (id: number, body: object) => unwrap<TicketDetail>(http.put(`/tickets/${id}`, body)),
-    setStatus: (id: number, status: string) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/status`, { status })),
+    setStatus: (id: number, status: string, reason?: string | null) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/status`, { status, reason })),
     setPriority: (id: number, priority: string) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/priority`, { priority })),
     assign: (id: number, assigneeId: number | null) => unwrap<TicketDetail>(http.patch(`/tickets/${id}/assign`, { assigneeId })),
     comment: (id: number, body: string, isInternal: boolean) => unwrap<{ id: number }>(http.post(`/tickets/${id}/comments`, { body, isInternal })),
@@ -239,6 +239,15 @@ export const api = {
     create: (body: object) => unwrap<Announcement>(http.post('/announcements', body)),
     update: (id: number, body: object) => unwrap<Announcement>(http.put(`/announcements/${id}`, body)),
     remove: (id: number) => http.delete(`/announcements/${id}`),
+    markRead: (id: number) => http.post(`/announcements/${id}/read`),
+    readers: (id: number) => unwrap<{ audienceCount: number; readers: { userId: number; fullName: string; department?: string | null; readAt: string }[] }>(http.get(`/announcements/${id}/readers`)),
+    uploadAttachment: (id: number, file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return unwrap<Announcement>(http.put(`/announcements/${id}/attachment`, form, { headers: { 'Content-Type': 'multipart/form-data' } }))
+    },
+    removeAttachment: (id: number) => http.delete(`/announcements/${id}/attachment`),
+    attachment: (id: number) => http.get<Blob>(`/announcements/${id}/attachment`, { responseType: 'blob' }).then((r) => r.data),
   },
   onCall: {
     list: () => unwrap<OnCallShift[]>(http.get('/oncall')),

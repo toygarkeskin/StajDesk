@@ -8,7 +8,11 @@ public enum TicketStatus
     Resolved = 2,
     Closed = 3,
     /// <summary>Kullanıcıdan bilgi veya parça bekleniyor.</summary>
-    Pending = 4
+    Pending = 4,
+    /// <summary>Yeni açıldı, henüz ele alınmadı (destek ekibi kabul edince "Açık" olur).</summary>
+    New = 5,
+    /// <summary>Destek ekibi gerekçesiyle reddetti (kapsam dışı, mükerrer...). Yeniden açılabilir.</summary>
+    Rejected = 6
 }
 
 public enum TicketPriority

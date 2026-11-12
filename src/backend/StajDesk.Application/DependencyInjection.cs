@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<Features.Workflows.IWorkflowService>(sp => sp.GetRequiredService<Features.Workflows.WorkflowEngine>());
         services.AddScoped<Features.Workflows.IWorkflowSubjectHandler, Features.Leave.LeaveWorkflowHandler>();
         services.AddScoped<Features.Leave.ILeaveService, Features.Leave.LeaveService>();
+        services.AddScoped<Features.Tasks.ITaskService, Features.Tasks.TaskService>();
         services.AddScoped<Features.Site.IPublicSiteService, Features.Site.PublicSiteService>();
         services.AddScoped<Features.Site.IContentAdminService, Features.Site.ContentAdminService>();
         services.AddScoped<Features.Site.ILiveDataService, Features.Site.LiveDataService>();

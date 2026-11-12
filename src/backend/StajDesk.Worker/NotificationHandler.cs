@@ -15,7 +15,7 @@ public sealed class NotificationHandler(AppDbContext db, Mailer mailer, Realtime
 {
     private static readonly Dictionary<string, string> StatusTr = new()
     {
-        ["Open"] = "Açık", ["InProgress"] = "İşlemde", ["Pending"] = "Beklemede", ["Resolved"] = "Çözüldü", ["Closed"] = "Kapandı",
+        ["New"] = "Yeni", ["Rejected"] = "Reddedildi", ["Open"] = "Açık", ["InProgress"] = "İşlemde", ["Pending"] = "Beklemede", ["Resolved"] = "Çözüldü", ["Closed"] = "Kapandı",
     };
 
     public async Task HandleAsync(IntegrationEvent evt, CancellationToken ct)

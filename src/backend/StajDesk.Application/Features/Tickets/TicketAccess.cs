@@ -47,6 +47,6 @@ public static class TicketAccess
 
     public static bool CanEdit(ICurrentUser user, Ticket t) =>
         user.Has(Permissions.TicketsManage)
-            ? t.Status != TicketStatus.Closed
-            : user.Has(Permissions.TicketsUpdateOwn) && t.RequesterId == user.UserId && t.Status == TicketStatus.Open;
+            ? !t.IsFinished
+            : user.Has(Permissions.TicketsUpdateOwn) && t.RequesterId == user.UserId && t.Status is TicketStatus.New or TicketStatus.Open;
 }
