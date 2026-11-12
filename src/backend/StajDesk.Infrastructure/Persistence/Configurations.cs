@@ -12,7 +12,14 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         b.Property(x => x.Email).HasMaxLength(150).IsRequired();
         b.HasIndex(x => x.Email).IsUnique(); // giriş sorgusu e-postaya göre arar
         b.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
-        b.Property(x => x.Department).HasMaxLength(100);
+        b.Property(x => x.Username).HasMaxLength(50);
+        b.HasIndex(x => x.Username).IsUnique().HasFilter("username IS NOT NULL");
+        b.HasOne(x => x.Department).WithMany(d => d.Members).HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Position).WithMany().HasForeignKey(x => x.PositionId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne(x => x.Manager).WithMany(m => m.DirectReports).HasForeignKey(x => x.ManagerId).OnDelete(DeleteBehavior.SetNull);
+        b.HasIndex(x => x.DepartmentId);
+        b.HasIndex(x => x.ManagerId);
+        b.ToTable(t => t.HasCheckConstraint("ck_users_not_own_manager", "manager_id IS NULL OR manager_id <> id"));
         b.Property(x => x.Phone).HasMaxLength(30);
         b.HasOne(x => x.Store).WithMany(s => s.Users).HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.SetNull);
         b.HasIndex(x => x.StoreId);
@@ -233,6 +240,7 @@ internal sealed class PasswordResetTokenConfiguration : IEntityTypeConfiguration
     {
         b.HasKey(x => x.TokenHash);
         b.Property(x => x.TokenHash).HasMaxLength(64);
+        b.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(30);
         b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
     }
 }
@@ -321,5 +329,77 @@ internal sealed class TicketAttachmentConfiguration : IEntityTypeConfiguration<T
         b.HasOne(x => x.Ticket).WithMany(t => t.Attachments).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne(x => x.UploadedBy).WithMany().HasForeignKey(x => x.UploadedById).OnDelete(DeleteBehavior.Restrict);
         b.ToTable(t => t.HasCheckConstraint("ck_ticket_attachments_size", "size > 0"));
+    }
+}
+
+// ---------- Organizasyon: departman, unvan, personel kartı, tercihler, OTP ----------
+
+internal sealed class DepartmentConfiguration : IEntityTypeConfiguration<Department>
+{
+    public void Configure(EntityTypeBuilder<Department> b)
+    {
+        b.Property(x => x.Code).HasMaxLength(20).IsRequired();
+        b.HasIndex(x => x.Code).IsUnique();
+        b.Property(x => x.Name).HasMaxLength(120).IsRequired();
+        b.Property(x => x.Description).HasMaxLength(500);
+        // Alt departmanı olan departman silinemez (ağaç kopmasın).
+        b.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId).OnDelete(DeleteBehavior.SetNull);
+        b.HasIndex(x => x.ParentId);
+        b.ToTable(t => t.HasCheckConstraint("ck_departments_not_own_parent", "parent_id IS NULL OR parent_id <> id"));
+    }
+}
+
+internal sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
+{
+    public void Configure(EntityTypeBuilder<Position> b)
+    {
+        b.Property(x => x.Title).HasMaxLength(100).IsRequired();
+        b.HasIndex(x => x.Title).IsUnique();
+        b.Property(x => x.Description).HasMaxLength(300);
+        b.ToTable(t => t.HasCheckConstraint("ck_positions_level", "level BETWEEN 1 AND 20"));
+    }
+}
+
+internal sealed class EmployeeProfileConfiguration : IEntityTypeConfiguration<EmployeeProfile>
+{
+    public void Configure(EntityTypeBuilder<EmployeeProfile> b)
+    {
+        b.HasKey(x => x.UserId);
+        b.HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.EmployeeNumber).HasMaxLength(20);
+        b.HasIndex(x => x.EmployeeNumber).IsUnique().HasFilter("employee_number IS NOT NULL");
+        b.Property(x => x.EmploymentType).HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.PersonalEmail).HasMaxLength(150);
+        b.Property(x => x.Address).HasMaxLength(300);
+        b.Property(x => x.EmergencyContactName).HasMaxLength(100);
+        b.Property(x => x.EmergencyContactPhone).HasMaxLength(30);
+        b.Property(x => x.EmergencyContactRelation).HasMaxLength(50);
+        b.Property(x => x.PhotoKey).HasMaxLength(40);
+        b.Property(x => x.CoverKey).HasMaxLength(40);
+        b.ToTable(t => t.HasCheckConstraint("ck_employee_profiles_dates", "termination_date IS NULL OR hire_date IS NULL OR termination_date >= hire_date"));
+    }
+}
+
+internal sealed class UserSettingsConfiguration : IEntityTypeConfiguration<UserSettings>
+{
+    public void Configure(EntityTypeBuilder<UserSettings> b)
+    {
+        b.HasKey(x => x.UserId);
+        b.HasOne(x => x.User).WithOne(u => u.Settings).HasForeignKey<UserSettings>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.Language).HasMaxLength(5);
+        b.Property(x => x.Theme).HasMaxLength(10);
+    }
+}
+
+internal sealed class OtpChallengeConfiguration : IEntityTypeConfiguration<OtpChallenge>
+{
+    public void Configure(EntityTypeBuilder<OtpChallenge> b)
+    {
+        b.Property(x => x.CodeHash).HasMaxLength(64).IsRequired();
+        b.Property(x => x.Purpose).HasConversion<string>().HasMaxLength(30);
+        b.Property(x => x.Payload).HasMaxLength(2000);
+        b.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(x => x.UserId);
     }
 }

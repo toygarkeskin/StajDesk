@@ -31,6 +31,10 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IWorkspaceService, WorkspaceService>();
+        services.AddScoped<Features.Employees.IEmployeeService, Features.Employees.EmployeeService>();
+        services.AddScoped<Features.Employees.IOrgService, Features.Employees.OrgService>();
+        services.AddScoped<Features.Account.IAccountService, Features.Account.AccountService>();
+        services.AddScoped<Features.Account.OtpService>();
         services.AddScoped<ITicketSearch, ContainsTicketSearch>(); // Infrastructure PostgreSQL tam metin aramasıyla değiştirir
         services.AddSingleton(TimeProvider.System);
 

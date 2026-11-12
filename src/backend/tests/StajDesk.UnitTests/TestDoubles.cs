@@ -31,6 +31,11 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<OnCallShift> OnCallShifts => Set<OnCallShift>();
     public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Position> Positions => Set<Position>();
+    public DbSet<EmployeeProfile> EmployeeProfiles => Set<EmployeeProfile>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<OtpChallenge> OtpChallenges => Set<OtpChallenge>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -49,6 +54,14 @@ internal sealed class TestDbContext(DbContextOptions<TestDbContext> options) : D
         b.Entity<AuthorizationCode>().HasKey(x => x.CodeHash);
         b.Entity<PasswordResetToken>().HasKey(x => x.TokenHash);
         b.Entity<AuditLog>().HasOne(x => x.Actor).WithMany().HasForeignKey(x => x.ActorId);
+        b.Entity<EmployeeProfile>().HasKey(x => x.UserId);
+        b.Entity<EmployeeProfile>().HasOne(x => x.User).WithOne(u => u.Profile).HasForeignKey<EmployeeProfile>(x => x.UserId);
+        b.Entity<UserSettings>().HasKey(x => x.UserId);
+        b.Entity<UserSettings>().HasOne(x => x.User).WithOne(u => u.Settings).HasForeignKey<UserSettings>(x => x.UserId);
+        b.Entity<User>().HasOne(x => x.Manager).WithMany(m => m.DirectReports).HasForeignKey(x => x.ManagerId);
+        b.Entity<User>().HasOne(x => x.Department).WithMany(d => d.Members).HasForeignKey(x => x.DepartmentId);
+        b.Entity<Department>().HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId);
+        b.Entity<Department>().HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId);
     }
 
     public static TestDbContext Create() =>
@@ -141,4 +154,14 @@ internal sealed class FakeHasher : IPasswordHasher
 {
     public string Hash(string password) => "h:" + password;
     public bool Verify(string hash, string password) => hash == "h:" + password;
+}
+
+/// <summary>Testte SMS: yapılandırılmış/yapılandırılmamış durumlarını taklit eder, gönderilen son mesajı saklar.</summary>
+internal sealed class FakeSms : ISmsSender
+{
+    public bool Configured { get; set; }
+    public string? Last { get; private set; }
+    public bool IsConfigured => Configured;
+    public string ProviderName => "test";
+    public Task SendAsync(string phone, string message, CancellationToken ct = default) { Last = message; return Task.CompletedTask; }
 }

@@ -1,3 +1,4 @@
+using StajDesk.Application.Features.Account;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -38,19 +39,24 @@ public class SecurityTests
         public FakeCurrentUser Current { get; } = new();
         public InMemoryRateLimiter Limiter { get; } = new(max: 3);
         public FakeTokenIssuer Tokens { get; } = new();
+        public FakeSms Sms { get; } = new();
+        public FakeEventPublisher Events { get; } = new();
         public AuthService Auth { get; }
+        public OtpService Otp { get; }
 
         public Fixture(int graceSeconds = 20)
         {
             var roles = Db.SeedRoles();
             Db.OAuthClients.Add(new OAuthClient { ClientId = "web", Name = "Web", IsFirstParty = true, RedirectUris = ["http://app/cb"], GrantTypes = ["authorization_code", "refresh_token"] });
             Db.OAuthClients.Add(new OAuthClient { ClientId = "svc", Name = "Servis", SecretHash = "h:s3cret", GrantTypes = ["client_credentials"], Scopes = [Permissions.TicketsReadAll] });
-            var user = new User { FullName = "Ayşe", Email = "ayse@test", PasswordHash = "h:Dogru!Sifre1" };
+            var user = new User { FullName = "Ayşe", Email = "ayse@test", Username = "ayse", Phone = "05551112233", PasswordHash = "h:Dogru!Sifre1", EmailVerifiedAt = DateTime.UtcNow };
             user.Roles.Add(new UserRole { Role = roles[RoleNames.User] });
             Db.Users.Add(user);
             Db.SaveChanges();
-            Auth = new AuthService(Db, new FakeHasher(), Tokens, Limiter, new FakeEventPublisher(), new NoAudit(), Current,
-                Options.Create(new AuthOptions { RefreshReuseGraceSeconds = graceSeconds }), NullLogger<AuthService>.Instance);
+            var audit = new NoAudit();
+            Otp = new OtpService(Db, Sms, audit, NullLogger<OtpService>.Instance);
+            Auth = new AuthService(Db, new FakeHasher(), Tokens, Limiter, Events, audit, Current,
+                Options.Create(new AuthOptions { RefreshReuseGraceSeconds = graceSeconds }), NullLogger<AuthService>.Instance, Otp);
         }
 
         /// <summary>Girişten sonraki durumu kurar: veritabanında bir oturum zinciri ve ona ait refresh token.</summary>
@@ -69,8 +75,8 @@ public class SecurityTests
         public Task<TokenResult> RefreshAsync(string token) =>
             Auth.TokenAsync(new TokenRequest("refresh_token", null, null, null, token, null, "web", null), null);
 
-        public AuthorizeRequest Login(string password = "Dogru!Sifre1", string redirect = "http://app/cb", string method = "S256") =>
-            new("code", "web", redirect, Challenge(Verifier), method, null, "xyz", "ayse@test", password);
+        public AuthorizeRequest Login(string password = "Dogru!Sifre1", string redirect = "http://app/cb", string method = "S256", string login = "ayse@test") =>
+            new("code", "web", redirect, Challenge(Verifier), method, null, "xyz", login, password);
     }
 
     [Fact]
@@ -167,9 +173,105 @@ public class SecurityTests
     public async Task Register_gives_user_role_and_rejects_duplicate_email()
     {
         var f = new Fixture();
-        var id = await f.Auth.RegisterAsync(new RegisterRequest("Yeni Kişi", "Yeni@Test", "Guclu!Sifre1", null));
+        var id = await f.Auth.RegisterAsync(new RegisterRequest("Yeni Kişi", "Yeni@Test", "Guclu!Sifre1"));
         Assert.Equal(RoleNames.User, f.Db.UserRoles.Where(r => r.UserId == id).Select(r => f.Db.Roles.First(x => x.Id == r.RoleId).Name).Single());
-        await Assert.ThrowsAsync<ConflictException>(() => f.Auth.RegisterAsync(new RegisterRequest("Tekrar", "yeni@test", "Guclu!Sifre1", null)));
+        await Assert.ThrowsAsync<ConflictException>(() => f.Auth.RegisterAsync(new RegisterRequest("Tekrar", "yeni@test", "Guclu!Sifre1")));
+    }
+
+    // ---------- Kimlik: kullanıcı adı, e-posta doğrulama, davet, SMS OTP ----------
+
+    [Fact]
+    public async Task Login_accepts_username_as_well_as_email()
+    {
+        var f = new Fixture();
+        var byUsername = await f.Auth.AuthorizeAsync(f.Login(login: "AYSE"));
+        Assert.NotNull(byUsername.Code);
+    }
+
+    [Fact]
+    public async Task Self_registered_user_must_verify_email_before_login()
+    {
+        var f = new Fixture();
+        await f.Auth.RegisterAsync(new RegisterRequest("Yeni Kişi", "yeni@test", "Dogru!Sifre1"));
+        var ex = await Assert.ThrowsAsync<OAuthException>(() => f.Auth.AuthorizeAsync(f.Login(login: "yeni@test")));
+        Assert.Equal("email_not_verified", ex.Error);
+
+        // E-postadaki bağlantının token'ı olayın içinden alınır (gerçekte Worker e-postayla gönderir).
+        var evt = f.Events.Published.Select(p => p.Event).OfType<StajDesk.Contracts.UserRegisteredEvent>().Single();
+        var token = evt.VerifyUrl!.Split("token=")[1];
+        await f.Auth.VerifyEmailAsync(token);
+        Assert.NotNull((await f.Auth.AuthorizeAsync(f.Login(login: "yeni@test"))).Code);
+        // Doğrulama bağlantısı şifre sıfırlamak için kullanılamaz.
+        await Assert.ThrowsAsync<DomainExceptionAdapter>(() => f.Auth.ResetPasswordAsync(new ResetPasswordRequest(token, "Baska!Sifre2")));
+    }
+
+    [Fact]
+    public async Task Invitation_link_sets_first_password_and_verifies_email()
+    {
+        var f = new Fixture();
+        var invited = new User { FullName = "Davetli", Email = "davetli@test", PasswordHash = string.Empty };
+        f.Db.Users.Add(invited);
+        f.Db.SaveChanges();
+        StajDesk.Application.Features.Account.AccountLinks.Invite(f.Db, f.Events, "http://app", invited, "İK");
+        f.Db.SaveChanges();
+        var token = f.Events.Published.Select(p => p.Event).OfType<StajDesk.Contracts.UserInvitedEvent>().Single().SetPasswordUrl.Split("token=")[1];
+
+        // Şifresi belirlenmemiş hesapla giriş yapılamaz.
+        await Assert.ThrowsAsync<OAuthException>(() => f.Auth.AuthorizeAsync(f.Login(login: "davetli@test", password: "")));
+        await f.Auth.ResetPasswordAsync(new ResetPasswordRequest(token, "Yeni!Sifre123"));
+        Assert.NotNull(f.Db.Users.Single(u => u.Email == "davetli@test").EmailVerifiedAt);
+        Assert.NotNull((await f.Auth.AuthorizeAsync(f.Login(login: "davetli@test", password: "Yeni!Sifre123"))).Code);
+        // Davet bağlantısı tek kullanımlık.
+        await Assert.ThrowsAsync<DomainExceptionAdapter>(() => f.Auth.ResetPasswordAsync(new ResetPasswordRequest(token, "Baska!Sifre2")));
+    }
+
+    [Fact]
+    public async Task Two_factor_login_requires_sms_code_when_provider_configured()
+    {
+        var f = new Fixture();
+        f.Sms.Configured = true;
+        f.Db.Users.Single().TwoFactorEnabled = true;
+        f.Db.SaveChanges();
+
+        var first = await f.Auth.AuthorizeAsync(f.Login());
+        Assert.True(first.OtpRequired);
+        Assert.Null(first.Code);
+        Assert.DoesNotContain("1112233", first.MaskedPhone); // telefon maskeli
+
+        var sentCode = System.Text.RegularExpressions.Regex.Match(f.Sms.Last!, @"\d{6}").Value;
+        await Assert.ThrowsAsync<OAuthException>(() => f.Auth.VerifyLoginOtpAsync(new VerifyLoginOtpRequest(first.ChallengeId!.Value, sentCode == "000000" ? "000001" : "000000")));
+        var done = await f.Auth.VerifyLoginOtpAsync(new VerifyLoginOtpRequest(first.ChallengeId!.Value, sentCode));
+        Assert.NotNull(done.Code);
+        // Kod tek kullanımlık.
+        await Assert.ThrowsAsync<OAuthException>(() => f.Auth.VerifyLoginOtpAsync(new VerifyLoginOtpRequest(first.ChallengeId!.Value, sentCode)));
+    }
+
+    [Fact]
+    public async Task Otp_locks_after_five_wrong_attempts()
+    {
+        var f = new Fixture();
+        f.Sms.Configured = true;
+        f.Db.Users.Single().TwoFactorEnabled = true;
+        f.Db.SaveChanges();
+        var first = await f.Auth.AuthorizeAsync(f.Login());
+        var code = System.Text.RegularExpressions.Regex.Match(f.Sms.Last!, @"\d{6}").Value;
+        var wrong = code == "123456" ? "654321" : "123456";
+        for (var i = 0; i < OtpService.MaxAttempts; i++)
+            await Assert.ThrowsAsync<OAuthException>(() => f.Auth.VerifyLoginOtpAsync(new VerifyLoginOtpRequest(first.ChallengeId!.Value, wrong)));
+        // Doğru kod bile artık kabul edilmez.
+        await Assert.ThrowsAsync<OAuthException>(() => f.Auth.VerifyLoginOtpAsync(new VerifyLoginOtpRequest(first.ChallengeId!.Value, code)));
+    }
+
+    [Fact]
+    public async Task Without_sms_provider_two_factor_does_not_block_login()
+    {
+        var f = new Fixture(); // Sms.Configured = false (varsayılan)
+        f.Db.Users.Single().TwoFactorEnabled = true;
+        f.Db.SaveChanges();
+        var res = await f.Auth.AuthorizeAsync(f.Login());
+        Assert.False(res.OtpRequired);
+        Assert.NotNull(res.Code);
+        Assert.Null(f.Sms.Last); // sahte SMS gönderilmedi
     }
 
     // ---------- XSS ----------

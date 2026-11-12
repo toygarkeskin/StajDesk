@@ -51,6 +51,7 @@ public sealed class NotificationConsumer(
                 Messaging.RoutingKeys.TicketCommentAdded => JsonSerializer.Deserialize<TicketCommentAddedEvent>(json, Json),
                 Messaging.RoutingKeys.UserRegistered => JsonSerializer.Deserialize<UserRegisteredEvent>(json, Json),
                 Messaging.RoutingKeys.PasswordResetRequested => JsonSerializer.Deserialize<PasswordResetRequestedEvent>(json, Json),
+                Messaging.RoutingKeys.UserInvited => JsonSerializer.Deserialize<UserInvitedEvent>(json, Json),
                 _ => null
             };
             if (evt is null)

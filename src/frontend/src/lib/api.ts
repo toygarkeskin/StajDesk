@@ -9,6 +9,13 @@ import type {
   AuditLog,
   Category,
   DashboardStats,
+  Department,
+  EmployeeCard,
+  EmployeeDetail,
+  OrgChart,
+  Position,
+  SecurityInfo,
+  UserSettings,
   Home,
   Me,
   NotificationItem,
@@ -83,6 +90,12 @@ export function errorMessage(err: unknown, fallback = 'Sunucu isteği tamamlayam
   return fallback
 }
 
+/** OAuth hata kodu (ör. "email_not_verified") — ekranın farklı davranması gereken durumlar için. */
+export function errorCode(err: unknown): string | undefined {
+  if (err instanceof AxiosError) return (err.response?.data as { error?: string } | undefined)?.error
+  return undefined
+}
+
 /** Destek ekibine iletilebilecek teknik ayrıntı (birincil arayüzde gösterilmez, yalnızca kopyalanır). */
 export function errorDetails(err: unknown) {
   if (err instanceof AxiosError) {
@@ -108,6 +121,8 @@ export const api = {
     register: (body: { fullName: string; email: string; password: string; department?: string }) => unwrap<object>(http.post('/auth/register', body)),
     forgotPassword: (email: string) => http.post<ApiResponse<object>>('/auth/forgot-password', { email }).then((r) => r.data.message),
     resetPassword: (token: string, password: string) => http.post<ApiResponse<object>>('/auth/reset-password', { token, password }).then((r) => r.data.message),
+    verifyEmail: (token: string) => http.post<ApiResponse<object>>('/auth/verify-email', { token }).then((r) => r.data.message),
+    resendVerification: (email: string) => http.post<ApiResponse<object>>('/auth/resend-verification', { email }).then((r) => r.data.message),
   },
   tickets: {
     list: (q: Query) => unwrap<PagedResult<TicketListItem>>(http.get('/tickets', { params: clean(q) })),
@@ -168,6 +183,39 @@ export const api = {
     dashboard: () => unwrap<DashboardStats>(http.get('/stats')),
   },
   home: () => unwrap<Home>(http.get('/home')),
+  employees: {
+    list: (q: Query) => unwrap<PagedResult<EmployeeCard>>(http.get('/employees', { params: clean(q) })),
+    get: (id: number) => unwrap<EmployeeDetail>(http.get(`/employees/${id}`)),
+    create: (body: object) => unwrap<{ id: number }>(http.post('/employees', body)),
+    updatePersonal: (id: number, body: object) => unwrap<EmployeeDetail>(http.put(`/employees/${id}/personal`, body)),
+    updateWork: (id: number, body: object) => unwrap<EmployeeDetail>(http.put(`/employees/${id}/work`, body)),
+    resendInvite: (id: number) => http.post(`/employees/${id}/invite`),
+    image: (id: number, kind: 'photo' | 'cover', version: string) => http.get<Blob>(`/employees/${id}/${kind}`, { params: { v: version }, responseType: 'blob' }).then((r) => r.data),
+    setImage: (id: number, kind: 'photo' | 'cover', file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return unwrap<EmployeeDetail>(http.put(`/employees/${id}/${kind}`, form, { headers: { 'Content-Type': 'multipart/form-data' } }))
+    },
+    removeImage: (id: number, kind: 'photo' | 'cover') => http.delete(`/employees/${id}/${kind}`),
+  },
+  org: {
+    chart: () => unwrap<OrgChart>(http.get('/org/chart')),
+    departments: () => unwrap<Department[]>(http.get('/org/departments')),
+    saveDepartment: (id: number | null, body: object) => unwrap<Department>(id ? http.put(`/org/departments/${id}`, body) : http.post('/org/departments', body)),
+    removeDepartment: (id: number) => http.delete(`/org/departments/${id}`),
+    positions: () => unwrap<Position[]>(http.get('/org/positions')),
+    savePosition: (id: number | null, body: object) => unwrap<Position>(id ? http.put(`/org/positions/${id}`, body) : http.post('/org/positions', body)),
+    removePosition: (id: number) => http.delete(`/org/positions/${id}`),
+  },
+  account: {
+    settings: () => unwrap<UserSettings>(http.get('/me/settings')),
+    saveSettings: (body: UserSettings) => unwrap<UserSettings>(http.put('/me/settings', body)),
+    changePassword: (currentPassword: string, newPassword: string) => unwrap<object>(http.put('/me/password', { currentPassword, newPassword })),
+    security: () => unwrap<SecurityInfo>(http.get('/me/security')),
+    start2fa: () => unwrap<{ challengeId: string; maskedPhone: string }>(http.post('/me/2fa/start')),
+    confirm2fa: (challengeId: string, code: string) => unwrap<object>(http.post('/me/2fa/confirm', { challengeId, code })),
+    disable2fa: (password: string) => unwrap<object>(http.post('/me/2fa/disable', { password })),
+  },
   announcements: {
     list: (all = false) => unwrap<Announcement[]>(http.get('/announcements', { params: { all } })),
     create: (body: object) => unwrap<Announcement>(http.post('/announcements', body)),

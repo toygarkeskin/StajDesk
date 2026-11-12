@@ -72,6 +72,18 @@ curl -s -X POST http://localhost:5080/connect/token -d grant_type=client_credent
 
 Dönen token'ın izinleri yalnızca istenen ve istemciye tanımlı scope'lardır. İstemci gizli anahtarı veritabanında hash'lenmiş saklanır.
 
+## Kullanıcı adı, e-posta doğrulama, davet ve SMS doğrulaması
+
+Girişte e-posta yerine kullanıcı adı yazılabilir. Kendi kaydolan kullanıcı e-postasını doğrulamadan giriş yapamaz
+(`error: email_not_verified`, şifre doğru olduktan **sonra** söylenir). İK'nın açtığı hesap şifre belirleme davetiyle gelir.
+Kullanıcıda SMS doğrulaması açık ve SMS sağlayıcısı bağlıysa `/connect/authorize` kod yerine
+`{ "otpRequired": true, "challengeId": "…", "maskedPhone": "0555 *** ** 12" }` döner; ikinci adım `POST /connect/authorize/otp`.
+Ayrıntı: [ORGANIZASYON.md](ORGANIZASYON.md#4-hesap-akışları).
+
+**Genel IP sınırı:** `/connect/*` ve hesap uçları IP başına dakikada 120 istekle sınırlıdır (`RateLimiting:AuthPermitPerMinute`).
+Bir mağazadaki herkes aynı dış IP'den geldiği ve her sayfa açılışı token yenilediği için bu eşik yüksek tutuldu;
+asıl kaba kuvvet koruması aşağıdaki hatalı deneme sayaçlarıdır.
+
 ## Şifre kuralları ve kurtarma
 
 - En az 10 karakter, büyük harf, küçük harf ve rakam içermeli (`PasswordRule`).

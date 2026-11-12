@@ -17,6 +17,7 @@ public static class Messaging
         public const string AllTicketEvents = "ticket.*";
         public const string UserRegistered = "user.registered";
         public const string PasswordResetRequested = "user.password-reset-requested";
+        public const string UserInvited = "user.invited";
         public const string AllUserEvents = "user.*";
     }
 }
@@ -66,7 +67,11 @@ public sealed record TicketCommentAddedEvent(
     int RequesterId,
     int? AssigneeId) : IntegrationEvent;
 
-public sealed record UserRegisteredEvent(int UserId, string Email, string FullName) : IntegrationEvent;
+/// <summary>Kendi kaydolan kullanıcı. <see cref="VerifyUrl"/> e-posta doğrulama bağlantısıdır (doğrulanmadan giriş yapılamaz).</summary>
+public sealed record UserRegisteredEvent(int UserId, string Email, string FullName, string? VerifyUrl = null) : IntegrationEvent;
+
+/// <summary>İK / yönetici tarafından oluşturulan hesap: ilk şifreyi belirleme bağlantısı içerir.</summary>
+public sealed record UserInvitedEvent(int UserId, string Email, string FullName, string SetPasswordUrl, int ExpiresInHours, string InvitedBy) : IntegrationEvent;
 
 /// <summary>Şifre sıfırlama bağlantısı içerir; Worker e-posta olarak gönderir (demo ortamında Mailpit'e düşer).</summary>
 public sealed record PasswordResetRequestedEvent(int UserId, string Email, string FullName, string ResetUrl, int ExpiresInMinutes) : IntegrationEvent;

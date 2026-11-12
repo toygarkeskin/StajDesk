@@ -119,27 +119,30 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
   const meId = useAuth((s) => s.me?.id)
   const isSelf = user?.id === meId
   const stores = useQuery({ queryKey: ['stores'], queryFn: api.stores.list })
+  const departments = useQuery({ queryKey: ['departments'], queryFn: api.org.departments })
   const [roles, setRoles] = useState<string[]>(user?.roles ?? ['user'])
   const [rolesError, setRolesError] = useState<string>()
   const form = useForm(
-    { fullName: user?.fullName ?? '', email: user?.email ?? '', password: '', storeId: user?.store ? String(user.store.id) : '', department: user?.department ?? '', isActive: user?.isActive ?? true },
+    { fullName: user?.fullName ?? '', email: user?.email ?? '', username: user?.username ?? '', password: '', storeId: user?.store ? String(user.store.id) : '', departmentId: user?.departmentId ? String(user.departmentId) : '', isActive: user?.isActive ?? true },
     {
       fullName: (v) => (!v.trim() ? 'Ad ve soyadı girin.' : undefined),
       email: (v) => (user ? undefined : !/^\S+@\S+\.\S+$/.test(v) ? 'ad@sirket.com biçiminde bir e-posta girin.' : undefined),
-      password: (v) => (user ? undefined : v.length < 10 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) ? 'En az 10 karakter; büyük/küçük harf ve rakam içeren geçici bir şifre belirleyin.' : undefined),
+      // Boş bırakılırsa davet e-postası gider (önerilen). Doldurulursa güçlü şifre kuralı uygulanır.
+      password: (v) => (user || !v ? undefined : v.length < 10 || !/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/\d/.test(v) ? 'En az 10 karakter; büyük/küçük harf ve rakam içersin — veya boş bırakıp davet gönderin.' : undefined),
+      username: (v) => (v && !/^[a-zA-Z0-9._-]{3,50}$/.test(v) ? '3–50 karakter: harf, rakam, nokta, tire, alt çizgi.' : undefined),
     },
   )
   const save = useMutation({
     mutationFn: () => {
       const v = form.values
-      const common = { fullName: v.fullName, roles, storeId: v.storeId ? Number(v.storeId) : null, department: v.department || null, phone: null }
-      return user ? api.users.update(user.id, { ...common, isActive: v.isActive }) : api.users.create({ ...common, email: v.email, password: v.password })
+      const common = { fullName: v.fullName, roles, storeId: v.storeId ? Number(v.storeId) : null, departmentId: v.departmentId ? Number(v.departmentId) : null, phone: null, username: v.username || null }
+      return user ? api.users.update(user.id, { ...common, isActive: v.isActive }) : api.users.create({ ...common, email: v.email, password: v.password || null })
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] })
       qc.invalidateQueries({ queryKey: ['agents'] })
       qc.invalidateQueries({ queryKey: ['stores'] })
-      toast(user ? `${form.values.fullName} güncellendi.` : `${form.values.fullName} hesabı oluşturuldu.`)
+      toast(user ? `${form.values.fullName} güncellendi.` : form.values.password ? `${form.values.fullName} hesabı oluşturuldu.` : `${form.values.fullName} hesabı oluşturuldu; ilk şifre bağlantısı e-postayla gönderildi.`)
       onClose()
     },
     onError: (err) => {
@@ -156,16 +159,17 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
   const needsStore = roles.includes('store_owner') && !form.values.storeId
 
   return (
-    <SlideOver open onClose={onClose} title={user ? `${user.fullName} hesabını düzenle` : 'Kullanıcı ekle'} description={user ? user.email : 'Kullanıcı ilk girişte bu geçici şifreyi kullanır.'}
+    <SlideOver open onClose={onClose} title={user ? `${user.fullName} hesabını düzenle` : 'Kullanıcı ekle'} description={user ? user.email : 'Şifreyi boş bırakın: kullanıcıya kendi şifresini belirleyeceği bir davet e-postası gider.'}
       footer={<><button className="btn-secondary" onClick={onClose}>Vazgeç</button><button className="btn-violet" onClick={submit} aria-busy={save.isPending}>{save.isPending && <Spinner />} {user ? 'Değişiklikleri kaydet' : 'Kullanıcıyı oluştur'}</button></>}>
       <form onSubmit={(e) => { e.preventDefault(); submit() }} noValidate className="space-y-5">
         <Field label="Ad soyad" htmlFor="f-fullName" error={form.errors.fullName}><input {...form.field('fullName')} className="form-field" autoComplete="off" /></Field>
         {!user && (
           <>
             <Field label="E-posta" htmlFor="f-email" error={form.errors.email}><input {...form.field('email')} type="email" className="form-field" placeholder="ad@sirket.com" autoComplete="off" /></Field>
-            <Field label="Geçici şifre" htmlFor="f-password" error={form.errors.password}><input {...form.field('password')} type="password" className="form-field" autoComplete="new-password" /></Field>
+            <Field label="Geçici şifre" htmlFor="f-password" error={form.errors.password} optional hint="Önerilmez: boş bırakırsanız davet e-postası gider."><input {...form.field('password')} type="password" className="form-field" autoComplete="new-password" /></Field>
           </>
         )}
+        <Field label="Kullanıcı adı" htmlFor="f-username" error={form.errors.username} optional hint="E-posta yerine girişte kullanılabilir."><input {...form.field('username')} className="form-field" autoCapitalize="none" autoComplete="off" /></Field>
         <fieldset>
           <legend className="form-label">Roller</legend>
           <div className="space-y-1">
@@ -186,7 +190,12 @@ function UserPanel({ user, onClose }: { user?: UserListItem; onClose: () => void
             {stores.data?.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
           </select>
         </Field>
-        <Field label="Departman" htmlFor="f-department" optional><input {...form.field('department')} className="form-field" /></Field>
+        <Field label="Departman" htmlFor="f-departmentId" optional hint="Unvan, yönetici ve diğer personel bilgileri Çalışanlar ekranından İK tarafından yönetilir.">
+          <select {...form.field('departmentId')} className="form-field">
+            <option value="">Seçilmedi</option>
+            {departments.data?.filter((d) => d.isActive || String(d.id) === form.values.departmentId).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        </Field>
         {user && (
           <label className="flex min-h-11 items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" className="size-4 accent-violet-500" disabled={isSelf} checked={form.values.isActive} onChange={(e) => form.setValue('isActive', e.target.checked)} />

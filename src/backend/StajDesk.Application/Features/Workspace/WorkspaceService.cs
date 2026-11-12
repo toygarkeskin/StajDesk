@@ -65,7 +65,7 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
         var me = await db.Users.AsNoTracking().Where(u => u.Id == userId)
             .Select(u => new
             {
-                u.Id, u.FullName, u.Department, StoreName = u.Store == null ? null : u.Store.Name, u.CreatedAt,
+                u.Id, u.FullName, Department = u.Department == null ? null : u.Department.Name, StoreName = u.Store == null ? null : u.Store.Name, u.CreatedAt,
                 Roles = u.Roles.Select(r => r.Role.DisplayName).ToList(),
             }).FirstAsync(ct);
 
@@ -172,7 +172,7 @@ internal sealed class WorkspaceService(IAppDbContext db, ICurrentUser currentUse
         var rows = await db.OnCallShifts.AsNoTracking()
             .Where(s => s.EndsOn >= from && s.StartsOn <= to)
             .OrderBy(s => s.StartsOn).ThenBy(s => s.User.FullName)
-            .Select(s => new { s.Id, s.UserId, s.User.FullName, s.User.Email, s.User.Phone, s.User.Department, s.StartsOn, s.EndsOn, s.Note })
+            .Select(s => new { s.Id, s.UserId, s.User.FullName, s.User.Email, s.User.Phone, Department = s.User.Department == null ? null : s.User.Department.Name, s.StartsOn, s.EndsOn, s.Note })
             .ToListAsync(ct);
         return rows.Select(s => new OnCallShiftDto(s.Id, s.UserId, s.FullName, s.Email, s.Phone, s.Department, s.StartsOn, s.EndsOn, s.Note,
                 today >= s.StartsOn && today <= s.EndsOn))

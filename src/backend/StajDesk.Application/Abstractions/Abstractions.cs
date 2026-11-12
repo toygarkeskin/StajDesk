@@ -30,6 +30,11 @@ public interface IAppDbContext
     DbSet<Announcement> Announcements { get; }
     DbSet<OnCallShift> OnCallShifts { get; }
     DbSet<TicketAttachment> TicketAttachments { get; }
+    DbSet<Department> Departments { get; }
+    DbSet<Position> Positions { get; }
+    DbSet<EmployeeProfile> EmployeeProfiles { get; }
+    DbSet<UserSettings> UserSettings { get; }
+    DbSet<OtpChallenge> OtpChallenges { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
@@ -152,4 +157,15 @@ public interface IFileStorage
     Task SaveAsync(string key, Stream content, CancellationToken ct = default);
     Task<Stream?> OpenReadAsync(string key, CancellationToken ct = default);
     Task DeleteAsync(string key, CancellationToken ct = default);
+}
+
+/// <summary>
+/// SMS gönderimi (OTP). Gerçek sağlayıcı (Netgsm, İleti Merkezi…) yapılandırılmadıysa <see cref="IsConfigured"/> false döner
+/// ve SMS adımı kapalı kalır — sistem SMS gönderilmiş gibi davranmaz.
+/// </summary>
+public interface ISmsSender
+{
+    bool IsConfigured { get; }
+    string ProviderName { get; }
+    Task SendAsync(string phone, string message, CancellationToken ct = default);
 }

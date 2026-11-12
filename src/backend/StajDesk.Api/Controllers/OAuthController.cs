@@ -29,6 +29,12 @@ public sealed class OAuthController(IAuthService auth, SigningKeyProvider keys, 
     public async Task<ActionResult<AuthorizeResponse>> Authorize([FromBody] AuthorizeRequest request, CancellationToken ct) =>
         Ok(await auth.AuthorizeAsync(request, ct));
 
+    /// <summary>İki adımlı girişin ikinci adımı: SMS kodu doğrulanınca yetki kodu verilir.</summary>
+    [HttpPost("/connect/authorize/otp")]
+    [EnableRateLimiting("auth")]
+    public async Task<ActionResult<AuthorizeResponse>> AuthorizeOtp([FromBody] VerifyLoginOtpRequest request, CancellationToken ct) =>
+        Ok(await auth.VerifyLoginOtpAsync(request, ct));
+
     [HttpPost("/connect/token")]
     [EnableRateLimiting("auth")]
     [Consumes("application/x-www-form-urlencoded", "application/json")]

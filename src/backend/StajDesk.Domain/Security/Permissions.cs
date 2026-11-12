@@ -35,6 +35,9 @@ public static class Permissions
     public const string MailRead = "mail.read";
     public const string AnnouncementsManage = "announcements.manage";
     public const string OnCallManage = "oncall.manage";
+    public const string EmployeesReadPrivate = "employees.read.private";
+    public const string EmployeesManage = "employees.manage";
+    public const string OrgManage = "org.manage";
 
     public sealed record Definition(string Key, string Group, string Description);
 
@@ -66,6 +69,9 @@ public static class Permissions
         new(MailRead, "Sistem", "Gönderilen e-postaları görme (demo posta kutusu)"),
         new(AnnouncementsManage, "Panel", "Duyuru yayınlama / düzenleme"),
         new(OnCallManage, "Panel", "Bilgi işlem nöbet çizelgesini düzenleme"),
+        new(EmployeesReadPrivate, "Personel", "Çalışanların kişisel bilgilerini görme (adres, doğum tarihi, acil durum kişisi)"),
+        new(EmployeesManage, "Personel", "Personel kaydı oluşturma ve personel bilgilerini düzenleme (İK)"),
+        new(OrgManage, "Personel", "Departman ve unvan yönetimi, organizasyon şeması"),
     ];
 
     public static bool IsKnown(string key) => All.Any(p => p.Key == key);
@@ -77,6 +83,7 @@ public static class RoleNames
     public const string Agent = "agent";
     public const string StoreOwner = "store_owner";
     public const string User = "user";
+    public const string Hr = "hr";
 
     public sealed record Definition(string Name, string DisplayName, string Description, string[] Permissions);
 
@@ -97,6 +104,13 @@ public static class RoleNames
             Security.Permissions.TicketsUpdateOwn, Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead,
             Security.Permissions.StoresRead, Security.Permissions.AssetsReadOwn, Security.Permissions.AssetsReadStore,
             Security.Permissions.UsersRead, Security.Permissions.ReportsReadStore,
+        ]),
+        new(Hr, "İK Personeli", "Personel kayıtlarını ve çalışan bilgilerini yönetir. Diğer modüllere otomatik erişimi yoktur.",
+        [
+            Security.Permissions.TicketsCreate, Security.Permissions.TicketsReadOwn, Security.Permissions.TicketsUpdateOwn,
+            Security.Permissions.CommentsCreate, Security.Permissions.CategoriesRead, Security.Permissions.AssetsReadOwn,
+            Security.Permissions.StoresRead,
+            Security.Permissions.EmployeesReadPrivate, Security.Permissions.EmployeesManage,
         ]),
         new(User, "Kullanıcı", "Talep açar ve kendi taleplerini takip eder.",
         [

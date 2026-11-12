@@ -47,10 +47,12 @@ public class RefreshToken
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>Tek kullanımlık hesap bağlantısı: şifre sıfırlama, davet (ilk şifre), e-posta doğrulama. Yalnızca hash saklanır.</summary>
 public class PasswordResetToken
 {
     public string TokenHash { get; set; } = string.Empty;
     public int UserId { get; set; }
+    public Enums.AccountTokenPurpose Purpose { get; set; } = Enums.AccountTokenPurpose.PasswordReset;
     public DateTime ExpiresAt { get; set; }
     public DateTime? UsedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

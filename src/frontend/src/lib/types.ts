@@ -15,6 +15,7 @@ export type Permission =
   | 'assets.read.own' | 'assets.read.store' | 'assets.read.all' | 'assets.manage'
   | 'users.read' | 'users.manage' | 'roles.manage' | 'reports.read.store' | 'reports.read.all'
   | 'audit.read' | 'mail.read' | 'announcements.manage' | 'oncall.manage'
+  | 'employees.read.private' | 'employees.manage' | 'org.manage'
 
 export interface ApiResponse<T> {
   success: boolean
@@ -54,10 +55,20 @@ export interface Me {
   roleNames: string[]
   permissions: Permission[]
   createdAt: string
+  username?: string | null
+  title?: string | null
+  /** Profil fotoğrafının sürüm anahtarı; yoksa baş harfler gösterilir. */
+  photoVersion?: string | null
+  language?: 'tr' | 'en'
+  theme?: 'system' | 'light' | 'dark'
 }
 
 export interface UserListItem extends UserSummary {
   department?: string | null
+  departmentId?: number | null
+  username?: string | null
+  /** false: davet gönderildi, kullanıcı henüz şifresini belirlemedi */
+  passwordSet?: boolean
   phone?: string | null
   isActive: boolean
   store?: StoreRef | null
@@ -298,3 +309,80 @@ export interface Home {
   awaitingApproval: TicketListItem[]
   activity: Activity[]
 }
+
+// ---------- Organizasyon ve personel ----------
+
+export type EmploymentType = 'FullTime' | 'PartTime' | 'Contract' | 'Intern'
+export interface Ref { id: number; name: string }
+
+export interface EmployeeCard {
+  id: number
+  fullName: string
+  email: string
+  phone?: string | null
+  title?: string | null
+  department?: Ref | null
+  store?: StoreRef | null
+  hasPhoto: boolean
+  photoVersion?: string | null
+  isActive: boolean
+}
+
+export interface EmployeePrivate {
+  birthDate?: string | null
+  personalEmail?: string | null
+  address?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  emergencyContactRelation?: string | null
+}
+
+export interface EmployeeDetail {
+  id: number
+  fullName: string
+  email: string
+  username?: string | null
+  phone?: string | null
+  isActive: boolean
+  position?: Ref | null
+  positionLevel?: number | null
+  department?: Ref | null
+  manager?: UserSummary | null
+  store?: StoreRef | null
+  employeeNumber?: string | null
+  hireDate?: string | null
+  terminationDate?: string | null
+  employmentType: EmploymentType
+  /** "MM-dd" */
+  birthday?: string | null
+  directReports: EmployeeCard[]
+  hasPhoto: boolean
+  hasCover: boolean
+  photoVersion?: string | null
+  coverVersion?: string | null
+  private?: EmployeePrivate | null
+  roles: string[]
+  emailVerified: boolean
+  lastLoginAt?: string | null
+  access: { isSelf: boolean; canEditPersonal: boolean; canEditWork: boolean; canSeePrivate: boolean }
+}
+
+export interface Department {
+  id: number
+  code: string
+  name: string
+  description?: string | null
+  isActive: boolean
+  parentId?: number | null
+  parentName?: string | null
+  manager?: UserSummary | null
+  memberCount: number
+}
+
+export interface Position { id: number; title: string; level: number; description?: string | null; memberCount: number }
+
+export interface OrgPerson { id: number; fullName: string; title?: string | null; level?: number | null; managerId?: number | null; departmentId?: number | null; hasPhoto: boolean; photoVersion?: string | null }
+export interface OrgChart { departments: Department[]; people: OrgPerson[] }
+
+export interface UserSettings { language: 'tr' | 'en'; theme: 'system' | 'light' | 'dark'; emailTicketUpdates: boolean; emailAnnouncements: boolean }
+export interface SecurityInfo { smsAvailable: boolean; smsProvider?: string | null; twoFactorEnabled: boolean; maskedPhone?: string | null; hasPhone: boolean }

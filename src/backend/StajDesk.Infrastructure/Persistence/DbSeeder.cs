@@ -38,10 +38,12 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
         await SeedClientsAsync(ct);
         await SeedCategoriesAsync(ct);
         await SeedSystemAdminAsync(ct);
+        await SeedPositionsAsync(ct);
         if (config.GetValue("Seed:DemoData", false))
         {
             await SeedDemoAsync(ct);
             await SeedWorkspaceDemoAsync(ct);
+            await SeedOrganizationDemoAsync(ct);
         }
     }
 
@@ -139,10 +141,19 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
             logger.LogWarning("Seed:AdminEmail / Seed:AdminPassword tanımlı değil; sistem yöneticisi oluşturulmadı.");
             return;
         }
-        if (await db.Users.AnyAsync(u => u.Email == email, ct)) return;
+        if (await db.Users.FirstOrDefaultAsync(u => u.Email == email, ct) is { } existing)
+        {
+            // Önceki sürümde açılmış yönetici: kullanıcı adı yoksa (ve boştaysa) "sysadmin" verilir.
+            if (existing.Username is null && !await db.Users.AnyAsync(u => u.Username == "sysadmin", ct))
+            {
+                existing.Username = "sysadmin";
+                await db.SaveChangesAsync(ct);
+            }
+            return;
+        }
 
         var role = await db.Roles.FirstAsync(r => r.Name == RoleNames.SystemAdmin, ct);
-        var admin = new User { FullName = "Sistem Yöneticisi", Email = email, Department = "Bilgi İşlem", PasswordHash = hasher.Hash(password) };
+        var admin = new User { FullName = "Sistem Yöneticisi", Email = email, Username = "sysadmin", PasswordHash = hasher.Hash(password), EmailVerifiedAt = DateTime.UtcNow, Profile = new EmployeeProfile() };
         admin.Roles.Add(new UserRole { Role = role });
         db.Users.Add(admin);
         await db.SaveChangesAsync(ct);
@@ -168,7 +179,7 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
 
         User U(string name, string email, string role, string dept, Store? store)
         {
-            var u = new User { FullName = name, Email = email, Department = dept, PasswordHash = hash, Store = store };
+            var u = new User { FullName = name, Email = email, PasswordHash = hash, Store = store, EmailVerifiedAt = DateTime.UtcNow };
             u.Roles.Add(new UserRole { Role = roles[role] });
             return u;
         }
@@ -314,5 +325,91 @@ public sealed class DbSeeder(AppDbContext db, IPasswordHasher hasher, IConfigura
                 new OnCallShift { UserId = elif.Id, StartsOn = monday.AddDays(14), EndsOn = monday.AddDays(20) });
         }
         await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Varsayılan unvanlar (yalnızca hiç unvan yokken). Seviye 1 en üst. Unvan sistem rolü değildir;
+    /// "Super Admin / Admin" birer yetki rolüdür ve burada değil Roller ve İzinler ekranında yönetilir.
+    /// </summary>
+    private async Task SeedPositionsAsync(CancellationToken ct)
+    {
+        if (await db.Positions.AnyAsync(ct)) return;
+        (string Title, int Level)[] defaults =
+        [
+            ("CEO", 1), ("Genel Müdür", 2), ("Direktör", 3), ("Müdür", 4), ("Mağaza Müdürü", 4), ("Yönetici", 5),
+            ("Departman Sorumlusu", 6), ("Uzman", 7), ("İK Uzmanı", 7), ("BT Destek Uzmanı", 7),
+            ("Satış Danışmanı", 8), ("Kasa Sorumlusu", 8), ("Depo Sorumlusu", 8), ("Çalışan", 9), ("Stajyer", 10),
+        ];
+        db.Positions.AddRange(defaults.Select(d => new Position { Title = d.Title, Level = d.Level }));
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Demo organizasyonu: departman ağacı, unvanlar, yönetici ilişkileri, personel kartları ve bir İK personeli.
+    /// Mevcut demo veritabanına da bir kez uygulanır ("GM" departmanı yoksa).
+    /// </summary>
+    private async Task SeedOrganizationDemoAsync(CancellationToken ct)
+    {
+        if (await db.Departments.AnyAsync(d => d.Code == "GM", ct)) return;
+        var users = await db.Users.Include(u => u.Profile).Where(u => u.Email.EndsWith("@stajdesk.local")).ToDictionaryAsync(u => u.Email, ct);
+        User? Get(string email) => users.GetValueOrDefault(email);
+        var positions = await db.Positions.ToDictionaryAsync(p => p.Title, ct);
+        var password = config["Seed:DemoPassword"];
+
+        // İK personeli (rolü yalnızca personel yönetimi verir)
+        if (Get("deniz.ik@stajdesk.local") is null && !string.IsNullOrWhiteSpace(password))
+        {
+            var hr = new User { FullName = "Deniz Koç", Email = "deniz.ik@stajdesk.local", PasswordHash = hasher.Hash(password), EmailVerifiedAt = DateTime.UtcNow, Phone = "0555 020 20 01" };
+            hr.Roles.Add(new UserRole { Role = await db.Roles.FirstAsync(r => r.Name == RoleNames.Hr, ct) });
+            db.Users.Add(hr);
+            await db.SaveChangesAsync(ct);
+            users[hr.Email] = hr;
+        }
+
+        var gm = new Department { Code = "GM", Name = "Genel Müdürlük", Description = "Şirketin üst yönetimi" };
+        var bt = new Department { Code = "BT", Name = "Bilgi Teknolojileri ve Süreç Geliştirme", Parent = gm, Description = "Destek, altyapı ve yazılım" };
+        var ik = new Department { Code = "IK", Name = "İnsan Kaynakları ve İdari İşler", Parent = gm };
+        var mg = new Department { Code = "MG", Name = "Mağazacılık", Parent = gm, Description = "Mağaza operasyonları" };
+        var lj = new Department { Code = "LJ", Name = "Lojistik", Parent = gm };
+        db.Departments.AddRange(gm, bt, ik, mg, lj);
+        await db.SaveChangesAsync(ct);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(3));
+        var n = 1000;
+        void Place(string email, Department dept, string title, string? managerEmail, DateOnly hire, DateOnly? birth, EmploymentType type = EmploymentType.FullTime)
+        {
+            if (Get(email) is not { } u) return;
+            u.DepartmentId = dept.Id;
+            u.PositionId = positions.GetValueOrDefault(title)?.Id;
+            u.ManagerId = managerEmail is null ? null : Get(managerEmail)?.Id;
+            u.Username ??= email.Split('@')[0].Replace(".destek", "").Replace(".magaza", "").Replace(".ik", "");
+            u.EmailVerifiedAt ??= DateTime.UtcNow;
+            u.Profile ??= new EmployeeProfile();
+            u.Profile.EmployeeNumber ??= $"P{++n}";
+            u.Profile.HireDate ??= hire;
+            u.Profile.BirthDate ??= birth;
+            u.Profile.EmploymentType = type;
+        }
+
+        Place("burak.destek@stajdesk.local", bt, "Müdür", null, new DateOnly(2019, 3, 4), new DateOnly(1986, 7, 21));
+        Place("elif.destek@stajdesk.local", bt, "BT Destek Uzmanı", "burak.destek@stajdesk.local", today.AddYears(-3).AddDays(3), new DateOnly(1994, 2, 9));
+        Place("deniz.ik@stajdesk.local", ik, "İK Uzmanı", null, new DateOnly(2021, 9, 1), new DateOnly(1990, 11, 30));
+        Place("selin.magaza@stajdesk.local", mg, "Mağaza Müdürü", null, new DateOnly(2018, 5, 14), new DateOnly(1988, 4, 2));
+        Place("can.magaza@stajdesk.local", mg, "Mağaza Müdürü", null, new DateOnly(2020, 1, 6), new DateOnly(1991, 9, 17));
+        // Bu hafta doğum günü olan biri: panelde "Doğum günleri" kutusu boş kalmasın.
+        Place("ayse@stajdesk.local", mg, "Satış Danışmanı", "selin.magaza@stajdesk.local", new DateOnly(2023, 2, 20), new DateOnly(1998, today.Month, Math.Min(today.AddDays(2).Day, 28)));
+        Place("mehmet@stajdesk.local", mg, "Kasa Sorumlusu", "selin.magaza@stajdesk.local", new DateOnly(2022, 8, 1), new DateOnly(1995, 6, 12));
+        Place("zeynep@stajdesk.local", mg, "Satış Danışmanı", "can.magaza@stajdesk.local", today.AddDays(-20), new DateOnly(2001, 12, 3), EmploymentType.PartTime);
+        Place("emre@stajdesk.local", lj, "Depo Sorumlusu", null, new DateOnly(2024, 10, 15), new DateOnly(1997, 3, 28));
+
+        bt.ManagerId = Get("burak.destek@stajdesk.local")?.Id;
+        ik.ManagerId = Get("deniz.ik@stajdesk.local")?.Id;
+        await db.SaveChangesAsync(ct);
+
+        // Eski serbest metin alanından taşınıp artık boş kalan departmanlar demo ortamında temizlenir.
+        var legacy = await db.Departments.Where(d => d.Description == "Eski departman alanından taşındı" && !d.Members.Any()).ToListAsync(ct);
+        db.Departments.RemoveRange(legacy);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Demo organizasyonu eklendi: 5 departman, unvanlar, yönetici ilişkileri ve personel kartları");
     }
 }

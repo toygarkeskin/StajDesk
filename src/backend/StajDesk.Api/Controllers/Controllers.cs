@@ -12,6 +12,8 @@ using StajDesk.Application.Features.Stats;
 using StajDesk.Application.Features.Tickets;
 using StajDesk.Application.Features.Users;
 using StajDesk.Application.Features.Workspace;
+using StajDesk.Application.Features.Employees;
+using StajDesk.Application.Features.Account;
 using StajDesk.Domain.Security;
 
 namespace StajDesk.Api.Controllers;
@@ -32,7 +34,21 @@ public sealed class AuthController(IAuthService auth, IUserService users) : ApiC
     public async Task<ActionResult<ApiResponse<object>>> Register(RegisterRequest request, CancellationToken ct)
     {
         await auth.RegisterAsync(request, ct);
-        return StatusCode(201, ApiResponse<object>.Ok(new { }, "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz."));
+        return StatusCode(201, ApiResponse<object>.Ok(new { }, "Hesabınız oluşturuldu. Giriş yapmadan önce e-postanıza gönderilen bağlantıyla adresinizi doğrulayın."));
+    }
+
+    [AllowAnonymous, HttpPost("verify-email"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<object>>> VerifyEmail(VerifyEmailRequest request, CancellationToken ct)
+    {
+        await auth.VerifyEmailAsync(request.Token, ct);
+        return Envelope<object>(new { }, "E-posta adresiniz doğrulandı. Şimdi giriş yapabilirsiniz.");
+    }
+
+    [AllowAnonymous, HttpPost("resend-verification"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<object>>> ResendVerification(ResendVerificationRequest request, CancellationToken ct)
+    {
+        await auth.ResendVerificationAsync(request.Email, ct);
+        return Envelope<object>(new { }, "Bu adrese bağlı doğrulanmamış bir hesap varsa yeni bağlantı gönderildi.");
     }
 
     [AllowAnonymous, HttpPost("forgot-password"), EnableRateLimiting("auth")]
@@ -336,5 +352,155 @@ public sealed class WorkspaceController(IWorkspaceService workspace) : ApiContro
     {
         await workspace.DeleteOnCallAsync(id, ct);
         return NoContent();
+    }
+}
+
+/// <summary>Çalışan rehberi ve personel kartı. Okuma herkese açık (alan bazlı gizlilikle); değişiklik kişinin kendisi veya İK.</summary>
+[Route("api/employees")]
+public sealed class EmployeesController(IEmployeeService employees) : ApiControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PagedResult<EmployeeCardDto>>>> List([FromQuery] EmployeeQuery query, CancellationToken ct) =>
+        Envelope(await employees.ListAsync(query, ct));
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Get(int id, CancellationToken ct) => Envelope(await employees.GetAsync(id, ct));
+
+    [HttpPost, RequirePermission(Permissions.EmployeesManage)]
+    public async Task<ActionResult<ApiResponse<object>>> Create(CreateEmployeeRequest request, CancellationToken ct)
+    {
+        var id = await employees.CreateAsync(request, ct);
+        return StatusCode(201, ApiResponse<object>.Ok(new { id }, "Personel kaydı oluşturuldu. İlk şifre bağlantısı çalışanın e-postasına gönderildi."));
+    }
+
+    [HttpPut("{id:int}/personal")]
+    public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> UpdatePersonal(int id, UpdatePersonalRequest request, CancellationToken ct)
+    {
+        await employees.UpdatePersonalAsync(id, request, ct);
+        return Envelope(await employees.GetAsync(id, ct), "Kişisel bilgiler güncellendi.");
+    }
+
+    [HttpPut("{id:int}/work"), RequirePermission(Permissions.EmployeesManage)]
+    public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> UpdateWork(int id, UpdateWorkRequest request, CancellationToken ct)
+    {
+        await employees.UpdateWorkAsync(id, request, ct);
+        return Envelope(await employees.GetAsync(id, ct), "İş bilgileri güncellendi.");
+    }
+
+    [HttpPost("{id:int}/invite"), RequirePermission(Permissions.EmployeesManage, Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<object>>> ResendInvite(int id, CancellationToken ct)
+    {
+        await employees.ResendInvitationAsync(id, ct);
+        return Envelope<object>(new { id }, "Davet e-postası yeniden gönderildi.");
+    }
+
+    /// <summary>Profil (photo) veya kapak (cover) fotoğrafı. Oturum gerektirir; tarayıcı yetkili istekle alıp gösterir.</summary>
+    [HttpGet("{id:int}/{kind:regex(^(photo|cover)$)}")]
+    public async Task<IActionResult> Image(int id, string kind, CancellationToken ct)
+    {
+        var file = await employees.GetImageAsync(id, kind, ct);
+        if (file is null) return NotFound();
+        Response.Headers.CacheControl = "private, max-age=86400"; // sürüm anahtarı URL'de, değişince yeni adres
+        return File(file.Content, file.ContentType);
+    }
+
+    [HttpPut("{id:int}/{kind:regex(^(photo|cover)$)}"), RequestSizeLimit(3 * 1024 * 1024), Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> SetImage(int id, string kind, IFormFile? file, CancellationToken ct)
+    {
+        if (file is null) throw new StajDesk.Domain.Common.DomainException("Yüklenecek fotoğrafı seçin.");
+        await using var stream = file.OpenReadStream();
+        await employees.SetImageAsync(id, kind, file.FileName, stream, ct);
+        return Envelope(await employees.GetAsync(id, ct), "Fotoğraf güncellendi.");
+    }
+
+    [HttpDelete("{id:int}/{kind:regex(^(photo|cover)$)}")]
+    public async Task<IActionResult> RemoveImage(int id, string kind, CancellationToken ct)
+    {
+        await employees.RemoveImageAsync(id, kind, ct);
+        return NoContent();
+    }
+}
+
+/// <summary>Departmanlar, unvanlar ve organizasyon şeması.</summary>
+[Route("api/org")]
+public sealed class OrgController(IOrgService org) : ApiControllerBase
+{
+    [HttpGet("chart")]
+    public async Task<ActionResult<ApiResponse<OrgChartDto>>> Chart(CancellationToken ct) => Envelope(await org.GetChartAsync(ct));
+
+    [HttpGet("departments")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DepartmentDto>>>> Departments(CancellationToken ct) => Envelope(await org.GetDepartmentsAsync(ct));
+
+    [HttpPost("departments"), RequirePermission(Permissions.OrgManage)]
+    public async Task<ActionResult<ApiResponse<DepartmentDto>>> CreateDepartment(UpsertDepartmentRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<DepartmentDto>.Ok(await org.SaveDepartmentAsync(null, request, ct), "Departman eklendi."));
+
+    [HttpPut("departments/{id:int}"), RequirePermission(Permissions.OrgManage)]
+    public async Task<ActionResult<ApiResponse<DepartmentDto>>> UpdateDepartment(int id, UpsertDepartmentRequest request, CancellationToken ct) =>
+        Envelope(await org.SaveDepartmentAsync(id, request, ct), "Departman güncellendi.");
+
+    [HttpDelete("departments/{id:int}"), RequirePermission(Permissions.OrgManage)]
+    public async Task<IActionResult> DeleteDepartment(int id, CancellationToken ct)
+    {
+        await org.DeleteDepartmentAsync(id, ct);
+        return NoContent();
+    }
+
+    [HttpGet("positions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PositionDto>>>> Positions(CancellationToken ct) => Envelope(await org.GetPositionsAsync(ct));
+
+    [HttpPost("positions"), RequirePermission(Permissions.OrgManage)]
+    public async Task<ActionResult<ApiResponse<PositionDto>>> CreatePosition(UpsertPositionRequest request, CancellationToken ct) =>
+        StatusCode(201, ApiResponse<PositionDto>.Ok(await org.SavePositionAsync(null, request, ct), "Unvan eklendi."));
+
+    [HttpPut("positions/{id:int}"), RequirePermission(Permissions.OrgManage)]
+    public async Task<ActionResult<ApiResponse<PositionDto>>> UpdatePosition(int id, UpsertPositionRequest request, CancellationToken ct) =>
+        Envelope(await org.SavePositionAsync(id, request, ct), "Unvan güncellendi.");
+
+    [HttpDelete("positions/{id:int}"), RequirePermission(Permissions.OrgManage)]
+    public async Task<IActionResult> DeletePosition(int id, CancellationToken ct)
+    {
+        await org.DeletePositionAsync(id, ct);
+        return NoContent();
+    }
+}
+
+/// <summary>Oturumdaki kullanıcının hesap ayarları.</summary>
+[Route("api/me")]
+public sealed class AccountController(IAccountService account) : ApiControllerBase
+{
+    [HttpGet("settings")]
+    public async Task<ActionResult<ApiResponse<SettingsDto>>> Settings(CancellationToken ct) => Envelope(await account.GetSettingsAsync(ct));
+
+    [HttpPut("settings")]
+    public async Task<ActionResult<ApiResponse<SettingsDto>>> SaveSettings(SettingsDto request, CancellationToken ct) =>
+        Envelope(await account.SaveSettingsAsync(request, ct), "Tercihleriniz kaydedildi.");
+
+    [HttpPut("password"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<object>>> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        await account.ChangePasswordAsync(request, ct);
+        return Envelope<object>(new { }, "Şifreniz değiştirildi.");
+    }
+
+    [HttpGet("security")]
+    public async Task<ActionResult<ApiResponse<SecurityDto>>> Security(CancellationToken ct) => Envelope(await account.GetSecurityAsync(ct));
+
+    [HttpPost("2fa/start"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<OtpStartedDto>>> StartTwoFactor(CancellationToken ct) =>
+        Envelope(await account.StartTwoFactorAsync(ct), "Doğrulama kodu telefonunuza gönderildi.");
+
+    [HttpPost("2fa/confirm"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<object>>> ConfirmTwoFactor(ConfirmOtpRequest request, CancellationToken ct)
+    {
+        await account.ConfirmTwoFactorAsync(request, ct);
+        return Envelope<object>(new { }, "İki adımlı doğrulama açıldı.");
+    }
+
+    [HttpPost("2fa/disable"), EnableRateLimiting("auth")]
+    public async Task<ActionResult<ApiResponse<object>>> DisableTwoFactor(ConfirmPasswordRequest request, CancellationToken ct)
+    {
+        await account.DisableTwoFactorAsync(request, ct);
+        return Envelope<object>(new { }, "İki adımlı doğrulama kapatıldı.");
     }
 }

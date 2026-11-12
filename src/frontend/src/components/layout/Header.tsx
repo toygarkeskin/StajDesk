@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { Link } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Menu, Moon, Search, Sun, UserRound } from 'lucide-react'
 import { api } from '@/lib/api'
 import { usePopover } from '@/lib/hooks'
 import { timeAgo } from '@/lib/format'
@@ -11,7 +11,8 @@ import { revoke } from '@/lib/oauth'
 import { useRealtime, type RealtimeStatus } from '@/lib/realtime'
 import { useAuth } from '@/stores/auth'
 import { useUi } from '@/stores/ui'
-import { Avatar, IconButton, Tooltip } from '../ui'
+import { IconButton, Tooltip } from '../ui'
+import { PersonAvatar } from '../AuthImage'
 
 function NotificationsMenu({ live }: { live: boolean }) {
   const pop = usePopover()
@@ -96,7 +97,7 @@ function UserMenu() {
   return (
     <div className="relative" ref={pop.rootRef}>
       <button ref={pop.triggerRef} type="button" aria-expanded={pop.open} aria-label={`Hesap menüsünü aç: ${user.fullName}`} className="flex min-h-11 items-center gap-2 rounded-lg px-2 hover:bg-gray-100 dark:hover:bg-gray-700/50" onClick={() => pop.setOpen(!pop.open)}>
-        <Avatar name={user.fullName} />
+        <PersonAvatar id={user.id} name={user.fullName} photoVersion={user.photoVersion} />
         <span className="hidden max-w-40 truncate text-sm font-medium text-gray-800 md:block dark:text-gray-200">{user.fullName}</span>
         <ChevronDown className="hidden size-4 text-gray-400 md:block" aria-hidden="true" />
       </button>
@@ -104,11 +105,14 @@ function UserMenu() {
         <div role="menu" className="card absolute right-0 z-40 mt-2 w-64 animate-fade-in py-2">
           <div className="border-b border-gray-200 px-4 pb-2 dark:border-gray-700/60">
             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.fullName}</div>
-            <div className="text-xs text-gray-500">{user.email} · {user.roles.join(', ')}</div>
+            <div className="text-xs text-gray-500">{user.title ?? user.email} · {user.roles.join(', ')}</div>
           </div>
+          <Link role="menuitem" to="/profile" onClick={() => pop.close(false)} className="mt-2 flex min-h-11 w-full items-center gap-2 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/20">
+            <UserRound className="size-4" aria-hidden="true" /> Profilim
+          </Link>
           <button
             role="menuitem"
-            className="mt-2 flex min-h-11 w-full items-center gap-2 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/20"
+            className="flex min-h-11 w-full items-center gap-2 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/20"
             onClick={async () => {
               await revoke() // refresh token sunucuda iptal edilir, cookie silinir
               clear()

@@ -16,6 +16,13 @@ gönderilir ama dışarı çıkmaz: hepsi **Mailpit** posta kutusuna düşer (ht
 | Kullanıcı | Mehmet Çelik | `mehmet@stajdesk.local` | IST-01 Kadıköy |
 | Kullanıcı | Zeynep Arslan | `zeynep@stajdesk.local` | IST-02 Beşiktaş |
 | Kullanıcı | Emre Şahin | `emre@stajdesk.local` | ANK-01 Kızılay |
+| İK Personeli | Deniz Koç | `deniz.ik@stajdesk.local` | — |
+
+Demo kullanıcıları e-posta yerine **kullanıcı adıyla** da giriş yapabilir: `elif`, `burak`, `selin`, `can`, `ayse`, `mehmet`, `zeynep`, `emre`, `deniz`
+(yeni kurulumda sistem yöneticisi: `sysadmin`).
+
+Demo organizasyonu: Genel Müdürlük altında Bilgi Teknolojileri (yönetici Burak, ekibinde Elif), İnsan Kaynakları (Deniz),
+Mağazacılık (Selin → Ayşe, Mehmet · Can → Zeynep) ve Lojistik (Emre).
 
 | Şifre | Değer (varsayılan) | Ayar |
 |---|---|---|
@@ -48,7 +55,10 @@ docker compose down -v
    sayfayı yenilemeden bildirim belirir (üst çubuktaki nokta yeşilse bağlantı canlıdır).
 9. **Dosya eki.** Talep detayında "Dosya ekle" ile ekran görüntüsü yükleyin; Selin aynı talepte dosyayı görür, Zeynep (başka mağaza) göremez.
 10. **Duyuru ve nöbet.** Sistem yöneticisi olarak Duyurular sayfasından yalnızca Kadıköy'e duyuru yayınlayın; Selin görür, Can görmez.
-11. **Loglar.** http://localhost:5380 (Seq) → `Application = 'StajDesk.Worker'` ile Worker loglarını filtreleyin.
+11. **İK ile personel kaydı.** `deniz` ile girin → Çalışanlar → Personel ekle. Mailpit'e "StajDesk hesabınız hazır" daveti gelir;
+    bağlantıdan şifre belirleyen yeni çalışan kullanıcı adıyla giriş yapar. Deniz, Roller ve İzinler ekranını göremez.
+12. **Gizlilik.** Ayşe olarak Elif'in profilini açın: kişisel bilgiler sekmesi yoktur. Kendi profilinizde adres ve acil durum kişisi düzenlenebilir.
+13. **Loglar.** http://localhost:5380 (Seq) → `Application = 'StajDesk.Worker'` ile Worker loglarını filtreleyin.
 
 ## Otomatik kontrol
 

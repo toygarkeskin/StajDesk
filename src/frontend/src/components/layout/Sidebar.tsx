@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router'
 import clsx from 'clsx'
-import { Bell, CalendarClock, FolderKanban, Megaphone, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
+import { Bell, Building2, CalendarClock, FolderKanban, Megaphone, Network, UsersRound, LayoutDashboard, Mail, MonitorSmartphone, PlusCircle, ScrollText, ShieldCheck, Store as StoreIcon, Tags, Ticket, Users, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useFocusTrap } from '@/lib/hooks'
 import { useCan } from '@/stores/auth'
@@ -63,6 +63,8 @@ function NavContent({ onNavigate }: { onNavigate: () => void }) {
     { to: '/notifications', label: 'Bildirimler', icon: <Bell className={i} />, isActive: (p) => p === '/notifications' },
     { to: '/announcements', label: 'Duyurular', icon: <Megaphone className={i} />, isActive: (p) => p === '/announcements' },
     { to: '/oncall', label: 'Nöbet çizelgesi', icon: <CalendarClock className={i} />, isActive: (p) => p === '/oncall' },
+    { to: '/employees', label: 'Çalışanlar', icon: <UsersRound className={i} />, isActive: (p) => p.startsWith('/employees') },
+    { to: '/org', label: 'Organizasyon şeması', icon: <Network className={i} />, isActive: (p) => p === '/org' },
   ])
   const operations = keep([
     can('tickets.manage') && { to: '/tickets?mine=1', label: 'Bana atananlar', icon: <FolderKanban className={i} />, isActive: (p, q) => p === '/tickets' && q.get('mine') === '1' },
@@ -71,7 +73,8 @@ function NavContent({ onNavigate }: { onNavigate: () => void }) {
     can('users.read', 'users.manage') && !can('users.manage') && { to: '/admin/users', label: 'Mağaza çalışanları', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
   ])
   const admin = keep([
-    can('users.manage') && { to: '/admin/users', label: 'Kullanıcılar', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
+    can('users.manage') && { to: '/admin/users', label: 'Kullanıcılar ve roller', icon: <Users className={i} />, isActive: (p) => p === '/admin/users' },
+    can('org.manage') && { to: '/admin/org', label: 'Departmanlar ve unvanlar', icon: <Building2 className={i} />, isActive: (p) => p === '/admin/org' },
     can('roles.manage') && { to: '/admin/roles', label: 'Roller ve izinler', icon: <ShieldCheck className={i} />, isActive: (p) => p === '/admin/roles' },
     can('categories.manage') && { to: '/admin/categories', label: 'Kategoriler', icon: <Tags className={i} />, isActive: (p) => p === '/admin/categories' },
     can('mail.read') && { to: '/admin/emails', label: 'Gönderilen e-postalar', icon: <Mail className={i} />, isActive: (p) => p === '/admin/emails' },

@@ -350,6 +350,153 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.ToTable("categories", (string)null);
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("manager_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("parent_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_departments");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_departments_code");
+
+                    b.HasIndex("ManagerId")
+                        .HasDatabaseName("ix_departments_manager_id");
+
+                    b.HasIndex("ParentId")
+                        .HasDatabaseName("ix_departments_parent_id");
+
+                    b.ToTable("departments", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_departments_not_own_parent", "parent_id IS NULL OR parent_id <> id");
+                        });
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.EmployeeProfile", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("address");
+
+                    b.Property<DateOnly?>("BirthDate")
+                        .HasColumnType("date")
+                        .HasColumnName("birth_date");
+
+                    b.Property<string>("CoverKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("cover_key");
+
+                    b.Property<string>("EmergencyContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("emergency_contact_name");
+
+                    b.Property<string>("EmergencyContactPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("emergency_contact_phone");
+
+                    b.Property<string>("EmergencyContactRelation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("emergency_contact_relation");
+
+                    b.Property<string>("EmployeeNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employee_number");
+
+                    b.Property<string>("EmploymentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("employment_type");
+
+                    b.Property<DateOnly?>("HireDate")
+                        .HasColumnType("date")
+                        .HasColumnName("hire_date");
+
+                    b.Property<string>("PersonalEmail")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("personal_email");
+
+                    b.Property<string>("PhotoKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("photo_key");
+
+                    b.Property<DateOnly?>("TerminationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("termination_date");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_employee_profiles");
+
+                    b.HasIndex("EmployeeNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_employee_profiles_employee_number")
+                        .HasFilter("employee_number IS NOT NULL");
+
+                    b.ToTable("employee_profiles", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_employee_profiles_dates", "termination_date IS NULL OR hire_date IS NULL OR termination_date >= hire_date");
+                        });
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
@@ -503,6 +650,59 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.OtpChallenge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("Payload")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("payload");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("purpose");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_otp_challenges");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_otp_challenges_user_id");
+
+                    b.ToTable("otp_challenges", (string)null);
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -563,6 +763,12 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("purpose");
+
                     b.Property<DateTime?>("UsedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("used_at");
@@ -615,6 +821,51 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_permissions_key");
 
                     b.ToTable("permissions", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Position", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("description");
+
+                    b.Property<int>("Level")
+                        .HasColumnType("integer")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("title");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_positions");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("ix_positions_title");
+
+                    b.ToTable("positions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_positions_level", "level BETWEEN 1 AND 20");
+                        });
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.ProcessedMessage", b =>
@@ -1163,16 +1414,19 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<string>("Department")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("department");
+                    b.Property<int?>("DepartmentId")
+                        .HasColumnType("integer")
+                        .HasColumnName("department_id");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)")
                         .HasColumnName("email");
+
+                    b.Property<DateTime?>("EmailVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_verified_at");
 
                     b.Property<string>("FullName")
                         .IsRequired()
@@ -1188,6 +1442,10 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login_at");
 
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("integer")
+                        .HasColumnName("manager_id");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -1199,25 +1457,55 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("phone");
 
+                    b.Property<int?>("PositionId")
+                        .HasColumnType("integer")
+                        .HasColumnName("position_id");
+
                     b.Property<int?>("StoreId")
                         .HasColumnType("integer")
                         .HasColumnName("store_id");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("two_factor_enabled");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
+                    b.Property<string>("Username")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("username");
+
                     b.HasKey("Id")
                         .HasName("pk_users");
+
+                    b.HasIndex("DepartmentId")
+                        .HasDatabaseName("ix_users_department_id");
 
                     b.HasIndex("Email")
                         .IsUnique()
                         .HasDatabaseName("ix_users_email");
 
+                    b.HasIndex("ManagerId")
+                        .HasDatabaseName("ix_users_manager_id");
+
+                    b.HasIndex("PositionId")
+                        .HasDatabaseName("ix_users_position_id");
+
                     b.HasIndex("StoreId")
                         .HasDatabaseName("ix_users_store_id");
 
-                    b.ToTable("users", (string)null);
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_username")
+                        .HasFilter("username IS NOT NULL");
+
+                    b.ToTable("users", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_users_not_own_manager", "manager_id IS NULL OR manager_id <> id");
+                        });
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.UserRole", b =>
@@ -1237,6 +1525,38 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_user_roles_role_id");
 
                     b.ToTable("user_roles", (string)null);
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.UserSettings", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer")
+                        .HasColumnName("user_id");
+
+                    b.Property<bool>("EmailAnnouncements")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_announcements");
+
+                    b.Property<bool>("EmailTicketUpdates")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_ticket_updates");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("Theme")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("theme");
+
+                    b.HasKey("UserId")
+                        .HasName("pk_user_settings");
+
+                    b.ToTable("user_settings", (string)null);
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Announcement", b =>
@@ -1306,6 +1626,37 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_oauth_authorization_codes_users_user_id");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "Manager")
+                        .WithMany()
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_departments_users_manager_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.Department", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_departments_departments_parent_id");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.EmployeeProfile", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "User")
+                        .WithOne("Profile")
+                        .HasForeignKey("StajDesk.Domain.Entities.EmployeeProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_employee_profiles_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("StajDesk.Domain.Entities.Ticket", "Ticket")
@@ -1336,6 +1687,16 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_on_call_shifts_users_user_id");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.OtpChallenge", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_otp_challenges_users_user_id");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.PasswordResetToken", b =>
@@ -1497,11 +1858,35 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("StajDesk.Domain.Entities.User", b =>
                 {
+                    b.HasOne("StajDesk.Domain.Entities.Department", "Department")
+                        .WithMany("Members")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_users_departments_department_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.User", "Manager")
+                        .WithMany("DirectReports")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_users_users_manager_id");
+
+                    b.HasOne("StajDesk.Domain.Entities.Position", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_users_positions_position_id");
+
                     b.HasOne("StajDesk.Domain.Entities.Store", "Store")
                         .WithMany("Users")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_users_stores_store_id");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Manager");
+
+                    b.Navigation("Position");
 
                     b.Navigation("Store");
                 });
@@ -1527,6 +1912,18 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StajDesk.Domain.Entities.UserSettings", b =>
+                {
+                    b.HasOne("StajDesk.Domain.Entities.User", "User")
+                        .WithOne("Settings")
+                        .HasForeignKey("StajDesk.Domain.Entities.UserSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_user_settings_users_user_id");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("StajDesk.Domain.Entities.Asset", b =>
                 {
                     b.Navigation("Tickets");
@@ -1535,6 +1932,13 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("StajDesk.Domain.Entities.Category", b =>
                 {
                     b.Navigation("Tickets");
+                });
+
+            modelBuilder.Entity("StajDesk.Domain.Entities.Department", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("StajDesk.Domain.Entities.Role", b =>
@@ -1564,9 +1968,15 @@ namespace StajDesk.Infrastructure.Persistence.Migrations
 
                     b.Navigation("AssignedTickets");
 
+                    b.Navigation("DirectReports");
+
+                    b.Navigation("Profile");
+
                     b.Navigation("RequestedTickets");
 
                     b.Navigation("Roles");
+
+                    b.Navigation("Settings");
                 });
 #pragma warning restore 612, 618
         }

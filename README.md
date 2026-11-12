@@ -59,6 +59,9 @@ Tam liste ve deneme senaryosu: [docs/DEMO.md](docs/DEMO.md).
 | Destek Personeli | Tüm talepler, atama/durum/öncelik, dahili notlar, envanter, genel özet paneli |
 | Mağaza Sahibi | Kendi mağazasının talepleri, cihazları, çalışanları ve mağaza özet paneli |
 | Kullanıcı | Yalnızca kendi talepleri ve kendisine zimmetli cihazlar |
+| İK Personeli | Personel kayıtları ve çalışan bilgileri (sistem rolü veremez, diğer modüllere otomatik erişimi yoktur) |
+
+Unvan (Müdür, Uzman, Stajyer…) ile sistem rolü ayrıdır; yetkiyi rol belirler. Ayrıntı: [docs/ORGANIZASYON.md](docs/ORGANIZASYON.md).
 
 Ayrıntılı izin matrisi: [docs/RBAC.md](docs/RBAC.md).
 
@@ -107,6 +110,9 @@ bash scripts/smoke-test.sh
 | [docs/RBAC.md](docs/RBAC.md) | Roller, izinler, veri kapsamı (kendi / mağaza / tümü) |
 | [docs/SECURITY.md](docs/SECURITY.md) | XSS, CSP, hız sınırı, denetim kaydı, kontrol listesi |
 | [docs/DEMO.md](docs/DEMO.md) | Demo hesapları ve adım adım deneme senaryosu |
+| [docs/ORGANIZASYON.md](docs/ORGANIZASYON.md) | Departman, unvan, yönetici, personel kartı, İK rolü, e-posta doğrulama, davet, SMS doğrulaması |
+| [docs/PORTAL_ANALIZ.md](docs/PORTAL_ANALIZ.md) | Kurumsal portal analizi, kararlar ve aşama planı |
+| [docs/GELISTIRME_LOG.md](docs/GELISTIRME_LOG.md) | Geliştirme günlüğü: tamamlananlar, hatalar ve çözümler |
 | [docs/PANEL.md](docs/PANEL.md) | Ana sayfa paneli, duyurular, nöbet çizelgesi, dosya ekleri, anlık bildirim, tam metin arama |
 | [docs/postman/](docs/postman) | Postman koleksiyonu (PKCE girişi dahil tüm uçlar) |
 | [docs/SUNUM.md](docs/SUNUM.md) | Final sunumu taslağı ve demo senaryosu |

@@ -93,3 +93,23 @@ export const colorClasses: Record<string, { badge: string; dot: string; hex: str
 }
 
 export const colorOf = (c?: string | null) => colorClasses[c ?? 'violet'] ?? colorClasses.violet
+
+export const employmentLabels: Record<import('./types').EmploymentType, string> = {
+  FullTime: 'Tam zamanlı',
+  PartTime: 'Yarı zamanlı',
+  Contract: 'Sözleşmeli',
+  Intern: 'Stajyer',
+}
+
+/** "2 yıl 3 ay" — işe başlama tarihinden bugüne kıdem. */
+export function seniority(hireDate?: string | null) {
+  if (!hireDate) return null
+  const start = new Date(`${hireDate}T00:00:00`)
+  const now = new Date()
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth()
+  if (now.getDate() < start.getDate()) months--
+  if (months < 0) return 'Henüz başlamadı'
+  const y = Math.floor(months / 12)
+  const m = months % 12
+  return [y > 0 && `${y} yıl`, m > 0 && `${m} ay`].filter(Boolean).join(' ') || '1 aydan az'
+}

@@ -1,7 +1,9 @@
 import { createBrowserRouter } from 'react-router'
 import { AnnouncementsPage, OnCallPage } from './pages/WorkspacePages'
 import { AppLayout, RequireAuth } from './components/layout/AppLayout'
-import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
+import { ForgotPasswordPage, LoginPage, OAuthAuthorizePage, RegisterPage, ResetPasswordPage, SetPasswordPage, VerifyEmailPage } from './pages/AuthPages'
+import { EmployeesPage, MyProfilePage, ProfilePage } from './pages/PeoplePages'
+import { OrgAdminPage, OrgChartPage } from './pages/OrgPages'
 import { StoresPage } from './pages/StoresPage'
 import { RolesPage } from './pages/RolesPage'
 import { AuditPage, EmailsPage } from './pages/SystemPages'
@@ -25,6 +27,8 @@ export const router = createBrowserRouter([
   { path: '/register', element: <RegisterPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
+  { path: '/set-password', element: <SetPasswordPage /> },
+  { path: '/verify-email', element: <VerifyEmailPage /> },
   { path: '/oauth/authorize', element: <OAuthAuthorizePage /> },
   {
     element: <AppLayout />,
@@ -36,6 +40,11 @@ export const router = createBrowserRouter([
       { path: 'notifications', element: <NotificationsPage /> },
       { path: 'announcements', element: <AnnouncementsPage /> },
       { path: 'oncall', element: <OnCallPage /> },
+      { path: 'employees', element: <EmployeesPage /> },
+      { path: 'employees/:id', element: <ProfilePage /> },
+      { path: 'profile', element: <MyProfilePage /> },
+      { path: 'org', element: <OrgChartPage /> },
+      { path: 'admin/org', element: <RequireAuth perms={['org.manage']}><OrgAdminPage /></RequireAuth> },
       { path: 'assets', element: <RequireAuth perms={['assets.read.all', 'assets.read.store']}><AssetsPage /></RequireAuth> },
       { path: 'assets/new', element: <RequireAuth perms={['assets.manage']}><AssetFormPage /></RequireAuth> },
       { path: 'assets/:id', element: <AssetDetailPage /> },

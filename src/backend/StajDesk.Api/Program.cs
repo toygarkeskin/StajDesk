@@ -97,13 +97,16 @@ builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Ad
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// IP başına genel koruma (e-posta bazlı brute-force koruması ayrıca Redis'te yapılır).
+// IP başına genel koruma (e-posta ve IP bazlı hatalı giriş sınırı ayrıca Redis'te yapılır).
+// Bir mağazadaki tüm çalışanlar aynı dış IP'den gelir ve her sayfa açılışı token yeniler; bu yüzden sınır
+// "saldırı" değil "kötüye kullanım" eşiğidir. Asıl kaba kuvvet koruması hatalı deneme sayacıdır (5 deneme / 5 dk).
+var authPermitPerMinute = builder.Configuration.GetValue("RateLimiting:AuthPermitPerMinute", 120);
 builder.Services.AddRateLimiter(o =>
 {
     o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = authPermitPerMinute, Window = TimeSpan.FromMinutes(1) }));
     o.OnRejected = async (ctx, ct) =>
         await ctx.HttpContext.Response.WriteAsJsonAsync(
             ApiResponse.Fail("Kısa sürede çok fazla istek geldi. Bir dakika bekleyip tekrar deneyin."), ct);

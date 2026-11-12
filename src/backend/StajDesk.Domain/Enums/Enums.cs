@@ -65,3 +65,25 @@ public enum AnnouncementLevel
     Warning = 1,
     Critical = 2
 }
+
+public enum EmploymentType
+{
+    FullTime = 0,
+    PartTime = 1,
+    Contract = 2,
+    Intern = 3
+}
+
+/// <summary>Hesap bağlantılarının amacı (şifre sıfırlama, davet ile ilk şifre, e-posta doğrulama).</summary>
+public enum AccountTokenPurpose
+{
+    PasswordReset = 0,
+    Invitation = 1,
+    EmailVerification = 2
+}
+
+public enum OtpPurpose
+{
+    Login = 0,
+    EnableTwoFactor = 1
+}

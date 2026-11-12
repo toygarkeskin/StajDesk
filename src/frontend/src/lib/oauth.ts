@@ -30,9 +30,19 @@ export interface TokenResponse {
   scope: string
 }
 
-/** Kimlik bilgileriyle yetkilendirme kodu al (giriş formu). */
+export interface AuthorizeResult {
+  code?: string | null
+  state?: string | null
+  redirectUri: string
+  /** Kullanıcıda SMS doğrulaması açıksa kod yerine bunlar gelir. */
+  otpRequired?: boolean
+  challengeId?: string | null
+  maskedPhone?: string | null
+}
+
+/** Kimlik bilgileriyle yetkilendirme kodu al (giriş formu). "email" alanı kullanıcı adı da olabilir. */
 export async function authorize(input: { email: string; password: string; clientId?: string; redirectUri?: string; codeChallenge: string; state?: string; scope?: string }) {
-  const { data } = await oauthHttp.post<{ code: string; state?: string; redirectUri: string }>('/connect/authorize', {
+  const { data } = await oauthHttp.post<AuthorizeResult>('/connect/authorize', {
     responseType: 'code',
     clientId: input.clientId ?? CLIENT_ID,
     redirectUri: input.redirectUri ?? redirectUri(),
@@ -66,9 +76,25 @@ export async function revoke() {
   await oauthHttp.post('/connect/revoke', form({ client_id: CLIENT_ID })).catch(() => {})
 }
 
-/** Tek adımda giriş: PKCE ile kod al ve token'a çevir. */
-export async function loginWithPassword(email: string, password: string) {
+/** İkinci adım: SMS ile gelen kodu doğrula → yetkilendirme kodu. */
+export async function verifyOtp(challengeId: string, code: string) {
+  const { data } = await oauthHttp.post<AuthorizeResult>('/connect/authorize/otp', { challengeId, code })
+  return data
+}
+
+export type LoginResult =
+  | { kind: 'token'; token: TokenResponse }
+  | { kind: 'otp'; challengeId: string; maskedPhone: string; verifier: string }
+
+/** Giriş: PKCE ile kod al ve token'a çevir. SMS doğrulaması gerekiyorsa ikinci adımın bilgileri döner. */
+export async function loginWithPassword(login: string, password: string): Promise<LoginResult> {
   const verifier = createVerifier()
-  const { code } = await authorize({ email, password, codeChallenge: await challengeOf(verifier) })
-  return exchangeCode(code, verifier)
+  const res = await authorize({ email: login, password, codeChallenge: await challengeOf(verifier) })
+  if (res.otpRequired && res.challengeId) return { kind: 'otp', challengeId: res.challengeId, maskedPhone: res.maskedPhone ?? '', verifier }
+  return { kind: 'token', token: await exchangeCode(res.code!, verifier) }
+}
+
+export async function completeOtpLogin(challengeId: string, code: string, verifier: string) {
+  const res = await verifyOtp(challengeId, code)
+  return exchangeCode(res.code!, verifier)
 }

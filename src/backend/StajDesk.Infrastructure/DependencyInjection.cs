@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddRedis(config);
         services.AddScoped<ITicketSearch, PostgresTicketSearch>(); // tam metin arama (Application'daki basit aramanın yerine)
         services.AddSingleton<IFileStorage, LocalFileStorage>();
+        services.AddSingleton<ISmsSender, Sms.NotConfiguredSmsSender>();
         services.AddSingleton<ICacheService, RedisCacheService>();
         services.Configure<RateLimitOptions>(config.GetSection("LoginRateLimit"));
         services.AddSingleton<IRateLimiter, RedisRateLimiter>();

@@ -108,6 +108,32 @@ FOUND=$(curl -s "$API/api/tickets?search=yaz%C4%B1c%C4%B1lar" -H "Authorization:
 check "SignalR negotiate (token ile 200)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/hubs/notifications/negotiate?negotiateVersion=1" -H "Authorization: Bearer $USER")" 200
 check "SignalR negotiate (token yok → 401)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/hubs/notifications/negotiate?negotiateVersion=1")" 401
 
+echo "== Kimlik ve organizasyon"
+BYNAME=$(login "elif" "$DEMO_PASSWORD")
+[ -n "$BYNAME" ] && ok "Kullanıcı adıyla giriş (elif)" || bad "Kullanıcı adıyla giriş yapılamadı"
+HR=$(login "deniz.ik@stajdesk.local" "$DEMO_PASSWORD")
+check "Organizasyon şeması (herkes)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/org/chart" -H "Authorization: Bearer $USER")" 200
+AYSE_ID=$(curl -s "$API/api/auth/me" -H "Authorization: Bearer $USER" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+check "Çalışma arkadaşı kişisel bilgileri göremez" "$(curl -s "$API/api/employees/$AYSE_ID" -H "Authorization: Bearer $OTHER" | grep -c '"private":null')" 1
+check "İK kişisel bilgileri görür" "$(curl -s "$API/api/employees/$AYSE_ID" -H "Authorization: Bearer $HR" | grep -c '"private":{')" 1
+check "Kullanıcı iş bilgisi değiştiremez (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API/api/employees/$AYSE_ID/work" -H "Authorization: Bearer $USER" -H 'Content-Type: application/json' -d '{"fullName":"x","employmentType":"FullTime","isActive":true}')" 403
+check "İK rol/izin yönetemez (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/roles" -H "Authorization: Bearer $HR")" 403
+STAMP=$(date +%s)
+BEFORE_INV=$(curl -s "$MAILPIT/api/v1/search?query=subject:hesab%C4%B1n%C4%B1z" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); BEFORE_INV=${BEFORE_INV:-0}
+NEW_ID=$(curl -s -X POST "$API/api/employees" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d "{\"fullName\":\"Duman Test\",\"email\":\"duman.$STAMP@stajdesk.local\",\"employmentType\":\"Intern\"}" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
+[ -n "$NEW_ID" ] && ok "İK personel kaydı oluşturur (#$NEW_ID)" || bad "İK personel kaydı oluşturamadı"
+for _ in $(seq 1 15); do
+  AFTER_INV=$(curl -s "$MAILPIT/api/v1/search?query=subject:hesab%C4%B1n%C4%B1z" | sed -n 's/.*"messages_count":\([0-9]*\).*/\1/p'); AFTER_INV=${AFTER_INV:-0}
+  [ "$AFTER_INV" -gt "$BEFORE_INV" ] && break; sleep 1
+done
+[ "$AFTER_INV" -gt "$BEFORE_INV" ] && ok "İlk şifre davet e-postası Mailpit'te" || bad "Davet e-postası gelmedi"
+curl -s -X POST "$API/api/auth/register" -H 'Content-Type: application/json' -d "{\"fullName\":\"Kayit Test\",\"email\":\"kayit.$STAMP@stajdesk.local\",\"password\":\"Guclu!Sifre123\"}" >/dev/null
+check "Doğrulanmamış e-posta ile giriş engellenir" "$(curl -s -X POST "$API/connect/authorize" -H 'Content-Type: application/json' -d "{\"responseType\":\"code\",\"clientId\":\"stajdesk-web\",\"redirectUri\":\"$REDIRECT\",\"codeChallenge\":\"$(pkce_challenge "$(pkce_verifier)")\",\"codeChallengeMethod\":\"S256\",\"email\":\"kayit.$STAMP@stajdesk.local\",\"password\":\"Guclu!Sifre123\"}" | json error)" email_not_verified
+check "SMS sağlayıcısı yok → iki adımlı doğrulama kapalı görünür" "$(curl -s "$API/api/me/security" -H "Authorization: Bearer $USER" | grep -c '"smsAvailable":false')" 1
+check "Doğrulanmamış kayıt rehberde görünmez" "$(curl -s "$API/api/employees?search=kayit.$STAMP" -H "Authorization: Bearer $USER" | grep -c '"totalCount":0')" 1
+# Test kaydını pasifleştir (rehberde kalmasın)
+check "İK test personelini pasifleştirir" "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$API/api/employees/$NEW_ID/work" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d '{"fullName":"Duman Test","employmentType":"Intern","isActive":false}')" 200
+
 echo "== Şifre sıfırlama e-postası"
 curl -s -X POST "$API/api/auth/forgot-password" -H 'Content-Type: application/json' -d '{"email":"mehmet@stajdesk.local"}' >/dev/null
 sleep 4
