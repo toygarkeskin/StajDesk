@@ -153,6 +153,42 @@ public class AccountRequestTests
     }
 
     [Fact]
+    public async Task Bulk_approve_approves_only_selected_and_reports_failures()
+    {
+        _current.As(_hr, RoleNames.Hr);
+        var a = await Requests().CreateNewAccountAsync(NewHire("a@test", "B1"));
+        var b = await Requests().CreateNewAccountAsync(NewHire("b@test", "B2"));
+        var notSelected = await Requests().CreateNewAccountAsync(NewHire("c@test", "B3"));
+        _current.As(_it, RoleNames.ItAdmin);
+        var own = await Requests().CreateNewAccountAsync(NewHire("own@test", "B4")); // görevler ayrılığı: BT kendi talebini onaylayamaz
+
+        var result = await Requests().BulkApproveAsync(new BulkApproveAccountRequests([a, b, own, 999], null));
+
+        Assert.Equal([a, b], result.Approved.Order().ToArray());
+        Assert.Equal(2, result.Failed.Count);
+        Assert.Contains(result.Failed, f => f.Id == own && f.Reason.Contains("Kendi"));
+        Assert.Contains(result.Failed, f => f.Id == 999);
+        Assert.Equal(AccountRequestStatus.Approved, _db.AccountRequests.Single(x => x.Id == a).Status);
+        Assert.Equal(AccountRequestStatus.Pending, _db.AccountRequests.Single(x => x.Id == notSelected).Status); // seçilmeyen dokunulmaz
+        Assert.Equal(AccountRequestStatus.Pending, _db.AccountRequests.Single(x => x.Id == own).Status);
+        Assert.True(_db.Users.Any(u => u.Email == "a@test") && _db.Users.Any(u => u.Email == "b@test"));
+        Assert.False(_db.Users.Any(u => u.Email == "own@test" || u.Email == "c@test"));
+    }
+
+    [Fact]
+    public async Task Bulk_approve_requires_account_management_permission_and_a_selection()
+    {
+        _current.As(_hr, RoleNames.Hr);
+        var id = await Requests().CreateNewAccountAsync(NewHire());
+        await Assert.ThrowsAsync<ForbiddenException>(() => Requests().BulkApproveAsync(new BulkApproveAccountRequests([id], null)));
+        Assert.Equal(AccountRequestStatus.Pending, _db.AccountRequests.Single(x => x.Id == id).Status);
+
+        _current.As(_it, RoleNames.ItAdmin);
+        await Assert.ThrowsAsync<DomainException>(() => Requests().BulkApproveAsync(new BulkApproveAccountRequests([], null)));
+        await Assert.ThrowsAsync<DomainException>(() => Requests().BulkApproveAsync(new BulkApproveAccountRequests(Enumerable.Range(1, 101).ToList(), null)));
+    }
+
+    [Fact]
     public async Task Closing_account_of_employee_who_never_started_does_not_break_date_rule()
     {
         // İşe başlama 1 Aralık, kapatma 12 Kasım: çalışan hiç başlamadı (işe başlamadan iptal).

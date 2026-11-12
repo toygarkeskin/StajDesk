@@ -84,3 +84,9 @@ Yapılan geliştirmeler, karşılaşılan hatalar ve çözümleri, tamamlanan a�
 **Doğrulama:** 111 birim testi; tip kontrolü + derleme; tarayıcıda masaüstü ve mobil (375 px, yatay taşma yok), hamburger menü, haber/ilan detayı, taslak haber 404, içerik yönetimi formu ve doğrulaması, portal paneli. Smoke: kurumsal site kontrollerinin demo hesap gerektirmeyenleri geçti. Demo hesapları (ayse, deniz.ik, kaan…) ortamda pasife alındığı için giriş gerektiren kontroller bu çalıştırmada doğrulanamadı.
 
 **Bekleyen:** gram altın sağlayıcısı, Open-Meteo ticari planı, açık tema ekran görüntüsü, departman/unvan CSV'si.
+
+## 12.11.2026 — Hesap taleplerinde toplu onay
+
+**Yapılan:** Bekleyen taleplerde seçim kutuları, "Tümünü Seç" (sayfa) ve "tüm sayfalardaki bekleyen yeni hesap taleplerini seç". Seçim yapılınca "Seçilenleri Onayla" görünür. Onay penceresi adları ve toplamı gösterir; 100'erli parçalarla gönderilir, ilerleme çubuğu, sonuç bildirimi ve onaylanamayanların sebebiyle listesi var. Her talep tek onaydaki kurallarla işlenir; başarısız olanın yarım değişikliği atılır. Yalnızca `users.manage`.
+
+**Doğrulama:** 2 yeni birim testi (yalnızca seçilenler onaylanır, görevler ayrılığı ve bulunamayan talep raporlanır; İK yapamaz; boş/101 seçim reddedilir), 3 smoke kontrolü. Tarayıcıda 1.146 talep seçilip pencere açıldı ve **onaylanmadan** kapatıldı.

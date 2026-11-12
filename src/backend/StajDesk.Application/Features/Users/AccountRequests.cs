@@ -41,6 +41,11 @@ public sealed record CreateAccountRequest(string FullName, string Email, string?
 public sealed record CreateDeactivationRequest(int UserId, DateOnly TerminationDate, string? Note);
 public sealed record ApproveAccountRequest(string? Username, IReadOnlyList<string>? Roles, string? Note);
 public sealed record RejectAccountRequest(string Reason);
+/// <summary>Toplu onay: yalnızca kullanıcının seçtiği talepler (en fazla 100). Yeni hesaplara varsayılan "Kullanıcı" rolü verilir.</summary>
+public sealed record BulkApproveAccountRequests(IReadOnlyList<int> Ids, string? Note);
+public sealed record PendingRequestRefDto(int Id, string FullName, AccountRequestType Type);
+public sealed record BulkApproveFailureDto(int Id, string? FullName, string Reason);
+public sealed record BulkApproveResultDto(int Requested, IReadOnlyList<int> Approved, IReadOnlyList<BulkApproveFailureDto> Failed);
 
 public interface IAccountRequestService
 {
@@ -51,6 +56,9 @@ public interface IAccountRequestService
     Task CancelAsync(int id, CancellationToken ct = default);
     Task<AccountRequestDto> ApproveAsync(int id, ApproveAccountRequest request, CancellationToken ct = default);
     Task<AccountRequestDto> RejectAsync(int id, RejectAccountRequest request, CancellationToken ct = default);
+    Task<BulkApproveResultDto> BulkApproveAsync(BulkApproveAccountRequests request, CancellationToken ct = default);
+    /// <summary>Bekleyen taleplerin kimlik + ad listesi (toplu seçim için; yalnızca users.manage).</summary>
+    Task<IReadOnlyList<PendingRequestRefDto>> PendingRefsAsync(AccountRequestType? type, CancellationToken ct = default);
     Task<int> PendingCountAsync(CancellationToken ct = default);
 }
 
@@ -218,6 +226,50 @@ internal sealed class AccountRequestService(
         audit.Add("account_request.approved", "account_request", id, new { type = req.Type.ToString(), req.CreatedUserId, req.TargetUserId });
         await db.SaveChangesAsync(ct);
         return await GetAsync(id, ct);
+    }
+
+    public const int BulkApproveMax = 100;
+
+    public async Task<IReadOnlyList<PendingRequestRefDto>> PendingRefsAsync(AccountRequestType? type, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.UsersManage);
+        return await db.AccountRequests.AsNoTracking()
+            .Where(x => x.Status == AccountRequestStatus.Pending && (type == null || x.Type == type))
+            .OrderBy(x => x.CreatedAt).ThenBy(x => x.Id)
+            .Select(x => new PendingRequestRefDto(x.Id, x.FullName, x.Type)).ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Seçilen talepleri sırayla, TEK TEK onaydaki kuralların aynısıyla onaylar (yetki, görevler ayrılığı, rol yükseltme koruması,
+    /// e-posta çakışması). Bir talep başarısız olursa yalnızca o atlanır, yarım değişikliği atılır; sebebi sonuçta döner.
+    /// </summary>
+    public async Task<BulkApproveResultDto> BulkApproveAsync(BulkApproveAccountRequests r, CancellationToken ct = default)
+    {
+        currentUser.Require(Permissions.UsersManage);
+        var ids = (r.Ids ?? []).Distinct().ToList();
+        if (ids.Count == 0) throw new DomainException("Onaylanacak talepleri seçin.");
+        if (ids.Count > BulkApproveMax) throw new DomainException($"Tek seferde en fazla {BulkApproveMax} talep onaylanabilir.");
+
+        var names = await db.AccountRequests.AsNoTracking().Where(x => ids.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.FullName, ct);
+        var approved = new List<int>();
+        var failed = new List<BulkApproveFailureDto>();
+        foreach (var id in ids)
+        {
+            try
+            {
+                await ApproveAsync(id, new ApproveAccountRequest(null, null, r.Note), ct);
+                approved.Add(id);
+            }
+            catch (Exception ex) when (ex is AppException or DomainException or DbUpdateException)
+            {
+                db.DiscardChanges();
+                failed.Add(new BulkApproveFailureDto(id, names.GetValueOrDefault(id),
+                    ex is DbUpdateException ? "Kayıt veritabanı kuralına takıldı; talebi tek tek açıp inceleyin." : ex.Message));
+            }
+        }
+        audit.Add("account_request.bulk_approved", "account_request", null, new { requested = ids.Count, approved = approved.Count, failed = failed.Count });
+        await db.SaveChangesAsync(ct);
+        return new BulkApproveResultDto(ids.Count, approved, failed);
     }
 
     private async Task CreateAccountAsync(AccountRequest req, ApproveAccountRequest r, CancellationToken ct)

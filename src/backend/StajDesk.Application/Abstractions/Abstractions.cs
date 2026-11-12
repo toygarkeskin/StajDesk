@@ -44,6 +44,12 @@ public interface IAppDbContext
     DbSet<MediaFile> MediaFiles { get; }
     DbSet<ExternalSnapshot> ExternalSnapshots { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Kaydedilmemiş değişiklikleri atar. Toplu işlemlerde başarısız olan bir öğenin yarım değişikliği sonrakilere taşınmasın diye.</summary>
+    void DiscardChanges()
+    {
+        if (this is DbContext context) context.ChangeTracker.Clear();
+    }
 }
 
 /// <summary>

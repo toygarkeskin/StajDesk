@@ -444,3 +444,10 @@ export interface AccountImportResult {
   newPositions: string[]
   rows: AccountImportRow[]
 }
+
+/** Toplu hesap talebi onayı sonucu. */
+export interface BulkApproveResult {
+  requested: number
+  approved: number[]
+  failed: { id: number; fullName?: string | null; reason: string }[]
+}

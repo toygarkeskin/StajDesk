@@ -11,6 +11,7 @@ import type { AccountRequestItem, AccountRequestStatus, EmploymentType, Permissi
 import { useAuth, useCan } from '@/stores/auth'
 import { toast } from '@/stores/ui'
 import { Badge, EmptyState, ErrorState, Field, PageHeader, Pagination, SlideOver, Spinner, TableSkeleton } from '@/components/ui'
+import { BulkApproveDialog, type BulkTarget } from '@/components/BulkApproveDialog'
 
 /*
  * Kurumsal hesap süreci (kapalı portal):
@@ -54,12 +55,43 @@ export function AccountRequestsPage() {
   const page = Number(params.get('page') ?? 1)
   const [creating, setCreating] = useState(params.get('new') === '1')
   const [selected, setSelected] = useState<AccountRequestItem | null>(null)
+  const qc = useQueryClient()
+  // Toplu onay yalnızca hesap yöneticisine (users.manage) ve yalnızca "Bekleyenler" sekmesinde açılır; API de aynı izni ister.
+  const canBulk = can('users.manage') && status === 'Pending'
+  const [checked, setChecked] = useState<Map<number, BulkTarget>>(new Map())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [loadingAll, setLoadingAll] = useState(false)
 
   const list = useQuery({
     queryKey: ['account-requests', status, page],
     queryFn: () => api.accountRequests.list({ status: status || undefined, page, pageSize: PAGE_SIZE }),
     placeholderData: keepPreviousData,
   })
+
+  const items = list.data?.items ?? []
+  const pageTargets: BulkTarget[] = canBulk ? items.filter((r) => r.status === 'Pending').map((r) => ({ id: r.id, fullName: r.fullName, type: r.type })) : []
+  const allOnPage = pageTargets.length > 0 && pageTargets.every((t) => checked.has(t.id))
+  const someOnPage = pageTargets.some((t) => checked.has(t.id))
+  const toggle = (t: BulkTarget) => setChecked((m) => { const n = new Map(m); if (n.has(t.id)) n.delete(t.id); else n.set(t.id, t); return n })
+  const togglePage = () => setChecked((m) => {
+    const n = new Map(m)
+    if (allOnPage) pageTargets.forEach((t) => n.delete(t.id))
+    else pageTargets.forEach((t) => n.set(t.id, t))
+    return n
+  })
+  /** Tüm sayfalardaki bekleyen YENİ HESAP taleplerini seçer (hesap kapatma talepleri bilerek dahil edilmez). */
+  const selectAllPendingNew = async () => {
+    setLoadingAll(true)
+    try {
+      const refs = await api.accountRequests.pendingRefs('NewAccount')
+      setChecked(new Map(refs.map((r) => [r.id, r])))
+    } catch (e) {
+      toast(errorMessage(e), 'error')
+    } finally {
+      setLoadingAll(false)
+    }
+  }
+  const pendingTotal = list.data?.totalCount ?? 0
 
   return (
     <>
@@ -73,12 +105,36 @@ export function AccountRequestsPage() {
       <div role="tablist" aria-label="Talep durumu" className="mb-4 flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-700/60">
         {tabs.map((t) => (
           <button key={t.key || 'all'} role="tab" aria-selected={status === t.key}
-            onClick={() => setParams(t.key === 'Pending' ? {} : { status: t.key })}
+            onClick={() => { setChecked(new Map()); setParams(t.key === 'Pending' ? {} : { status: t.key }) }}
             className={clsx('min-h-11 shrink-0 border-b-2 px-3 text-sm font-medium', status === t.key ? 'border-violet-500 text-violet-600 dark:text-violet-300' : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200')}>
             {t.label}
           </button>
         ))}
       </div>
+
+      {canBulk && items.length > 0 && (
+        <div className="card mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2" aria-label="Toplu işlemler">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+            <input type="checkbox" className="size-4 rounded accent-violet-500" checked={allOnPage}
+              ref={(el) => { if (el) el.indeterminate = someOnPage && !allOnPage }} onChange={togglePage} />
+            Tümünü Seç <span className="font-normal text-gray-500">(bu sayfa)</span>
+          </label>
+          {pendingTotal > pageTargets.length && (
+            <button type="button" className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-violet-600 hover:text-violet-700 dark:text-violet-300" disabled={loadingAll} onClick={selectAllPendingNew}>
+              {loadingAll && <Spinner />}Tüm sayfalardaki bekleyen yeni hesap taleplerini seç
+            </button>
+          )}
+          <span className="ml-auto flex flex-wrap items-center gap-2">
+            {checked.size > 0 && (
+              <>
+                <span className="text-sm text-gray-600 tabular-nums dark:text-gray-300">{checked.size} talep seçildi</span>
+                <button type="button" className="btn-secondary" onClick={() => setChecked(new Map())}>Seçimi temizle</button>
+                <button type="button" className="btn-violet" onClick={() => setBulkOpen(true)}><CheckCircle2 className="size-4" aria-hidden="true" /> Seçilenleri Onayla</button>
+              </>
+            )}
+          </span>
+        </div>
+      )}
 
       <section className="card overflow-hidden">
         {list.isLoading ? <TableSkeleton cols={4} /> : list.isError ? (
@@ -89,8 +145,15 @@ export function AccountRequestsPage() {
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
             {list.data!.items.map((r) => (
-              <li key={r.id}>
-                <button className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/20" onClick={() => setSelected(r)}>
+              <li key={r.id} className={clsx('flex items-center', checked.has(r.id) && 'bg-violet-500/5')}>
+                {canBulk && r.status === 'Pending' && (
+                  <label className="flex min-h-11 shrink-0 cursor-pointer items-center self-stretch pr-1 pl-4">
+                    <span className="sr-only">{r.fullName} talebini seç</span>
+                    <input type="checkbox" className="size-4 rounded accent-violet-500" checked={checked.has(r.id)}
+                      onChange={() => toggle({ id: r.id, fullName: r.fullName, type: r.type })} />
+                  </label>
+                )}
+                <button className="flex min-w-0 flex-1 flex-wrap items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/20" onClick={() => setSelected(r)}>
                   <span className={clsx('flex size-9 shrink-0 items-center justify-center rounded-full', r.type === 'NewAccount' ? 'bg-violet-500/10 text-violet-600' : 'bg-rose-500/10 text-rose-600')} aria-hidden="true">
                     {r.type === 'NewAccount' ? <UserPlus className="size-4" /> : <UserMinus className="size-4" />}
                   </span>
@@ -119,6 +182,23 @@ export function AccountRequestsPage() {
 
       {creating && <NewAccountRequestPanel onClose={() => { setCreating(false); if (params.get('new')) setParams({}) }} />}
       {selected && <RequestDetailPanel request={selected} onClose={() => setSelected(null)} />}
+      {bulkOpen && (
+        <BulkApproveDialog
+          targets={[...checked.values()]}
+          onClose={() => setBulkOpen(false)}
+          onProgress={(ids) => {
+            // Onaylananlar seçimden ve bekleyenler listesinden anında düşer.
+            setChecked((m) => { const n = new Map(m); ids.forEach((id) => n.delete(id)); return n })
+            qc.invalidateQueries({ queryKey: ['account-requests'] })
+          }}
+          onDone={(r) => {
+            qc.invalidateQueries({ queryKey: ['account-requests'] })
+            qc.invalidateQueries({ queryKey: ['pending-requests'] })
+            qc.invalidateQueries({ queryKey: ['users'] })
+            toast(r.failed.length ? `${r.approved.length} talep başarıyla onaylandı, ${r.failed.length} talep onaylanamadı.` : `${r.approved.length} talep başarıyla onaylandı.`, r.approved.length ? 'success' : 'error')
+          }}
+        />
+      )}
     </>
   )
 }

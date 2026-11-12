@@ -129,6 +129,9 @@ REQ=$(curl -s -X POST "$API/api/account-requests/new-account" -H "Authorization:
   -d "{\"fullName\":\"Duman Test\",\"email\":\"duman.$STAMP@stajdesk.local\",\"employeeNumber\":\"T$STAMP\",\"departmentId\":1,\"positionId\":1,\"employmentType\":\"Intern\",\"hireDate\":\"2026-12-01\"}" | sed -n 's/.*"data":{"id":\([0-9]*\).*/\1/p')
 [ -n "$REQ" ] && ok "İK yeni çalışan hesabı talebi açar (#$REQ)" || bad "İK hesap talebi açamadı"
 check "İK talebi onaylayamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/$REQ/approve" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d '{}')" 403
+check "İK toplu onay yapamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/bulk-approve" -H "Authorization: Bearer $HR" -H 'Content-Type: application/json' -d "{\"ids\":[$REQ]}")" 403
+check "Çalışan bekleyen talep listesini alamaz (403)" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/account-requests/pending-refs" -H "Authorization: Bearer $USER")" 403
+check "Boş toplu onay reddedilir (400)" "$(curl -s -o /dev/null -w '%{http_code}' -X POST "$API/api/account-requests/bulk-approve" -H "Authorization: Bearer $ADMIN" -H 'Content-Type: application/json' -d '{"ids":[]}')" 400
 # CSV ile toplu talep: yalnızca önizleme (dryRun) denenir, veri değişmez
 csv_body() { printf 'Ad Soyad;E-posta;Personel Kodu;Departman;Unvan;İşe Başlama\r\nCsv Test;csv.%s@stajdesk.local;C%s;MG;Uzman;01.12.2026\r\nHatalı;gecersiz;;MG;Uzman;01.12.2026\r\n' "$STAMP" "$STAMP"; }
 check "CSV şablonu indirilir" "$(curl -s -o /dev/null -w '%{http_code}' "$API/api/account-requests/import/template" -H "Authorization: Bearer $HR")" 200

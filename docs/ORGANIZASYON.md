@@ -171,6 +171,16 @@ Kapalı portal kuralı korunur: **CSV hesap açmaz.** Her geçerli satır, BT/Ad
 - Satırlar tek formdaki kurallarla doğrulanır; HTML içeren alanlar reddedilir.
 - Sınırlar: en fazla 5.000 satır ve 5 MB. Excel'in dosya sonuna eklediği boş satırlar (`;;;;`) sayılmaz. Dosya UTF-8 değilse Windows-1254 olarak okunur.
 
-## 11. Bekleyen
+## 11. Toplu onay
+
+**Ekran:** Hesap talepleri → Bekleyenler. Yalnızca hesap yöneticisi () görür; API de aynı izni ister.
+
+- Her bekleyen talebin solunda seçim kutusu, üstte **Tümünü Seç** (görünen sayfa) ve **Tüm sayfalardaki bekleyen yeni hesap taleplerini seç** bağlantısı var. İkincisi hesap *kapatma* taleplerini bilerek seçmez.
+- En az bir talep seçilince **Seçilenleri Onayla** görünür. Pencere seçilen çalışanların adlarını ve toplam sayıyı gösterir; kullanıcı son kez onaylamadan istek gitmez.
+- Gönderim 100'erli parçalarla yapılır, ilerleme çubuğu görünür. Her parçadan sonra onaylananlar bekleyenler listesinden düşer. Sonunda kaç talebin onaylandığını gösteren bildirim çıkar.
+- Her talep **tek onaydaki kuralların aynısıyla** işlenir: görevler ayrılığı, rol yükseltme koruması, e-posta çakışması. Yeni hesaplara varsayılan *Kullanıcı* rolü verilir, kullanıcı adı boş kalır (sonradan verilebilir), çalışana davet e-postası gider. Başarısız olan talep atlanır, yarım değişikliği atılır, sebebi pencerede listelenir ve talep bekleyenlerde kalır.
+- Uçlar:  (seçim için kimlik + ad),  (, en fazla 100). Toplu işlem ayrıca  denetim kaydı bırakır.
+
+## 12. Bekleyen
 
 - **Departman ve unvan listesi:** gönderileceği belirtilen CSV dosyası henüz ulaşmadı. Dosya gelince yukarıdaki içe aktarma ile yüklenebilir; çalışan satırlarındaki departman ve unvanlar otomatik oluşturulur.

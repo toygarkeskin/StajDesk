@@ -558,6 +558,18 @@ public sealed class AccountRequestsController(IAccountRequestService requests, I
     public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Approve(int id, ApproveAccountRequest request, CancellationToken ct) =>
         Envelope(await requests.ApproveAsync(id, request, ct), "Talep onaylandı.");
 
+    /// <summary>Seçilen bekleyen talepleri toplu onaylar (users.manage). Her talep tek onaydaki kurallarla işlenir; başarısızlar sebebiyle döner.</summary>
+    [HttpGet("pending-refs"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PendingRequestRefDto>>>> PendingRefs([FromQuery] AccountRequestType? type, CancellationToken ct) =>
+        Envelope(await requests.PendingRefsAsync(type, ct));
+
+    [HttpPost("bulk-approve"), RequirePermission(Permissions.UsersManage)]
+    public async Task<ActionResult<ApiResponse<BulkApproveResultDto>>> BulkApprove(BulkApproveAccountRequests request, CancellationToken ct)
+    {
+        var result = await requests.BulkApproveAsync(request, ct);
+        return Envelope(result, $"{result.Approved.Count} talep onaylandı." + (result.Failed.Count > 0 ? $" {result.Failed.Count} talep onaylanamadı." : ""));
+    }
+
     [HttpPost("{id:int}/reject"), RequirePermission(Permissions.UsersManage)]
     public async Task<ActionResult<ApiResponse<AccountRequestDto>>> Reject(int id, RejectAccountRequest request, CancellationToken ct) =>
         Envelope(await requests.RejectAsync(id, request, ct), "Talep reddedildi.");

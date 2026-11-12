@@ -3,6 +3,7 @@ import { useAuth } from '@/stores/auth'
 import { refresh } from './oauth'
 import type {
   AccountImportResult,
+  BulkApproveResult,
   AccountRequestItem,
   Announcement,
   ApiResponse,
@@ -206,6 +207,8 @@ export const api = {
     cancel: (id: number) => unwrap<object>(http.post(`/account-requests/${id}/cancel`)),
     approve: (id: number, body: { username?: string | null; roles?: string[]; note?: string | null }) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/approve`, body)),
     reject: (id: number, reason: string) => unwrap<AccountRequestItem>(http.post(`/account-requests/${id}/reject`, { reason })),
+    pendingRefs: (type?: 'NewAccount' | 'Deactivation') => unwrap<{ id: number; fullName: string; type: 'NewAccount' | 'Deactivation' }[]>(http.get('/account-requests/pending-refs', { params: { type } })),
+    bulkApprove: (ids: number[], note?: string | null) => unwrap<BulkApproveResult>(http.post('/account-requests/bulk-approve', { ids, note })),
     importCsv: (file: File, dryRun: boolean) => {
       const form = new FormData()
       form.append('file', file)
